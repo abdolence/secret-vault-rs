@@ -1,15 +1,16 @@
 use rsb_derive::Builder;
-use serde::*;
 use std::error::Error;
 use std::fmt::Display;
 use std::fmt::Formatter;
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
 pub enum SecretManagerError {
     SystemError(SecretManagerSystemError),
     DataNotFoundError(SecretManagerDataNotFoundError),
     InvalidParametersError(SecretManagerInvalidParametersError),
-    InvalidJsonError(SecretManagerInvalidJsonError),
     NetworkError(SecretManagerNetworkError),
 }
 
@@ -19,7 +20,6 @@ impl Display for SecretManagerError {
             SecretManagerError::SystemError(ref err) => err.fmt(f),
             SecretManagerError::DataNotFoundError(ref err) => err.fmt(f),
             SecretManagerError::InvalidParametersError(ref err) => err.fmt(f),
-            SecretManagerError::InvalidJsonError(ref err) => err.fmt(f),
             SecretManagerError::NetworkError(ref err) => err.fmt(f),
         }
     }
@@ -31,13 +31,13 @@ impl Error for SecretManagerError {
             SecretManagerError::SystemError(ref err) => Some(err),
             SecretManagerError::DataNotFoundError(ref err) => Some(err),
             SecretManagerError::InvalidParametersError(ref err) => Some(err),
-            SecretManagerError::InvalidJsonError(ref err) => Some(err),
             SecretManagerError::NetworkError(ref err) => Some(err),
         }
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Builder, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Builder)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SecretManagerErrorPublicGenericDetails {
     pub code: String,
 }
@@ -99,7 +99,8 @@ impl Display for SecretManagerDataNotFoundError {
 
 impl std::error::Error for SecretManagerDataNotFoundError {}
 
-#[derive(Debug, PartialEq, Clone, Builder, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Builder)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SecretManagerInvalidParametersPublicDetails {
     pub field: String,
     pub error: String,
@@ -118,24 +119,11 @@ impl Display for SecretManagerInvalidParametersError {
 
 impl std::error::Error for SecretManagerInvalidParametersError {}
 
-#[derive(Debug, PartialEq, Clone, Builder, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Builder)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SecretManagerInvalidJsonErrorPublicDetails {
     pub code: String,
 }
-
-#[derive(Debug, Builder)]
-pub struct SecretManagerInvalidJsonError {
-    pub public: SecretManagerInvalidJsonErrorPublicDetails,
-    pub details: serde_json::Error,
-}
-
-impl Display for SecretManagerInvalidJsonError {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "Invalid JSON: {:?}", self.public)
-    }
-}
-
-impl std::error::Error for SecretManagerInvalidJsonError {}
 
 #[derive(Debug, PartialEq, Clone, Builder)]
 pub struct SecretManagerNetworkError {
@@ -160,18 +148,6 @@ impl From<gcloud_sdk::error::Error> for SecretManagerError {
     }
 }
 
-impl From<serde_json::Error> for SecretManagerError {
-    fn from(e: serde_json::Error) -> Self {
-        SecretManagerError::InvalidJsonError(SecretManagerInvalidJsonError::new(
-            SecretManagerInvalidJsonErrorPublicDetails::new(format!(
-                "SecretManager json parse error: {:?}",
-                e.classify()
-            )),
-            e,
-        ))
-    }
-}
-
 impl From<tonic::Status> for SecretManagerError {
     fn from(status: tonic::Status) -> Self {
         match status.code() {
@@ -184,7 +160,7 @@ impl From<tonic::Status> for SecretManagerError {
             tonic::Code::Unknown => check_hyper_errors(status),
             _ => SecretManagerError::SystemError(SecretManagerSystemError::new(
                 SecretManagerErrorPublicGenericDetails::new(format!("{:?}", status.code())),
-                format!("{}", status)
+                format!("{}", status),
             )),
         }
     }
@@ -196,7 +172,7 @@ fn check_hyper_errors(status: tonic::Status) -> SecretManagerError {
             Some(err) if err.is_closed() => {
                 SecretManagerError::NetworkError(SecretManagerNetworkError::new(
                     SecretManagerErrorPublicGenericDetails::new("CONNECTION_CLOSED".into()),
-                    format!("Hyper error: {}", err)
+                    format!("Hyper error: {}", err),
                 ))
             }
             Some(err) if err.is_timeout() => {
@@ -211,7 +187,7 @@ fn check_hyper_errors(status: tonic::Status) -> SecretManagerError {
             )),
             _ => SecretManagerError::NetworkError(SecretManagerNetworkError::new(
                 SecretManagerErrorPublicGenericDetails::new(format!("{:?}", status.code())),
-                format!("{}", status)
+                format!("{}", status),
             )),
         },
         _ => SecretManagerError::NetworkError(SecretManagerNetworkError::new(
