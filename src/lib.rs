@@ -16,5 +16,8 @@
 #![allow(clippy::new_without_default)]
 
 pub mod errors;
-mod secrets_reader;
-pub use secrets_reader::*;
+
+mod secret_value;
+pub use secret_value::*;
+
+//type BoxedError = Box<dyn std::error::Error + Send + Sync + 'static>;
