@@ -1,11 +1,11 @@
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use crate::*;
 use serde::de::{self, Visitor};
-use crate::secret_value::*;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 impl Serialize for SecretValue {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
+    where
+        S: Serializer,
     {
         serializer.serialize_str(
             String::from_utf8(self.ref_sensitive_value().clone())
@@ -25,29 +25,29 @@ impl<'de> Visitor<'de> for SecretValueVisitor {
     }
 
     fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-        where
-            E: de::Error,
+    where
+        E: de::Error,
     {
         Ok(SecretValue::new(value.as_bytes().to_vec()))
     }
 
     fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
-        where
-            E: de::Error,
+    where
+        E: de::Error,
     {
         Ok(SecretValue::new(value.as_bytes().to_vec()))
     }
 
     fn visit_bytes<E>(self, value: &[u8]) -> Result<Self::Value, E>
-        where
-            E: de::Error,
+    where
+        E: de::Error,
     {
         Ok(SecretValue::new(value.to_vec()))
     }
 
     fn visit_byte_buf<E>(self, value: Vec<u8>) -> Result<Self::Value, E>
-        where
-            E: de::Error,
+    where
+        E: de::Error,
     {
         Ok(SecretValue::new(value))
     }
@@ -55,8 +55,8 @@ impl<'de> Visitor<'de> for SecretValueVisitor {
 
 impl<'de> Deserialize<'de> for SecretValue {
     fn deserialize<D>(deserializer: D) -> Result<SecretValue, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         deserializer.deserialize_string(SecretValueVisitor)
     }
