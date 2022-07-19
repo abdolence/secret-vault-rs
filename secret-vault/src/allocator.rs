@@ -1,4 +1,5 @@
 use crate::encryption::EncryptedSecretValue;
+use crate::SecretVaultResult;
 
 pub struct SecretVaultStoreValue<R> {
     pub data: R,
@@ -10,8 +11,12 @@ pub trait SecretVaultStoreValueAllocator {
     fn allocate(
         &mut self,
         encrypted_secret: EncryptedSecretValue,
-    ) -> SecretVaultStoreValue<Self::R>;
-    fn extract(&self, allocated: &SecretVaultStoreValue<Self::R>) -> EncryptedSecretValue;
+    ) -> SecretVaultResult<SecretVaultStoreValue<Self::R>>;
+
+    fn extract(
+        &self,
+        allocated: &SecretVaultStoreValue<Self::R>,
+    ) -> SecretVaultResult<EncryptedSecretValue>;
     fn destroy(&mut self, value: SecretVaultStoreValue<Self::R>);
 }
 
@@ -23,14 +28,17 @@ impl SecretVaultStoreValueAllocator for SecretVaultStoreValueNoAllocator {
     fn allocate(
         &mut self,
         encrypted_secret: EncryptedSecretValue,
-    ) -> SecretVaultStoreValue<Self::R> {
-        SecretVaultStoreValue {
+    ) -> SecretVaultResult<SecretVaultStoreValue<Self::R>> {
+        Ok(SecretVaultStoreValue {
             data: encrypted_secret,
-        }
+        })
     }
 
-    fn extract(&self, allocated: &SecretVaultStoreValue<Self::R>) -> EncryptedSecretValue {
-        allocated.data.clone().into()
+    fn extract(
+        &self,
+        allocated: &SecretVaultStoreValue<Self::R>,
+    ) -> SecretVaultResult<EncryptedSecretValue> {
+        Ok(allocated.data.clone().into())
     }
 
     fn destroy(&mut self, value: SecretVaultStoreValue<Self::R>) {

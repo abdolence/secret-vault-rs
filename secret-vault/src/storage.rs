@@ -7,6 +7,8 @@ use std::collections::HashMap;
 
 use crate::common_types::*;
 use crate::encryption::{EncryptedSecretValue, NoEncryption, SecretVaultEncryption};
+use crate::errors::SecretVaultError;
+use crate::SecretVaultResult;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Builder)]
 pub struct SecretVaultStoreRef {
@@ -40,20 +42,30 @@ where
         }
     }
 
-    pub fn store(&mut self, secret_ref: SecretVaultStoreRef, secret: &SecretValue) {
+    pub fn store(
+        &mut self,
+        secret_ref: SecretVaultStoreRef,
+        secret: &SecretValue,
+    ) -> SecretVaultResult<()> {
         let encrypted_secret_value = self
             .encrypter
-            .encrypt_value(&secret_ref.secret_name, secret);
+            .encrypt_value(&secret_ref.secret_name, secret)?;
         self.secrets
-            .insert(secret_ref, self.allocator.allocate(encrypted_secret_value));
+            .insert(secret_ref, self.allocator.allocate(encrypted_secret_value)?);
+
+        Ok(())
     }
 
-    pub fn get_secret(&self, secret_ref: SecretVaultStoreRef) -> Option<SecretValue> {
-        self.secrets.get(&secret_ref).map(|encrypted_stored_value| {
-            self.encrypter.decrypt_value(
+    pub fn get_secret(
+        &self,
+        secret_ref: SecretVaultStoreRef,
+    ) -> SecretVaultResult<Option<SecretValue>> {
+        match self.secrets.get(&secret_ref) {
+            Some(encrypted_stored_value) => Ok(Some(self.encrypter.decrypt_value(
                 &secret_ref.secret_name,
-                &self.allocator.extract(encrypted_stored_value),
-            )
-        })
+                &self.allocator.extract(encrypted_stored_value)?,
+            )?)),
+            None => Ok(None),
+        }
     }
 }

@@ -1,5 +1,6 @@
 use crate::common_types::SecretName;
 
+use crate::SecretVaultResult;
 use rvstruct::*;
 use secret_vault_value::SecretValue;
 
@@ -11,12 +12,13 @@ pub trait SecretVaultEncryption {
         &self,
         secret_name: &SecretName,
         secret_value: &SecretValue,
-    ) -> EncryptedSecretValue;
+    ) -> SecretVaultResult<EncryptedSecretValue>;
+
     fn decrypt_value(
         &self,
         secret_name: &SecretName,
         encrypted_secret_value: &EncryptedSecretValue,
-    ) -> SecretValue;
+    ) -> SecretVaultResult<SecretValue>;
 }
 
 pub struct NoEncryption;
@@ -26,15 +28,15 @@ impl SecretVaultEncryption for NoEncryption {
         &self,
         _secret_name: &SecretName,
         secret_value: &SecretValue,
-    ) -> EncryptedSecretValue {
-        EncryptedSecretValue(secret_value.clone())
+    ) -> SecretVaultResult<EncryptedSecretValue> {
+        Ok(EncryptedSecretValue(secret_value.clone()))
     }
 
     fn decrypt_value(
         &self,
         _secret_name: &SecretName,
         encrypted_secret_value: &EncryptedSecretValue,
-    ) -> SecretValue {
-        encrypted_secret_value.value().clone()
+    ) -> SecretVaultResult<SecretValue> {
+        Ok(encrypted_secret_value.value().clone())
     }
 }

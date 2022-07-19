@@ -1,4 +1,7 @@
 use crate::common_types::*;
+use crate::SecretVaultResult;
+use crate::errors::*;
+
 use ring::aead::{BoundKey, OpeningKey, SealingKey, UnboundKey};
 use ring::rand::{SecureRandom, SystemRandom};
 use rvstruct::ValueStruct;
@@ -14,32 +17,42 @@ pub struct SecretVaultRingAeadEncryption {
 impl SecretVaultRingAeadEncryption {
     const SESSION_KEY_LEN: usize = 32;
 
-    pub fn new() -> Self {
+    pub fn new() -> SecretVaultResult<Self> {
         let secure_rand = SystemRandom::new();
-        let session_secret = Self::generate_session_secret(&secure_rand);
+        let session_secret = Self::generate_session_secret(&secure_rand)?;
 
         let mut nonce_data: [u8; ring::aead::NONCE_LEN] = [0; ring::aead::NONCE_LEN];
-        secure_rand.fill(&mut nonce_data).unwrap();
+        secure_rand.fill(&mut nonce_data).map_err(|e|{
+            SecretVaultEncryptionError::create(
+                "ENCRYPTION",
+                format!("Unable to initialise random nonce: {:?}", e).as_str()
+            )
+        })?;
 
-        Self {
+        Ok(Self {
             session_secret,
             nonce_data: SecretValue::new(nonce_data.to_vec()),
-        }
+        })
     }
 
-    fn generate_session_secret(secure_rand: &SystemRandom) -> SecretValue {
+    fn generate_session_secret(secure_rand: &SystemRandom) -> SecretVaultResult<SecretValue> {
         let mut rand_key_data: [u8; Self::SESSION_KEY_LEN] = [0; Self::SESSION_KEY_LEN];
-        secure_rand.fill(&mut rand_key_data).unwrap();
-        SecretValue::new(Vec::from(rand_key_data))
+        secure_rand.fill(&mut rand_key_data).map_err(|e|{
+            SecretVaultEncryptionError::create(
+                "ENCRYPTION",
+                format!("Unable to initialise random session key: {:?}", e).as_str()
+            )
+        })?;
+        Ok(SecretValue::new(Vec::from(rand_key_data)))
     }
 }
 
 impl SecretVaultEncryption for SecretVaultRingAeadEncryption {
     fn encrypt_value(
         &self,
-        _secret_name: &SecretName,
+        secret_name: &SecretName,
         secret_value: &SecretValue,
-    ) -> EncryptedSecretValue {
+    ) -> SecretVaultResult<EncryptedSecretValue> {
         let mut encrypted_secret_value = secret_value.clone();
 
         let mut sealing_key = SealingKey::new(
@@ -47,27 +60,42 @@ impl SecretVaultEncryption for SecretVaultRingAeadEncryption {
                 &ring::aead::CHACHA20_POLY1305,
                 self.session_secret.ref_sensitive_value(),
             )
-            .unwrap(),
+                .map_err(|e|{
+                    SecretVaultEncryptionError::create(
+                        "ENCRYPT_KEY",
+                        format!("Unable to create a sealing key: {:?}", e).as_str()
+                    )
+                })?,
             OneNonceSequence::new(
                 ring::aead::Nonce::try_assume_unique_for_key(self.nonce_data.ref_sensitive_value())
-                    .unwrap(),
+                    .map_err(|e|{
+                        SecretVaultEncryptionError::create(
+                            "ENCRYPT_KEY",
+                            format!("Unable to create a nonce for a sealing key: {:?}", e).as_str()
+                        )
+                    })?,
             ),
         );
 
         sealing_key
             .seal_in_place_append_tag(
-                ring::aead::Aad::empty(),
+                ring::aead::Aad::from(secret_name),
                 encrypted_secret_value.ref_sensitive_value_mut(),
             )
-            .unwrap();
-        encrypted_secret_value.into()
+            .map_err(|e|{
+                SecretVaultEncryptionError::create(
+                    "ENCRYPT",
+                    format!("Unable to encrypt data: {:?}", e).as_str()
+                )
+            })?;
+        Ok(encrypted_secret_value.into())
     }
 
     fn decrypt_value(
         &self,
-        _secret_name: &SecretName,
+        secret_name: &SecretName,
         encrypted_secret_value: &EncryptedSecretValue,
-    ) -> SecretValue {
+    ) -> SecretVaultResult<SecretValue> {
         let mut secret_value: SecretValue = encrypted_secret_value.value().clone();
 
         let mut opening_key = OpeningKey::new(
@@ -75,23 +103,40 @@ impl SecretVaultEncryption for SecretVaultRingAeadEncryption {
                 &ring::aead::CHACHA20_POLY1305,
                 self.session_secret.ref_sensitive_value(),
             )
-            .unwrap(),
+                .map_err(|e|{
+                    SecretVaultEncryptionError::create(
+                        "DECRYPT_KEY",
+                        format!("Unable to create an opening key: {:?}", e).as_str()
+                    )
+                })?,
             OneNonceSequence::new(
                 ring::aead::Nonce::try_assume_unique_for_key(self.nonce_data.ref_sensitive_value())
-                    .unwrap(),
+                    .map_err(|e|{
+                        SecretVaultEncryptionError::create(
+                            "DECRYPT_KEY",
+                            format!("Unable to create an opening key: {:?}", e).as_str()
+                        )
+                    })?,
             ),
         );
 
         opening_key
             .open_in_place(
-                ring::aead::Aad::empty(),
+                ring::aead::Aad::from(secret_name),
                 secret_value.ref_sensitive_value_mut(),
             )
-            .unwrap();
+            .map_err(|e|{
+                SecretVaultEncryptionError::create(
+                    "DECRYPT",
+                    format!("Unable to decrypt data: {:?}", e).as_str()
+                )
+            })?;
 
         let len = secret_value.ref_sensitive_value().len();
-        secret_value.ref_sensitive_value_mut().truncate(len - ring::aead::MAX_TAG_LEN);
         secret_value
+            .ref_sensitive_value_mut()
+            .truncate(len - ring::aead::MAX_TAG_LEN);
+        Ok(secret_value)
     }
 }
 
@@ -109,6 +154,12 @@ impl ring::aead::NonceSequence for OneNonceSequence {
     }
 }
 
+impl AsRef<[u8]> for &SecretName {
+    fn as_ref(&self) -> &[u8] {
+        self.value().as_bytes()
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -122,13 +173,20 @@ mod test {
 
     fn encryption_test_for(mock_secret_value: SecretValue) {
         let mock_secret_name: SecretName = "test".to_string().into();
-        let encryption = SecretVaultRingAeadEncryption::new();
+        let encryption = SecretVaultRingAeadEncryption::new().unwrap();
 
-        let encrypted_value = encryption.encrypt_value( &mock_secret_name, &mock_secret_value);
-        assert_ne!(*encrypted_value.value(),mock_secret_value);
+        let encrypted_value = encryption
+            .encrypt_value(&mock_secret_name, &mock_secret_value)
+            .unwrap();
+        assert_ne!(*encrypted_value.value(), mock_secret_value);
 
-        let decrypted_value = encryption.decrypt_value(&mock_secret_name, &encrypted_value);
-        assert_eq!(decrypted_value.ref_sensitive_value(),mock_secret_value.ref_sensitive_value());
+        let decrypted_value = encryption
+            .decrypt_value(&mock_secret_name, &encrypted_value)
+            .unwrap();
+        assert_eq!(
+            decrypted_value.ref_sensitive_value(),
+            mock_secret_value.ref_sensitive_value()
+        );
     }
 
     proptest! {
@@ -142,9 +200,23 @@ mod test {
     #[test]
     fn big_secret_encryption_test() {
         for sz in vec![5000, 32768, 65535] {
-            encryption_test_for(SecretValue::new(
-                "42".repeat(sz).as_bytes().to_vec(),
-            ))
+            encryption_test_for(SecretValue::new("42".repeat(sz).as_bytes().to_vec()))
         }
+    }
+
+    #[test]
+    fn wrong_secret_name_test_attest() {
+        let mock_secret_name1: SecretName = "test1".to_string().into();
+        let mock_secret_name2: SecretName = "test2".to_string().into();
+
+        let mock_secret_value = SecretValue::new("42".repeat(1024).as_bytes().to_vec());
+
+        let encryption = SecretVaultRingAeadEncryption::new().unwrap();
+        let encrypted_value = encryption
+            .encrypt_value(&mock_secret_name1, &mock_secret_value)
+            .unwrap();
+        let decrypted_value = encryption
+            .decrypt_value(&mock_secret_name2, &encrypted_value)
+            .expect_err("Unable to decrypt data");
     }
 }
