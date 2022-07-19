@@ -10,6 +10,7 @@ Library provides a simple API for Google Cloud Secret Manager to:
 - Google client based on [gcloud-sdk library](https://github.com/abdolence/gcloud-sdk-rs) 
   that automatically detects tokens or GKE environment;
 - Models and API to avoid accidentally leaking secrets in logs and stack traces;
+- Securely zero memory using [zeroize](https://docs.rs/zeroize/latest/zeroize/)
 
 ## Quick start
 
