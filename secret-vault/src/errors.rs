@@ -3,6 +3,8 @@ use std::error::Error;
 use std::fmt::Display;
 use std::fmt::Formatter;
 
+pub type BoxedError = Box<dyn std::error::Error + Send + Sync>;
+
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -14,6 +16,7 @@ pub enum SecretVaultError {
     NetworkError(SecretVaultNetworkError),
     EncryptionError(SecretVaultEncryptionError),
     MemoryError(SecretVaultMemoryError),
+    SecretsSourceError(SecretsSourceError),
 }
 
 impl Display for SecretVaultError {
@@ -25,6 +28,7 @@ impl Display for SecretVaultError {
             SecretVaultError::NetworkError(ref err) => err.fmt(f),
             SecretVaultError::EncryptionError(ref err) => err.fmt(f),
             SecretVaultError::MemoryError(ref err) => err.fmt(f),
+            SecretVaultError::SecretsSourceError(ref err) => err.fmt(f),
         }
     }
 }
@@ -38,6 +42,7 @@ impl std::error::Error for SecretVaultError {
             SecretVaultError::NetworkError(ref err) => Some(err),
             SecretVaultError::EncryptionError(ref err) => Some(err),
             SecretVaultError::MemoryError(ref err) => Some(err),
+            SecretVaultError::SecretsSourceError(ref err) => Some(err),
         }
     }
 }
@@ -211,17 +216,39 @@ impl Display for SecretVaultMemoryError {
 
 impl std::error::Error for SecretVaultMemoryError {}
 
-#[cfg(gcloud)]
-impl From<gcloud_sdk::error::Error> for SecretVaultError {
-    fn from(e: gcloud_sdk::error::Error) -> Self {
-        SecretVaultError::SystemError(SecretVaultSystemError::new(
-            SecretVaultErrorPublicGenericDetails::new(format!("{:?}", e.kind())),
-            format!("GCloud system error: {}", e),
-        ))
+#[derive(Debug, Builder)]
+pub struct SecretsSourceError {
+    pub public: SecretVaultErrorPublicGenericDetails,
+    pub message: String,
+    pub root_cause: Option<BoxedError>,
+}
+
+impl Display for SecretsSourceError {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "SecretVault memory error: {:?} / {}",
+            self.public, self.message
+        )
     }
 }
 
-#[cfg(gcloud)]
+impl std::error::Error for SecretsSourceError {}
+
+#[cfg(feature = "gcloud")]
+impl From<gcloud_sdk::error::Error> for SecretVaultError {
+    fn from(e: gcloud_sdk::error::Error) -> Self {
+        SecretVaultError::SecretsSourceError(
+            SecretsSourceError::new(
+                SecretVaultErrorPublicGenericDetails::new(format!("{:?}", e.kind())),
+                format!("GCloud system error: {}", e),
+            )
+            .with_root_cause(Box::new(e)),
+        )
+    }
+}
+
+#[cfg(feature = "gcloud")]
 impl From<tonic::Status> for SecretVaultError {
     fn from(status: tonic::Status) -> Self {
         match status.code() {
@@ -231,10 +258,18 @@ impl From<tonic::Status> for SecretVaultError {
                     format!("{}", status),
                 ))
             }
-            tonic::Code::Unknown => check_hyper_errors(status),
-            _ => SecretVaultError::SystemError(SecretVaultSystemError::new(
+            tonic::Code::Aborted
+            | tonic::Code::Cancelled
+            | tonic::Code::Unavailable
+            | tonic::Code::ResourceExhausted => {
+                SecretVaultError::NetworkError(SecretVaultNetworkError::new(
+                    SecretVaultErrorPublicGenericDetails::new(format!("{:?}", status.code())),
+                    format!("{}", status)
+                ))
+            }
+            _ => SecretVaultError::NetworkError(SecretVaultNetworkError::new(
                 SecretVaultErrorPublicGenericDetails::new(format!("{:?}", status.code())),
-                format!("{}", status),
+                format!("{}", status)
             )),
         }
     }

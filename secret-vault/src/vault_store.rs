@@ -1,13 +1,10 @@
-use crate::allocator::{
-    SecretVaultStoreValue, SecretVaultStoreValueAllocator, SecretVaultStoreValueNoAllocator,
-};
+use crate::allocator::*;
 use rsb_derive::*;
 use secret_vault_value::SecretValue;
 use std::collections::HashMap;
 
 use crate::common_types::*;
-use crate::encryption::{EncryptedSecretValue, NoEncryption, SecretVaultEncryption};
-use crate::errors::SecretVaultError;
+use crate::encryption::*;
 use crate::SecretVaultResult;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Builder)]
@@ -16,13 +13,9 @@ pub struct SecretVaultStoreRef {
     pub secret_version: Option<SecretVersion>,
 }
 
-pub struct SecretVaultStore<
-    R = EncryptedSecretValue,
-    AR = SecretVaultStoreValueNoAllocator,
-    E = NoEncryption,
-> where
+pub struct SecretVaultStore<R,AR,E> where
     E: SecretVaultEncryption,
-    AR: SecretVaultStoreValueAllocator,
+    AR: SecretVaultStoreValueAllocator<R = R>,
 {
     secrets: HashMap<SecretVaultStoreRef, SecretVaultStoreValue<R>>,
     encrypter: E,

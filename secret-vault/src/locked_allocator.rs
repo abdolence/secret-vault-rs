@@ -19,7 +19,7 @@ impl SecretVaultStoreValueAllocator for SecretVaultStoreValueLockMemAllocator {
 
     fn allocate(
         &mut self,
-        mut encrypted_secret: EncryptedSecretValue,
+        encrypted_secret: EncryptedSecretValue,
     ) -> SecretVaultResult<SecretVaultStoreValue<Self::R>> {
         let len = encrypted_secret.value().ref_sensitive_value().len();
         assert!(len > 0);
@@ -30,7 +30,7 @@ impl SecretVaultStoreValueAllocator for SecretVaultStoreValueLockMemAllocator {
                     format!("Memory allocation error: {}", e).as_str(),
                 )
             })?;
-            let mut mut_ptr = alloc.as_mut_ptr::<u8>();
+            let mut_ptr = alloc.as_mut_ptr::<u8>();
             mut_ptr.copy_from(encrypted_secret.value().ref_sensitive_value().as_ptr(), len);
             region::protect(mut_ptr, alloc.len(), region::Protection::READ).map_err(|e| {
                 SecretVaultMemoryError::create(
@@ -85,7 +85,7 @@ pub struct SecretVaultStoreValueLockMemItem {
 impl Drop for SecretVaultStoreValueLockMemItem {
     fn drop(&mut self) {
         unsafe {
-            let mut alloc_mut_ptr = self.alloc.as_mut_ptr::<u8>();
+            let alloc_mut_ptr = self.alloc.as_mut_ptr::<u8>();
             region::protect(
                 alloc_mut_ptr,
                 self.alloc.len(),
