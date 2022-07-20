@@ -81,18 +81,18 @@ vault
     .await?;
 
 // Reading the secret values
-let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret1)?;
+let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret1).await?;
 
 println!("Received secret: {:?}", secret);
 
 // Using the Viewer API to share only methods able to read secrets
 let vault_viewer = vault.viewer();
-vault_viewer.get_secret_by_ref(&secret2)?;
+vault_viewer.get_secret_by_ref(&secret2).await?;
 
 // Using the Snapshot API to be able to share the instance without having to store `vault`
 // Since this point `vault` is not available anymore to borrow and update secrets
 let vault_snapshot = vault.snapshot();
-vault_snapshot.get_secret_by_ref(&secret2)?;
+vault_snapshot.get_secret_by_ref(&secret2).await?;
 
 ```
 
