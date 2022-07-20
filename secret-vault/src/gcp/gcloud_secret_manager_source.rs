@@ -43,7 +43,7 @@ impl SecretsSource for GoogleSecretManagerSource {
 
     async fn get_secrets(
         &self,
-        references: &Vec<SecretVaultRef>,
+        references: &[SecretVaultRef],
     ) -> SecretVaultResult<HashMap<SecretVaultRef, SecretValue>> {
         let mut result_map: HashMap<SecretVaultRef, SecretValue> = HashMap::new();
         for secret_ref in references {

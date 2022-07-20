@@ -10,7 +10,7 @@ pub trait SecretsSource {
 
     async fn get_secrets(
         &self,
-        references: &Vec<SecretVaultRef>,
+        references: &[SecretVaultRef],
     ) -> SecretVaultResult<HashMap<SecretVaultRef, SecretValue>>;
 }
 
@@ -33,7 +33,7 @@ impl SecretsSource for MultipleSecretsSources {
 
     async fn get_secrets(
         &self,
-        references: &Vec<SecretVaultRef>,
+        references: &[SecretVaultRef],
     ) -> SecretVaultResult<HashMap<SecretVaultRef, SecretValue>> {
         let mut result_map: HashMap<SecretVaultRef, SecretValue> = HashMap::new();
         for source in self.sources.iter() {

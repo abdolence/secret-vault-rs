@@ -53,7 +53,7 @@ impl<AR, E> SecretVaultSnapshot<AR,E> where
 
     pub fn new(store: SecretVaultStore<AR, E>) -> Self {
         Self {
-            store: store
+            store
         }
     }
 }

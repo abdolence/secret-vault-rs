@@ -38,7 +38,7 @@ impl SecretVaultStoreValueAllocator for SecretVaultStoreValueNoAllocator {
         &self,
         allocated: &SecretVaultStoreValue<Self::R>,
     ) -> SecretVaultResult<EncryptedSecretValue> {
-        Ok(allocated.data.clone().into())
+        Ok(allocated.data.clone())
     }
 
     fn destroy(&mut self, value: SecretVaultStoreValue<Self::R>) {

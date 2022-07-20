@@ -28,7 +28,7 @@ where
     }
 
     pub fn with_secrets_refs(&mut self, secret_refs: Vec<&SecretVaultRef>) -> &mut Self {
-        self.refs = secret_refs.into_iter().map(|e| e.clone()).collect();
+        self.refs = secret_refs.into_iter().cloned().collect();
         self
     }
 
