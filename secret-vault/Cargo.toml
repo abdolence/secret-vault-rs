@@ -10,7 +10,7 @@ repository = "https://github.com/abdolence/secret-vault-rs"
 documentation = "https://docs.rs/secret-vault"
 keywords = ["secret", "google", "aws"]
 categories = ["security"]
-readme = "README.md"
+readme = "../README.md"
 include = ["Cargo.toml", "src/**/*.rs", "../README.md", "../LICENSE", "../SECURITY.md"]
 
 [badges]
