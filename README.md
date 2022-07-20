@@ -39,7 +39,7 @@ Library provides a secure memory-backed storage of secrets coming to your applic
 Cargo.toml:
 ```toml
 [dependencies]
-secret-vault = { version = "0.1.<x>", features=["..."] }
+secret-vault = { version = "0.2.<x>", features=["..."] }
 secret-vault-type = { version = "0.1.<x>", features=["..."] }
 ```
 See security consideration below about versioning.
