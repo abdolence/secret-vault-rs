@@ -6,15 +6,15 @@ use rvstruct::*;
 use secret_vault_value::SecretValue;
 use zeroize::Zeroize;
 
-pub struct SecretVaultStoreValueLockMemAllocator;
+pub struct SecretVaultStoreMemoryProtectAllocator;
 
-impl SecretVaultStoreValueLockMemAllocator {
+impl SecretVaultStoreMemoryProtectAllocator {
     pub fn new() -> Self {
         Self {}
     }
 }
 
-impl SecretVaultStoreValueAllocator for SecretVaultStoreValueLockMemAllocator {
+impl SecretVaultStoreValueAllocator for SecretVaultStoreMemoryProtectAllocator {
     type R = SecretVaultStoreValueLockMemItem;
 
     fn allocate(
@@ -117,7 +117,7 @@ mod test {
     proptest! {
         #[test]
         fn locks_secret_memory(mock_encrypted_secret_value in generate_encrypted_secret_value()) {
-            let mut lock_allocator = SecretVaultStoreValueLockMemAllocator::new();
+            let mut lock_allocator = SecretVaultStoreMemoryProtectAllocator::new();
             let allocated = lock_allocator.allocate(mock_encrypted_secret_value.clone()).unwrap();
             let extracted = lock_allocator.extract(&allocated).unwrap();
             lock_allocator.destroy(allocated);
@@ -127,7 +127,7 @@ mod test {
 
     #[test]
     fn locks_secret_memory_64k() {
-        let mut lock_allocator = SecretVaultStoreValueLockMemAllocator::new();
+        let mut lock_allocator = SecretVaultStoreMemoryProtectAllocator::new();
 
         for _i in 0..10 {
             let mock_encrypted_secret_value = EncryptedSecretValue::from(SecretValue::new(

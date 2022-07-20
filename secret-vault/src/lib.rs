@@ -12,7 +12,7 @@ mod vault_store;
 
 mod common_types;
 
-#[cfg(feature = "locked")]
+#[cfg(feature = "memory-protect")]
 pub mod locked_allocator;
 
 #[cfg(feature = "encrypted-ring")]
@@ -25,3 +25,6 @@ pub type SecretVaultResult<T> = std::result::Result<T, errors::SecretVaultError>
 
 mod vault;
 pub use vault::*;
+
+mod vault_builder;
+pub use vault_builder::SecretVaultBuilder;

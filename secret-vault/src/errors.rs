@@ -264,12 +264,12 @@ impl From<tonic::Status> for SecretVaultError {
             | tonic::Code::ResourceExhausted => {
                 SecretVaultError::NetworkError(SecretVaultNetworkError::new(
                     SecretVaultErrorPublicGenericDetails::new(format!("{:?}", status.code())),
-                    format!("{}", status)
+                    format!("{}", status),
                 ))
             }
             _ => SecretVaultError::NetworkError(SecretVaultNetworkError::new(
                 SecretVaultErrorPublicGenericDetails::new(format!("{:?}", status.code())),
-                format!("{}", status)
+                format!("{}", status),
             )),
         }
     }

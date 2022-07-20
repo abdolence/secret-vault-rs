@@ -37,14 +37,20 @@ tonic = { version = "0.7", optional = true }
 cargo-husky = { version = "1.5", default-features = false, features = ["run-for-all", "prepush-hook", "run-cargo-fmt"] }
 serde_json = { version = "1" }
 proptest = "1.0"
+tracing-subscriber = { version ="0.3", features = ["env-filter"] }
+tokio = { version = "1", features = ["full"] }
 
 [features]
 default = []
 serde = ["dep:serde"]
-locked = ["dep:region"]
+memory-protect = ["dep:region"]
 encrypted-ring = ["dep:ring"]
 gcloud = ["dep:gcloud-sdk", "dep:tonic"]
 gcloud-secretmanager = ["gcloud"]
 
 [package.metadata.docs.rs]
 all-features = true
+
+[[example]]
+name="gcloud_secret_manager_vault"
+required-features = ["gcloud-secretmanager", "encrypted-ring", "memory-protect"]

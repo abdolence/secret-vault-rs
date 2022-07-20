@@ -13,7 +13,8 @@ pub struct SecretVaultStoreRef {
     pub secret_version: Option<SecretVersion>,
 }
 
-pub struct SecretVaultStore<R,AR,E> where
+pub struct SecretVaultStore<R, AR, E>
+where
     E: SecretVaultEncryption,
     AR: SecretVaultStoreValueAllocator<R = R>,
 {
