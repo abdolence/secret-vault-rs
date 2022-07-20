@@ -32,6 +32,7 @@ Library provides a secure memory-backed storage of secrets coming to your applic
 ### Features
 - Reading/caching registered secrets in memory from defined sources;
 - Memory encryption using AEAD cryptography (optional);
+- Memory encryption using Google KMS envelope encryption + AEAD cryptography (optional);
 - Extensible and strongly typed API to be able to implement any kind of sources;
 
 ## Quick start
@@ -48,6 +49,7 @@ See security consideration below about versioning.
 - `gcloud-secretmanager` for Google Secret Manager support
 - `aws-secretmanager` for Amazon Secret Manager support
 - `encrypted-ring` for encryption support
+- `gcloud-kms-encryption` for Google KMS envelope encryption support
 - `serde` for serde serialization support
 
 ### Available optional features for secret value type:

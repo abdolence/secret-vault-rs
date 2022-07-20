@@ -1,13 +1,12 @@
 use crate::common_types::*;
-use crate::errors::*;
 use crate::SecretVaultResult;
 
-use ring::aead::{BoundKey, OpeningKey, SealingKey, UnboundKey};
-use ring::rand::{SecureRandom, SystemRandom};
-use rvstruct::ValueStruct;
+use async_trait::async_trait;
+use ring::rand::SystemRandom;
 use secret_vault_value::*;
 
 use crate::encryption::*;
+use crate::ring_encryption_support::*;
 
 pub struct SecretVaultRingAeadEncryption {
     algo: &'static ring::aead::Algorithm,
@@ -22,143 +21,43 @@ impl SecretVaultRingAeadEncryption {
 
     pub fn with_algorithm(algo: &'static ring::aead::Algorithm) -> SecretVaultResult<Self> {
         let secure_rand = SystemRandom::new();
-        let session_secret = Self::generate_session_secret(&secure_rand, algo.key_len())?;
-
-        let mut nonce_data: [u8; ring::aead::NONCE_LEN] = [0; ring::aead::NONCE_LEN];
-        secure_rand.fill(&mut nonce_data).map_err(|e| {
-            SecretVaultEncryptionError::create(
-                "ENCRYPTION",
-                format!("Unable to initialise random nonce: {:?}", e).as_str(),
-            )
-        })?;
 
         Ok(Self {
             algo,
-            session_secret,
-            nonce_data: SecretValue::new(nonce_data.to_vec()),
+            session_secret: generate_session_secret(&secure_rand, algo.key_len())?,
+            nonce_data: generate_nonce(&secure_rand)?,
         })
-    }
-
-    fn generate_session_secret(
-        secure_rand: &SystemRandom,
-        key_len: usize,
-    ) -> SecretVaultResult<SecretValue> {
-        let mut rand_key_data: Vec<u8> = Vec::with_capacity(key_len);
-        rand_key_data.resize(key_len, 0);
-        secure_rand.fill(&mut rand_key_data).map_err(|e| {
-            SecretVaultEncryptionError::create(
-                "ENCRYPTION",
-                format!("Unable to initialise random session key: {:?}", e).as_str(),
-            )
-        })?;
-        Ok(SecretValue::new(Vec::from(rand_key_data)))
     }
 }
 
+#[async_trait]
 impl SecretVaultEncryption for SecretVaultRingAeadEncryption {
-    fn encrypt_value(
+    async fn encrypt_value(
         &self,
         secret_name: &SecretName,
         secret_value: &SecretValue,
     ) -> SecretVaultResult<EncryptedSecretValue> {
-        let mut encrypted_secret_value = secret_value.clone();
-
-        let mut sealing_key = SealingKey::new(
-            UnboundKey::new(self.algo, self.session_secret.ref_sensitive_value()).map_err(|e| {
-                SecretVaultEncryptionError::create(
-                    "ENCRYPT_KEY",
-                    format!("Unable to create a sealing key: {:?}", e).as_str(),
-                )
-            })?,
-            OneNonceSequence::new(
-                ring::aead::Nonce::try_assume_unique_for_key(self.nonce_data.ref_sensitive_value())
-                    .map_err(|e| {
-                        SecretVaultEncryptionError::create(
-                            "ENCRYPT_KEY",
-                            format!("Unable to create a nonce for a sealing key: {:?}", e).as_str(),
-                        )
-                    })?,
-            ),
-        );
-
-        sealing_key
-            .seal_in_place_append_tag(
-                ring::aead::Aad::from(secret_name),
-                encrypted_secret_value.ref_sensitive_value_mut(),
-            )
-            .map_err(|e| {
-                SecretVaultEncryptionError::create(
-                    "ENCRYPT",
-                    format!("Unable to encrypt data: {:?}", e).as_str(),
-                )
-            })?;
-        Ok(encrypted_secret_value.into())
+        encrypt_with_sealing_key(
+            self.algo,
+            &self.session_secret,
+            &self.nonce_data,
+            secret_name,
+            secret_value,
+        )
     }
 
-    fn decrypt_value(
+    async fn decrypt_value(
         &self,
         secret_name: &SecretName,
         encrypted_secret_value: &EncryptedSecretValue,
     ) -> SecretVaultResult<SecretValue> {
-        let mut secret_value: SecretValue = encrypted_secret_value.value().clone();
-
-        let mut opening_key = OpeningKey::new(
-            UnboundKey::new(&self.algo, self.session_secret.ref_sensitive_value()).map_err(
-                |e| {
-                    SecretVaultEncryptionError::create(
-                        "DECRYPT_KEY",
-                        format!("Unable to create an opening key: {:?}", e).as_str(),
-                    )
-                },
-            )?,
-            OneNonceSequence::new(
-                ring::aead::Nonce::try_assume_unique_for_key(self.nonce_data.ref_sensitive_value())
-                    .map_err(|e| {
-                        SecretVaultEncryptionError::create(
-                            "DECRYPT_KEY",
-                            format!("Unable to create an opening key: {:?}", e).as_str(),
-                        )
-                    })?,
-            ),
-        );
-
-        opening_key
-            .open_in_place(
-                ring::aead::Aad::from(secret_name),
-                secret_value.ref_sensitive_value_mut(),
-            )
-            .map_err(|e| {
-                SecretVaultEncryptionError::create(
-                    "DECRYPT",
-                    format!("Unable to decrypt data: {:?}", e).as_str(),
-                )
-            })?;
-
-        let len = secret_value.ref_sensitive_value().len();
-        secret_value
-            .ref_sensitive_value_mut()
-            .truncate(len - ring::aead::MAX_TAG_LEN);
-        Ok(secret_value)
-    }
-}
-
-struct OneNonceSequence(Option<ring::aead::Nonce>);
-
-impl OneNonceSequence {
-    fn new(nonce: ring::aead::Nonce) -> Self {
-        Self(Some(nonce))
-    }
-}
-
-impl ring::aead::NonceSequence for OneNonceSequence {
-    fn advance(&mut self) -> Result<ring::aead::Nonce, ring::error::Unspecified> {
-        self.0.take().ok_or(ring::error::Unspecified)
-    }
-}
-
-impl AsRef<[u8]> for &SecretName {
-    fn as_ref(&self) -> &[u8] {
-        self.value().as_bytes()
+        decrypt_with_opening_key(
+            self.algo,
+            &self.session_secret,
+            &self.nonce_data,
+            secret_name,
+            encrypted_secret_value,
+        )
     }
 }
 
@@ -167,18 +66,23 @@ mod tests {
     use super::*;
     use crate::source_tests::*;
     use proptest::prelude::*;
+    use proptest::strategy::ValueTree;
+    use proptest::test_runner::TestRunner;
+    use rvstruct::*;
 
-    fn encryption_test_for(mock_secret_value: SecretValue) {
+    async fn encryption_test_for(mock_secret_value: SecretValue) {
         let mock_secret_name: SecretName = "test".to_string().into();
         let encryption = SecretVaultRingAeadEncryption::new().unwrap();
 
         let encrypted_value = encryption
             .encrypt_value(&mock_secret_name, &mock_secret_value)
+            .await
             .unwrap();
         assert_ne!(*encrypted_value.value(), mock_secret_value);
 
         let decrypted_value = encryption
             .decrypt_value(&mock_secret_name, &encrypted_value)
+            .await
             .unwrap();
         assert_eq!(
             decrypted_value.ref_sensitive_value(),
@@ -186,23 +90,27 @@ mod tests {
         );
     }
 
-    proptest! {
-
-        #[test]
-        fn secret_encryption_test(mock_secret_value in generate_secret_value()) {
-            encryption_test_for(mock_secret_value)
-        }
+    #[tokio::test]
+    async fn secret_encryption_test() {
+        let mut runner = TestRunner::default();
+        encryption_test_for(
+            generate_secret_value()
+                .new_tree(&mut runner)
+                .unwrap()
+                .current(),
+        )
+        .await
     }
 
-    #[test]
-    fn big_secret_encryption_test() {
+    #[tokio::test]
+    async fn big_secret_encryption_test() {
         for sz in vec![5000, 32768, 65535] {
-            encryption_test_for(SecretValue::new("42".repeat(sz).as_bytes().to_vec()))
+            encryption_test_for(SecretValue::new("42".repeat(sz).as_bytes().to_vec())).await
         }
     }
 
-    #[test]
-    fn wrong_secret_name_test_attest() {
+    #[tokio::test]
+    async fn wrong_secret_name_test_attest() {
         let mock_secret_name1: SecretName = "test1".to_string().into();
         let mock_secret_name2: SecretName = "test2".to_string().into();
 
@@ -211,9 +119,11 @@ mod tests {
         let encryption = SecretVaultRingAeadEncryption::new().unwrap();
         let encrypted_value = encryption
             .encrypt_value(&mock_secret_name1, &mock_secret_value)
+            .await
             .unwrap();
         encryption
             .decrypt_value(&mock_secret_name2, &encrypted_value)
+            .await
             .expect_err("Unable to decrypt data");
     }
 }

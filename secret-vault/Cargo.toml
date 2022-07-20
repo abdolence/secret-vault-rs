@@ -28,10 +28,11 @@ rsb_derive = "0.5"
 async-trait = "0.1"
 chrono = { version = "0.4" }
 zeroize = { version = "1.5", features = ["std", "derive"] }
+hex = "0.4"
 ring = { version = "0.16", features = ["default", "std"], optional = true }
 region = { version = "3.0.0", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
-gcloud-sdk = { version = "0.15", optional = true, features = ["google-cloud-secretmanager-v1"] }
+gcloud-sdk = { version = "0.15", optional = true }
 tonic = { version = "0.7", optional = true }
 aws-config = { version = "0.15", optional = true }
 aws-sdk-secretsmanager = { version = "0.15", optional = true }
@@ -42,14 +43,15 @@ serde_json = { version = "1" }
 proptest = "1.0"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tokio = { version = "1", features = ["full"] }
-criterion = { version = "0.3", features = ["html_reports", "futures", "tokio", "async_tokio"] }
+criterion = { version = "0.3", features = ["async", "async_futures", "cargo_bench_support", "html_reports", "futures", "tokio", "async_tokio"] }
 
 [features]
 default = []
 serde = ["dep:serde", "chrono/serde", "secret-vault-value/serde"]
 encrypted-ring = ["dep:ring"]
-gcloud = ["dep:gcloud-sdk", "dep:tonic"]
-gcloud-secretmanager = ["gcloud"]
+gcloud = ["dep:tonic", "gcloud-sdk"]
+gcloud-secretmanager =  ["gcloud-sdk/google-cloud-secretmanager-v1", "gcloud"]
+gcloud-kms-encryption = ["gcloud-sdk/google-cloud-kms-v1", "gcloud", "dep:ring"]
 aws = ["dep:aws-config", "dep:aws-sdk-secretsmanager"]
 aws-secretmanager = ["aws"]
 
@@ -59,7 +61,7 @@ all-features = true
 [[example]]
 name = "gcloud_secret_manager_vault"
 path = "examples/gcloud_secret_manager_vault.rs"
-required-features = ["gcloud-secretmanager", "encrypted-ring"]
+required-features = ["gcloud-secretmanager", "encrypted-ring", "gcloud-kms-encryption"]
 
 [[example]]
 name = "aws_secret_manager_vault"

@@ -6,6 +6,12 @@ use secret_vault_value::SecretValue;
 #[derive(Debug, Clone, Eq, PartialEq, Hash, ValueStruct)]
 pub struct SecretName(String);
 
+impl AsRef<[u8]> for &SecretName {
+    fn as_ref(&self) -> &[u8] {
+        self.value().as_bytes()
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Hash, ValueStruct)]
 pub struct SecretVersion(String);
 

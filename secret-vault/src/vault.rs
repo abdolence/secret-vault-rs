@@ -2,12 +2,13 @@ use crate::encryption::SecretVaultEncryption;
 use crate::secrets_source::SecretsSource;
 use crate::vault_store::SecretVaultStore;
 use crate::*;
+use async_trait::async_trait;
 use tracing::*;
 
 pub struct SecretVault<S, E>
 where
     S: SecretsSource,
-    E: SecretVaultEncryption,
+    E: SecretVaultEncryption + Sync + Send,
 {
     source: S,
     store: SecretVaultStore<E>,
@@ -17,7 +18,7 @@ where
 impl<S, E> SecretVault<S, E>
 where
     S: SecretsSource,
-    E: SecretVaultEncryption,
+    E: SecretVaultEncryption + Sync + Send,
 {
     pub fn new(source: S, store: SecretVaultStore<E>) -> SecretVaultResult<Self> {
         Ok(Self {
@@ -46,7 +47,7 @@ where
         let mut secrets_map = self.source.get_secrets(&self.refs).await?;
 
         for (secret_ref, secret) in secrets_map.drain() {
-            self.store.insert(secret_ref, &secret)?;
+            self.store.insert(secret_ref, &secret).await?;
         }
 
         info!("Secret vault contains: {} secrets", self.store.len());
@@ -63,13 +64,17 @@ where
     }
 }
 
+#[async_trait]
 impl<S, E> SecretVaultView for SecretVault<S, E>
 where
-    S: SecretsSource,
-    E: SecretVaultEncryption,
+    S: SecretsSource + Send + Sync,
+    E: SecretVaultEncryption + Send + Sync,
 {
-    fn get_secret_by_ref(&self, secret_ref: &SecretVaultRef) -> SecretVaultResult<Option<Secret>> {
-        self.store.get_secret(secret_ref)
+    async fn get_secret_by_ref(
+        &self,
+        secret_ref: &SecretVaultRef,
+    ) -> SecretVaultResult<Option<Secret>> {
+        self.store.get_secret(secret_ref).await
     }
 }
 
@@ -103,6 +108,7 @@ mod tests {
             assert_eq!(
                 vault
                     .get_secret_by_ref(secret_ref)
+                    .await
                     .unwrap()
                     .map(|secret| secret.value)
                     .as_ref(),

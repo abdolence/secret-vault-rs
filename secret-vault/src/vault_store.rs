@@ -30,10 +30,15 @@ where
         }
     }
 
-    pub fn insert(&mut self, secret_ref: SecretVaultRef, secret: &Secret) -> SecretVaultResult<()> {
+    pub async fn insert(
+        &mut self,
+        secret_ref: SecretVaultRef,
+        secret: &Secret,
+    ) -> SecretVaultResult<()> {
         let encrypted_secret_value = self
             .encrypter
-            .encrypt_value(&secret_ref.secret_name, &secret.value)?;
+            .encrypt_value(&secret_ref.secret_name, &secret.value)
+            .await?;
         self.secrets.insert(
             secret_ref,
             SecretVaultStoreValue {
@@ -45,12 +50,16 @@ where
         Ok(())
     }
 
-    pub fn get_secret(&self, secret_ref: &SecretVaultRef) -> SecretVaultResult<Option<Secret>> {
+    pub async fn get_secret(
+        &self,
+        secret_ref: &SecretVaultRef,
+    ) -> SecretVaultResult<Option<Secret>> {
         match self.secrets.get(secret_ref) {
             Some(stored_value) => {
                 let secret_value = self
                     .encrypter
-                    .decrypt_value(&secret_ref.secret_name, &stored_value.data)?;
+                    .decrypt_value(&secret_ref.secret_name, &stored_value.data)
+                    .await?;
                 Ok(Some(Secret::new(
                     secret_value,
                     stored_value.metadata.clone(),

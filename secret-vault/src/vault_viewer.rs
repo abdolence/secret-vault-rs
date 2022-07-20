@@ -1,12 +1,14 @@
 use crate::vault_store::SecretVaultStore;
 use crate::*;
+use async_trait::async_trait;
 
+#[async_trait]
 pub trait SecretVaultView {
-    fn get_secret(&self, secret_name: &SecretName) -> SecretVaultResult<Option<Secret>> {
-        self.get_secret_with_version(secret_name, None)
+    async fn get_secret(&self, secret_name: &SecretName) -> SecretVaultResult<Option<Secret>> {
+        self.get_secret_with_version(secret_name, None).await
     }
 
-    fn get_secret_with_version(
+    async fn get_secret_with_version(
         &self,
         secret_name: &SecretName,
         secret_version: Option<&SecretVersion>,
@@ -14,9 +16,13 @@ pub trait SecretVaultView {
         self.get_secret_by_ref(
             &SecretVaultRef::new(secret_name.clone()).opt_secret_version(secret_version.cloned()),
         )
+        .await
     }
 
-    fn get_secret_by_ref(&self, secret_ref: &SecretVaultRef) -> SecretVaultResult<Option<Secret>>;
+    async fn get_secret_by_ref(
+        &self,
+        secret_ref: &SecretVaultRef,
+    ) -> SecretVaultResult<Option<Secret>>;
 }
 
 pub struct SecretVaultViewer<'a, E>
@@ -35,12 +41,16 @@ where
     }
 }
 
+#[async_trait]
 impl<'a, E> SecretVaultView for SecretVaultViewer<'a, E>
 where
-    E: SecretVaultEncryption,
+    E: SecretVaultEncryption + Send + Sync,
 {
-    fn get_secret_by_ref(&self, secret_ref: &SecretVaultRef) -> SecretVaultResult<Option<Secret>> {
-        self.store_ref.get_secret(secret_ref)
+    async fn get_secret_by_ref(
+        &self,
+        secret_ref: &SecretVaultRef,
+    ) -> SecretVaultResult<Option<Secret>> {
+        self.store_ref.get_secret(secret_ref).await
     }
 }
 
@@ -60,11 +70,15 @@ where
     }
 }
 
+#[async_trait]
 impl<E> SecretVaultView for SecretVaultSnapshot<E>
 where
-    E: SecretVaultEncryption,
+    E: SecretVaultEncryption + Send + Sync,
 {
-    fn get_secret_by_ref(&self, secret_ref: &SecretVaultRef) -> SecretVaultResult<Option<Secret>> {
-        self.store.get_secret(secret_ref)
+    async fn get_secret_by_ref(
+        &self,
+        secret_ref: &SecretVaultRef,
+    ) -> SecretVaultResult<Option<Secret>> {
+        self.store.get_secret(secret_ref).await
     }
 }

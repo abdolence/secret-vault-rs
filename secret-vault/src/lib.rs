@@ -36,6 +36,9 @@ pub use common_types::*;
 #[cfg(feature = "encrypted-ring")]
 pub mod ring_encryption;
 
+#[cfg(feature = "encrypted-ring")]
+mod ring_encryption_support;
+
 #[cfg(feature = "gcloud")]
 pub mod gcp;
 

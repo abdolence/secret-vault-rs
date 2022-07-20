@@ -31,14 +31,14 @@ pub fn generate_mock_secrets_source() -> BoxedStrategy<MockSecretsSource> {
     .boxed()
 }
 
-fn read_secrets_perf_test<E>(
+async fn read_secrets_perf_test<E>(
     viewer: &SecretVaultSnapshot<E>,
     secret_ref: &SecretVaultRef,
 ) -> SecretVaultResult<Option<Secret>>
 where
-    E: SecretVaultEncryption,
+    E: SecretVaultEncryption + Send + Sync,
 {
-    viewer.get_secret_by_ref(secret_ref)
+    viewer.get_secret_by_ref(secret_ref).await
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
@@ -86,15 +86,19 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
 
     c.bench_function("read-secrets-perf-simple-vault", |b| {
-        b.iter(|| read_secrets_perf_test(black_box(&simple_vault_snapshot), black_box(secret_ref)))
+        b.to_async(criterion::async_executor::FuturesExecutor)
+            .iter(|| {
+                read_secrets_perf_test(black_box(&simple_vault_snapshot), black_box(secret_ref))
+            })
     });
     c.bench_function("read-secrets-perf-encrypted-vault", |b| {
-        b.iter(|| {
-            read_secrets_perf_test(
-                black_box(&vault_with_encryption_snapshot),
-                black_box(secret_ref),
-            )
-        })
+        b.to_async(criterion::async_executor::FuturesExecutor)
+            .iter(|| {
+                read_secrets_perf_test(
+                    black_box(&vault_with_encryption_snapshot),
+                    black_box(secret_ref),
+                )
+            })
     });
 }
 

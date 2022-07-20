@@ -1,20 +1,25 @@
 use crate::common_types::SecretName;
 
 use crate::SecretVaultResult;
+use async_trait::async_trait;
 use rvstruct::*;
 use secret_vault_value::SecretValue;
 
 #[derive(Debug, Clone, PartialEq, ValueStruct)]
 pub struct EncryptedSecretValue(pub SecretValue);
 
+#[derive(Debug, Clone, PartialEq, ValueStruct)]
+pub struct WrappedSessionKey(pub SecretValue);
+
+#[async_trait]
 pub trait SecretVaultEncryption {
-    fn encrypt_value(
+    async fn encrypt_value(
         &self,
         secret_name: &SecretName,
         secret_value: &SecretValue,
     ) -> SecretVaultResult<EncryptedSecretValue>;
 
-    fn decrypt_value(
+    async fn decrypt_value(
         &self,
         secret_name: &SecretName,
         encrypted_secret_value: &EncryptedSecretValue,
@@ -24,8 +29,9 @@ pub trait SecretVaultEncryption {
 #[derive(Debug)]
 pub struct SecretVaultNoEncryption;
 
+#[async_trait]
 impl SecretVaultEncryption for SecretVaultNoEncryption {
-    fn encrypt_value(
+    async fn encrypt_value(
         &self,
         _secret_name: &SecretName,
         secret_value: &SecretValue,
@@ -33,7 +39,7 @@ impl SecretVaultEncryption for SecretVaultNoEncryption {
         Ok(EncryptedSecretValue(secret_value.clone()))
     }
 
-    fn decrypt_value(
+    async fn decrypt_value(
         &self,
         _secret_name: &SecretName,
         encrypted_secret_value: &EncryptedSecretValue,
