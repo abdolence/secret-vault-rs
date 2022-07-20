@@ -60,13 +60,13 @@ pub mod source_tests {
     use secret_vault_value::SecretValue;
 
     pub fn generate_secret_value() -> BoxedStrategy<SecretValue> {
-        ("[a-zA-Z0-9]*")
+        ("[a-zA-Z0-9]+")
             .prop_map(|(mock_secret_str)| SecretValue::new(mock_secret_str.as_bytes().to_vec()))
             .boxed()
     }
 
     pub fn generate_secret_ref() -> BoxedStrategy<SecretVaultRef> {
-        ("[a-zA-Z0-9]*")
+        ("[a-zA-Z0-9]+")
             .prop_map(|(mock_secret_name)| SecretVaultRef::new(mock_secret_name.into()))
             .boxed()
     }

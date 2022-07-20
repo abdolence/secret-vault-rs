@@ -10,16 +10,19 @@ use secret_vault_value::*;
 use crate::encryption::*;
 
 pub struct SecretVaultRingAeadEncryption {
+    algo: &'static ring::aead::Algorithm,
     session_secret: SecretValue,
     nonce_data: SecretValue,
 }
 
 impl SecretVaultRingAeadEncryption {
-    const SESSION_KEY_LEN: usize = 32;
-
     pub fn new() -> SecretVaultResult<Self> {
+        Self::with_algorithm(&ring::aead::CHACHA20_POLY1305)
+    }
+
+    pub fn with_algorithm(algo: &'static ring::aead::Algorithm) -> SecretVaultResult<Self> {
         let secure_rand = SystemRandom::new();
-        let session_secret = Self::generate_session_secret(&secure_rand)?;
+        let session_secret = Self::generate_session_secret(&secure_rand, algo.key_len())?;
 
         let mut nonce_data: [u8; ring::aead::NONCE_LEN] = [0; ring::aead::NONCE_LEN];
         secure_rand.fill(&mut nonce_data).map_err(|e| {
@@ -30,13 +33,18 @@ impl SecretVaultRingAeadEncryption {
         })?;
 
         Ok(Self {
+            algo,
             session_secret,
             nonce_data: SecretValue::new(nonce_data.to_vec()),
         })
     }
 
-    fn generate_session_secret(secure_rand: &SystemRandom) -> SecretVaultResult<SecretValue> {
-        let mut rand_key_data: [u8; Self::SESSION_KEY_LEN] = [0; Self::SESSION_KEY_LEN];
+    fn generate_session_secret(
+        secure_rand: &SystemRandom,
+        key_len: usize,
+    ) -> SecretVaultResult<SecretValue> {
+        let mut rand_key_data: Vec<u8> = Vec::with_capacity(key_len);
+        rand_key_data.resize(key_len, 0);
         secure_rand.fill(&mut rand_key_data).map_err(|e| {
             SecretVaultEncryptionError::create(
                 "ENCRYPTION",
@@ -56,11 +64,7 @@ impl SecretVaultEncryption for SecretVaultRingAeadEncryption {
         let mut encrypted_secret_value = secret_value.clone();
 
         let mut sealing_key = SealingKey::new(
-            UnboundKey::new(
-                &ring::aead::CHACHA20_POLY1305,
-                self.session_secret.ref_sensitive_value(),
-            )
-            .map_err(|e| {
+            UnboundKey::new(self.algo, self.session_secret.ref_sensitive_value()).map_err(|e| {
                 SecretVaultEncryptionError::create(
                     "ENCRYPT_KEY",
                     format!("Unable to create a sealing key: {:?}", e).as_str(),
@@ -99,16 +103,14 @@ impl SecretVaultEncryption for SecretVaultRingAeadEncryption {
         let mut secret_value: SecretValue = encrypted_secret_value.value().clone();
 
         let mut opening_key = OpeningKey::new(
-            UnboundKey::new(
-                &ring::aead::CHACHA20_POLY1305,
-                self.session_secret.ref_sensitive_value(),
-            )
-            .map_err(|e| {
-                SecretVaultEncryptionError::create(
-                    "DECRYPT_KEY",
-                    format!("Unable to create an opening key: {:?}", e).as_str(),
-                )
-            })?,
+            UnboundKey::new(&self.algo, self.session_secret.ref_sensitive_value()).map_err(
+                |e| {
+                    SecretVaultEncryptionError::create(
+                        "DECRYPT_KEY",
+                        format!("Unable to create an opening key: {:?}", e).as_str(),
+                    )
+                },
+            )?,
             OneNonceSequence::new(
                 ring::aead::Nonce::try_assume_unique_for_key(self.nonce_data.ref_sensitive_value())
                     .map_err(|e| {
