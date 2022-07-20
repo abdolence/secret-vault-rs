@@ -2,7 +2,7 @@ use crate::allocator::SecretVaultStoreValueAllocator;
 use crate::encryption::SecretVaultEncryption;
 use crate::secrets_source::SecretsSource;
 use crate::vault_store::SecretVaultStore;
-use crate::{SecretVaultRef, SecretVaultResult, SecretVaultViewer};
+use crate::{SecretVaultRef, SecretVaultResult, SecretVaultSnapshot, SecretVaultView, SecretVaultViewer};
 use tracing::*;
 use secret_vault_value::SecretValue;
 
@@ -46,12 +46,23 @@ where
         Ok(self)
     }
 
-    pub fn get_secret_by_ref(&self, secret_ref: &SecretVaultRef) -> SecretVaultResult<Option<SecretValue>> {
-        self.store.get_secret(secret_ref)
-    }
-
     pub fn viewer(&self) -> SecretVaultViewer<AR, E> {
         SecretVaultViewer::new(&self.store)
     }
 
+    pub fn snapshot(self) -> SecretVaultSnapshot<AR, E> {
+        SecretVaultSnapshot::new(self.store)
+    }
+
+}
+
+impl<S, AR, E> SecretVaultView for SecretVault<S, AR, E>
+    where
+        S: SecretsSource,
+        E: SecretVaultEncryption,
+        AR: SecretVaultStoreValueAllocator {
+
+    fn get_secret_by_ref(&self, secret_ref: &SecretVaultRef) -> SecretVaultResult<Option<SecretValue>> {
+        self.store.get_secret(secret_ref)
+    }
 }

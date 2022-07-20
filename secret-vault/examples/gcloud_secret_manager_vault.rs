@@ -16,7 +16,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Describing secrets and marking them non-required
     // since this is only example and they don't exist in your project
     let secret1 = SecretVaultRef::new("test-secret1".into()).with_required(false);
-    let secret2 = SecretVaultRef::new("test-secret1".into()).with_secret_version("1".into()).with_required(false);
+    let secret2 = SecretVaultRef::new("test-secret2".into()).with_secret_version("1".into()).with_required(false);
 
     // Building the vault
     let mut vault = SecretVaultBuilder::with_source(
@@ -38,9 +38,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     println!("Received secret: {:?}", secret_value);
 
-    // Using the viewer API to share only methods able to read secrets
+    // Using the Viewer API to share only methods able to read secrets
     let vault_viewer = vault.viewer();
     vault_viewer.get_secret_by_ref(&secret2)?;
+
+    // Using the Snapshot API to be able to share the instance without having to store `vault`
+    // Since this point `vault` is not available anymore to borrow and update secrets
+    let vault_snapshot = vault.snapshot();
+    vault_snapshot.get_secret_by_ref(&secret2)?;
 
     Ok(())
 }
