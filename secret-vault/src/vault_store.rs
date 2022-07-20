@@ -55,4 +55,8 @@ where
             None => Ok(None),
         }
     }
+
+    pub fn len(&self) -> usize {
+        self.secrets.len()
+    }
 }

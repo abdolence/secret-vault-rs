@@ -25,8 +25,8 @@ impl GoogleSecretManagerSource {
                 "https://secretmanager.googleapis.com",
                 None,
             )
-                .await
-                .map_err(|e| SecretVaultError::from(e))?;
+            .await
+            .map_err(|e| SecretVaultError::from(e))?;
 
         Ok(Self {
             secret_manager_client: client,
@@ -58,7 +58,7 @@ impl SecretsSource for GoogleSecretManagerSource {
                     .unwrap_or_else(|| "latest".to_string())
             );
 
-            debug!("Reading GCP secret: {}", gcp_secret_path);
+            trace!("Reading GCP secret: {}", gcp_secret_path);
             let get_secret_response = self
                 .secret_manager_client
                 .get()
@@ -77,25 +77,27 @@ impl SecretsSource for GoogleSecretManagerSource {
                     } else if secret_ref.required {
                         return Err(SecretVaultError::DataNotFoundError(
                             SecretVaultDataNotFoundError::new(
-                                SecretVaultErrorPublicGenericDetails::new(
-                                    "SECRET_PAYLOAD".into()
+                                SecretVaultErrorPublicGenericDetails::new("SECRET_PAYLOAD".into()),
+                                format!(
+                                    "Secret is required but payload is not found for {}",
+                                    gcp_secret_path
                                 ),
-                                format!("Secret is required but payload is not found for {}", gcp_secret_path),
-                            )
+                            ),
                         ));
                     }
                 }
-                Err(err) => {
-                    match err {
-                        SecretVaultError::DataNotFoundError(_) if !secret_ref.required => {
-                            debug!("Secret or secret version {} doesn't exist and since it is not required it is skipped",gcp_secret_path);
-                        }
-                        _ => {
-                            error!("Unable to read secret or secret version {}.",gcp_secret_path);
-                            return Err(err)
-                        }
+                Err(err) => match err {
+                    SecretVaultError::DataNotFoundError(_) if !secret_ref.required => {
+                        debug!("Secret or secret version {} doesn't exist and since it is not required it is skipped",gcp_secret_path);
                     }
-                }
+                    _ => {
+                        error!(
+                            "Unable to read secret or secret version {}.",
+                            gcp_secret_path
+                        );
+                        return Err(err);
+                    }
+                },
             }
         }
         Ok(result_map)

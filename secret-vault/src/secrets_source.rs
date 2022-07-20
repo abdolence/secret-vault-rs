@@ -5,7 +5,6 @@ use std::collections::HashMap;
 
 #[async_trait]
 pub trait SecretsSource {
-
     fn name(&self) -> String;
 
     async fn get_secrets(
@@ -26,9 +25,12 @@ impl MultipleSecretsSources {
 
 #[async_trait]
 impl SecretsSource for MultipleSecretsSources {
-
     fn name(&self) -> String {
-        self.sources.iter().map(|source| source.name()).collect::<Vec<String>>().join(", ")
+        self.sources
+            .iter()
+            .map(|source| source.name())
+            .collect::<Vec<String>>()
+            .join(", ")
     }
 
     async fn get_secrets(

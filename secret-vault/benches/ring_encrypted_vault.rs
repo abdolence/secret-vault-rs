@@ -14,7 +14,7 @@ fn decrypt_secrets_perf_test(
 fn criterion_benchmark(c: &mut Criterion) {
     let encryption = SecretVaultRingAeadEncryption::new().unwrap();
     let mock_secret_value = SecretValue::new("42".repeat(64).as_bytes().to_vec());
-    let mock_secret_name: SecretName  = "test".into();
+    let mock_secret_name: SecretName = "test".into();
 
     let encrypted_value = encryption
         .encrypt_value(&mock_secret_name, &mock_secret_value)

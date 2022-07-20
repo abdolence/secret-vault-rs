@@ -1,5 +1,5 @@
-use rvstruct::*;
 use rsb_derive::*;
+use rvstruct::*;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, ValueStruct)]
 pub struct SecretName(String);
@@ -12,6 +12,6 @@ pub struct SecretVaultRef {
     pub secret_name: SecretName,
     pub secret_version: Option<SecretVersion>,
 
-    #[default="true"]
-    pub required: bool
+    #[default = "true"]
+    pub required: bool,
 }
