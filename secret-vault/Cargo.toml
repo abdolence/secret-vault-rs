@@ -40,9 +40,9 @@ aws-sdk-secretsmanager = { version = "0.15", optional = true }
 cargo-husky = { version = "1.5", default-features = false, features = ["run-for-all", "prepush-hook", "run-cargo-fmt"] }
 serde_json = { version = "1" }
 proptest = "1.0"
-tracing-subscriber = { version ="0.3", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tokio = { version = "1", features = ["full"] }
-criterion = { version="0.3", features=["html_reports", "futures", "tokio", "async_tokio"] }
+criterion = { version = "0.3", features = ["html_reports", "futures", "tokio", "async_tokio"] }
 
 [features]
 default = []
@@ -58,22 +58,25 @@ aws-secretmanager = ["aws"]
 all-features = true
 
 [[example]]
-name="gcloud_secret_manager_vault"
-path="examples/gcloud_secret_manager_vault.rs"
+name = "gcloud_secret_manager_vault"
+path = "examples/gcloud_secret_manager_vault.rs"
 required-features = ["gcloud-secretmanager", "encrypted-ring", "memory-protect"]
 
 [[example]]
-name="aws_secret_manager_vault"
-path="examples/aws_secret_manager_vault.rs"
+name = "aws_secret_manager_vault"
+path = "examples/aws_secret_manager_vault.rs"
 required-features = ["aws-secretmanager", "encrypted-ring", "memory-protect"]
 
 [[example]]
-name="insecure_env_secret_vault"
-path="examples/insecure_env_secret_vault.rs"
+name = "insecure_env_secret_vault"
+path = "examples/insecure_env_secret_vault.rs"
 
 [[bench]]
 name = "ring_encrypted_vault"
+path = "benches/ring_encrypted_vault.rs"
 harness = false
+
 [[bench]]
 name = "read_vault_bench"
+path = "benches/read_vault_bench.rs"
 harness = false
