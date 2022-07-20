@@ -32,7 +32,6 @@ Library provides a secure memory-backed storage of secrets coming to your applic
 ### Features
 - Reading/caching registered secrets in memory from defined sources;
 - Memory encryption using AEAD cryptography (optional);
-- Memory protection/locking access (optional);
 - Extensible and strongly typed API to be able to implement any kind of sources;
 
 ## Quick start
@@ -48,7 +47,6 @@ See security consideration below about versioning.
 ### Available optional features for Secret Vault:
 - `gcloud-secretmanager` for Google Secret Manager support
 - `aws-secretmanager` for Amazon Secret Manager support
-- `memory-protect` for memory protection support
 - `encrypted-ring` for encryption support
 - `serde` for serde serialization support
 
@@ -72,7 +70,6 @@ let mut vault = SecretVaultBuilder::with_source(
     gcp::GoogleSecretManagerSource::new(&config_env_var("PROJECT_ID")?).await?,
 )
     .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
-    .with_memory_protection(locked_allocator::SecretVaultMemoryProtectAllocator::new())
     .build()?;
 
 // Registering your secrets and receiving them from source

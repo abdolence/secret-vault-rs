@@ -1,28 +1,25 @@
-use crate::allocator::SecretVaultStoreValueAllocator;
 use crate::encryption::SecretVaultEncryption;
 use crate::secrets_source::SecretsSource;
 use crate::vault_store::SecretVaultStore;
 use crate::*;
 use tracing::*;
 
-pub struct SecretVault<S, AR, E>
+pub struct SecretVault<S, E>
 where
     S: SecretsSource,
     E: SecretVaultEncryption,
-    AR: SecretVaultStoreValueAllocator,
 {
     source: S,
-    store: SecretVaultStore<AR, E>,
+    store: SecretVaultStore<E>,
     refs: Vec<SecretVaultRef>,
 }
 
-impl<S, AR, E> SecretVault<S, AR, E>
+impl<S, E> SecretVault<S, E>
 where
     S: SecretsSource,
     E: SecretVaultEncryption,
-    AR: SecretVaultStoreValueAllocator,
 {
-    pub fn new(source: S, store: SecretVaultStore<AR, E>) -> SecretVaultResult<Self> {
+    pub fn new(source: S, store: SecretVaultStore<E>) -> SecretVaultResult<Self> {
         Ok(Self {
             source,
             store,
@@ -57,20 +54,19 @@ where
         Ok(self)
     }
 
-    pub fn viewer(&self) -> SecretVaultViewer<AR, E> {
+    pub fn viewer(&self) -> SecretVaultViewer<E> {
         SecretVaultViewer::new(&self.store)
     }
 
-    pub fn snapshot(self) -> SecretVaultSnapshot<AR, E> {
+    pub fn snapshot(self) -> SecretVaultSnapshot<E> {
         SecretVaultSnapshot::new(self.store)
     }
 }
 
-impl<S, AR, E> SecretVaultView for SecretVault<S, AR, E>
+impl<S, E> SecretVaultView for SecretVault<S, E>
 where
     S: SecretsSource,
     E: SecretVaultEncryption,
-    AR: SecretVaultStoreValueAllocator,
 {
     fn get_secret_by_ref(&self, secret_ref: &SecretVaultRef) -> SecretVaultResult<Option<Secret>> {
         self.store.get_secret(secret_ref)
@@ -94,7 +90,6 @@ mod tests {
             .current();
         let mut vault = SecretVaultBuilder::with_source(mock_secrets_store.clone())
             .without_encryption()
-            .without_memory_protection()
             .build()
             .unwrap();
 

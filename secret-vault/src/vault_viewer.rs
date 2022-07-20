@@ -1,8 +1,5 @@
 use crate::vault_store::SecretVaultStore;
-use crate::{
-    Secret, SecretName, SecretVaultEncryption, SecretVaultRef, SecretVaultResult,
-    SecretVaultStoreValueAllocator, SecretVersion,
-};
+use crate::*;
 
 pub trait SecretVaultView {
     fn get_secret(&self, secret_name: &SecretName) -> SecretVaultResult<Option<Secret>> {
@@ -22,56 +19,50 @@ pub trait SecretVaultView {
     fn get_secret_by_ref(&self, secret_ref: &SecretVaultRef) -> SecretVaultResult<Option<Secret>>;
 }
 
-pub struct SecretVaultViewer<'a, AR, E>
+pub struct SecretVaultViewer<'a, E>
 where
     E: SecretVaultEncryption,
-    AR: SecretVaultStoreValueAllocator,
 {
-    store_ref: &'a SecretVaultStore<AR, E>,
+    store_ref: &'a SecretVaultStore<E>,
 }
 
-impl<'a, AR, E> SecretVaultViewer<'a, AR, E>
+impl<'a, E> SecretVaultViewer<'a, E>
 where
     E: SecretVaultEncryption,
-    AR: SecretVaultStoreValueAllocator,
 {
-    pub fn new(store: &'a SecretVaultStore<AR, E>) -> Self {
+    pub fn new(store: &'a SecretVaultStore<E>) -> Self {
         Self { store_ref: store }
     }
 }
 
-impl<'a, AR, E> SecretVaultView for SecretVaultViewer<'a, AR, E>
+impl<'a, E> SecretVaultView for SecretVaultViewer<'a, E>
 where
     E: SecretVaultEncryption,
-    AR: SecretVaultStoreValueAllocator,
 {
     fn get_secret_by_ref(&self, secret_ref: &SecretVaultRef) -> SecretVaultResult<Option<Secret>> {
         self.store_ref.get_secret(secret_ref)
     }
 }
 
-pub struct SecretVaultSnapshot<AR, E>
+pub struct SecretVaultSnapshot<E>
 where
     E: SecretVaultEncryption,
-    AR: SecretVaultStoreValueAllocator,
 {
-    store: SecretVaultStore<AR, E>,
+    store: SecretVaultStore<E>,
 }
 
-impl<AR, E> SecretVaultSnapshot<AR, E>
+impl<E> SecretVaultSnapshot<E>
 where
     E: SecretVaultEncryption,
-    AR: SecretVaultStoreValueAllocator,
 {
-    pub fn new(store: SecretVaultStore<AR, E>) -> Self {
+    pub fn new(store: SecretVaultStore<E>) -> Self {
         Self { store }
     }
 }
 
-impl<AR, E> SecretVaultView for SecretVaultSnapshot<AR, E>
+impl<E> SecretVaultView for SecretVaultSnapshot<E>
 where
     E: SecretVaultEncryption,
-    AR: SecretVaultStoreValueAllocator,
 {
     fn get_secret_by_ref(&self, secret_ref: &SecretVaultRef) -> SecretVaultResult<Option<Secret>> {
         self.store.get_secret(secret_ref)

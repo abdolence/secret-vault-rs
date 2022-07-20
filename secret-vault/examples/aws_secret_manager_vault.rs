@@ -23,7 +23,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         aws::AmazonSecretManagerSource::new(config_env_var("ACCOUNT_ID")?, None).await?,
     )
     .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
-    .with_memory_protection(locked_allocator::SecretVaultMemoryProtectAllocator::new())
     .build()?;
 
     // Registering your secrets and receiving them from source

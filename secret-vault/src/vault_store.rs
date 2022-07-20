@@ -1,4 +1,3 @@
-use crate::allocator::*;
 use std::collections::HashMap;
 
 use crate::common_types::*;
@@ -6,26 +5,28 @@ use crate::encryption::*;
 use crate::SecretVaultResult;
 
 #[derive(Debug)]
-pub struct SecretVaultStore<AR, E>
-where
-    E: SecretVaultEncryption,
-    AR: SecretVaultStoreValueAllocator,
-{
-    secrets: HashMap<SecretVaultRef, SecretVaultStoreValue<AR::R>>,
-    encrypter: E,
-    allocator: AR,
+pub struct SecretVaultStoreValue {
+    pub data: EncryptedSecretValue,
+    pub metadata: SecretMetadata,
 }
 
-impl<AR, E> SecretVaultStore<AR, E>
+#[derive(Debug)]
+pub struct SecretVaultStore<E>
 where
     E: SecretVaultEncryption,
-    AR: SecretVaultStoreValueAllocator,
 {
-    pub fn new(encrypter: E, allocator: AR) -> Self {
+    secrets: HashMap<SecretVaultRef, SecretVaultStoreValue>,
+    encrypter: E,
+}
+
+impl<E> SecretVaultStore<E>
+where
+    E: SecretVaultEncryption,
+{
+    pub fn new(encrypter: E) -> Self {
         Self {
             secrets: HashMap::new(),
             encrypter,
-            allocator,
         }
     }
 
@@ -33,11 +34,10 @@ where
         let encrypted_secret_value = self
             .encrypter
             .encrypt_value(&secret_ref.secret_name, &secret.value)?;
-        let allocated_data = self.allocator.allocate(encrypted_secret_value)?;
         self.secrets.insert(
             secret_ref,
             SecretVaultStoreValue {
-                data: allocated_data,
+                data: encrypted_secret_value,
                 metadata: SecretMetadata::new(),
             },
         );
@@ -48,10 +48,9 @@ where
     pub fn get_secret(&self, secret_ref: &SecretVaultRef) -> SecretVaultResult<Option<Secret>> {
         match self.secrets.get(secret_ref) {
             Some(stored_value) => {
-                let secret_value = self.encrypter.decrypt_value(
-                    &secret_ref.secret_name,
-                    &self.allocator.extract(&stored_value.data)?,
-                )?;
+                let secret_value = self
+                    .encrypter
+                    .decrypt_value(&secret_ref.secret_name, &stored_value.data)?;
                 Ok(Some(Secret::new(
                     secret_value,
                     stored_value.metadata.clone(),

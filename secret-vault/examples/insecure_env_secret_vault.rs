@@ -18,7 +18,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Building the vault
     let mut vault = SecretVaultBuilder::with_source(InsecureEnvSource::new())
         .without_encryption()
-        .without_memory_protection()
         .build()?;
 
     // Registering your secrets and receiving them from source

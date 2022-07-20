@@ -39,43 +39,8 @@ pub struct SecretVaultBuilderWithEncryption<S: SecretsSource, E: SecretVaultEncr
 }
 
 impl<S: SecretsSource, E: SecretVaultEncryption> SecretVaultBuilderWithEncryption<S, E> {
-    pub fn with_memory_protection<AR: SecretVaultStoreValueAllocator>(
-        self,
-        allocator: AR,
-    ) -> SecretVaultBuilderWithAllocator<S, E, AR> {
-        SecretVaultBuilderWithAllocator {
-            source: self.source,
-            encryption: self.encryption,
-            allocator,
-        }
-    }
-
-    pub fn without_memory_protection(
-        self,
-    ) -> SecretVaultBuilderWithAllocator<S, E, SecretVaultNoAllocator> {
-        SecretVaultBuilderWithAllocator {
-            source: self.source,
-            encryption: self.encryption,
-            allocator: SecretVaultNoAllocator,
-        }
-    }
-}
-
-pub struct SecretVaultBuilderWithAllocator<
-    S: SecretsSource,
-    E: SecretVaultEncryption,
-    AR: SecretVaultStoreValueAllocator,
-> {
-    source: S,
-    encryption: E,
-    allocator: AR,
-}
-
-impl<S: SecretsSource, E: SecretVaultEncryption, AR: SecretVaultStoreValueAllocator>
-    SecretVaultBuilderWithAllocator<S, E, AR>
-{
-    pub fn build(self) -> SecretVaultResult<SecretVault<S, AR, E>> {
-        let store = SecretVaultStore::new(self.encryption, self.allocator);
+    pub fn build(self) -> SecretVaultResult<SecretVault<S, E>> {
+        let store = SecretVaultStore::new(self.encryption);
         SecretVault::new(self.source, store)
     }
 }
