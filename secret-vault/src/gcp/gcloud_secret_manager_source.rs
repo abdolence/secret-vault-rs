@@ -7,6 +7,7 @@ use crate::errors::*;
 use crate::secrets_source::SecretsSource;
 use crate::*;
 use secret_vault_value::SecretValue;
+use tracing::*;
 
 use async_trait::*;
 use gcloud_sdk::google::cloud::secretmanager::v1::AccessSecretVersionRequest;
@@ -24,8 +25,8 @@ impl GoogleSecretManagerSource {
                 "https://secretmanager.googleapis.com",
                 None,
             )
-            .await
-            .map_err(|e| SecretVaultError::from(e))?;
+                .await
+                .map_err(|e| SecretVaultError::from(e))?;
 
         Ok(Self {
             secret_manager_client: client,
@@ -36,7 +37,6 @@ impl GoogleSecretManagerSource {
 
 #[async_trait]
 impl SecretsSource for GoogleSecretManagerSource {
-
     fn name(&self) -> String {
         "GoogleSecretManager".to_string()
     }
@@ -47,28 +47,55 @@ impl SecretsSource for GoogleSecretManagerSource {
     ) -> SecretVaultResult<HashMap<SecretVaultRef, SecretValue>> {
         let mut result_map: HashMap<SecretVaultRef, SecretValue> = HashMap::new();
         for secret_ref in references {
-            let response = self
+            let gcp_secret_path = format!(
+                "projects/{}/secrets/{}/versions/{}",
+                self.google_project_id,
+                secret_ref.secret_name.value(),
+                secret_ref
+                    .secret_version
+                    .as_ref()
+                    .map(|v| v.value().clone())
+                    .unwrap_or_else(|| "latest".to_string())
+            );
+
+            debug!("Reading GCP secret: {}", gcp_secret_path);
+            let get_secret_response = self
                 .secret_manager_client
                 .get()
                 .access_secret_version(tonic::Request::new(AccessSecretVersionRequest {
-                    name: format!(
-                        "projects/{}/secrets/{}/versions/{}",
-                        self.google_project_id,
-                        secret_ref.secret_name.value(),
-                        secret_ref
-                            .secret_version
-                            .as_ref()
-                            .map(|v| v.value().clone())
-                            .unwrap_or_else(|| "latest".to_string())
-                    ),
+                    name: gcp_secret_path.clone(),
                     ..Default::default()
                 }))
                 .await
-                .map_err(|e| SecretVaultError::from(e))?;
+                .map_err(|e| SecretVaultError::from(e));
 
-            let secret_response = response.into_inner();
-            if let Some(payload) = secret_response.payload {
-                result_map.insert(secret_ref.clone(), payload.data);
+            match get_secret_response {
+                Ok(response) => {
+                    let secret_response = response.into_inner();
+                    if let Some(payload) = secret_response.payload {
+                        result_map.insert(secret_ref.clone(), payload.data);
+                    } else if secret_ref.required {
+                        return Err(SecretVaultError::DataNotFoundError(
+                            SecretVaultDataNotFoundError::new(
+                                SecretVaultErrorPublicGenericDetails::new(
+                                    "SECRET_PAYLOAD".into()
+                                ),
+                                format!("Secret is required but payload is not found for {}", gcp_secret_path),
+                            )
+                        ));
+                    }
+                }
+                Err(err) => {
+                    match err {
+                        SecretVaultError::DataNotFoundError(_) if !secret_ref.required => {
+                            debug!("Secret or secret version {} doesn't exist and since it is not required it is skipped",gcp_secret_path);
+                        }
+                        _ => {
+                            error!("Unable to read secret or secret version {}.",gcp_secret_path);
+                            return Err(err)
+                        }
+                    }
+                }
             }
         }
         Ok(result_map)

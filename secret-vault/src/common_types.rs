@@ -11,4 +11,7 @@ pub struct SecretVersion(String);
 pub struct SecretVaultRef {
     pub secret_name: SecretName,
     pub secret_version: Option<SecretVersion>,
+
+    #[default="true"]
+    pub required: bool
 }

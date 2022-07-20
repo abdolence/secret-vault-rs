@@ -9,15 +9,16 @@ pub fn config_env_var(name: &str) -> Result<String, String> {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let subscriber = tracing_subscriber::fmt()
-        .with_env_filter("slack_morphism_hyper=debug,slack_morphism=debug")
+        .with_env_filter("secret_vault=debug")
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    // Describe secrets
-    let secret1 = SecretVaultRef::new("test-secret1".into());
-    let secret2 = SecretVaultRef::new("test-secret1".into()).with_secret_version("1".into());
+    // Describing secrets and marking them non-required
+    // since this is only example and they don't exist in your project
+    let secret1 = SecretVaultRef::new("test-secret1".into()).with_required(false);
+    let secret2 = SecretVaultRef::new("test-secret1".into()).with_secret_version("1".into()).with_required(false);
 
-    // Build the vault
+    // Building the vault
     let mut vault = SecretVaultBuilder::with_source(
         gcp::GoogleSecretManagerSource::new(&config_env_var("PROJECT_ID")?).await?,
     )
@@ -25,14 +26,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     .with_memory_protection(SecretVaultStoreMemoryProtectAllocator::new())
     .build()?;
 
-    // Register your secrets and receive them from source
+    // Registering your secrets and receiving them from source
     vault.with_secrets_refs(vec![
         &secret1,
         &secret2
     ])
     .refresh().await?;
 
-    // Use the vault
+    // Reading the secret values
     let secret_value: Option<SecretValue> = vault.get_secret_by_ref(&secret1)?;
 
     println!("Received secret: {:?}", secret_value);
