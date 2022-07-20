@@ -59,15 +59,17 @@ all-features = true
 
 [[example]]
 name="gcloud_secret_manager_vault"
+path="examples/gcloud_secret_manager_vault.rs"
 required-features = ["gcloud-secretmanager", "encrypted-ring", "memory-protect"]
 
 [[example]]
 name="aws_secret_manager_vault"
+path="examples/aws_secret_manager_vault.rs"
 required-features = ["aws-secretmanager", "encrypted-ring", "memory-protect"]
-
 
 [[example]]
 name="insecure_env_secret_vault"
+path="examples/insecure_env_secret_vault.rs"
 
 [[bench]]
 name = "ring_encrypted_vault"
