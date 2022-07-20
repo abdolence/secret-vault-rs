@@ -1,4 +1,5 @@
 use std::fmt::{Debug, Display, Formatter};
+use std::str::FromStr;
 use zeroize::*;
 
 #[derive(Zeroize, ZeroizeOnDrop, PartialEq, Default)]
@@ -15,6 +16,32 @@ impl SecretValue {
 
     pub fn ref_sensitive_value_mut(&mut self) -> &mut Vec<u8> {
         &mut self.0
+    }
+}
+
+impl FromStr for SecretValue {
+    type Err = ();
+
+    fn from_str(str: &str) -> Result<Self, Self::Err> {
+        Ok(Self(str.as_bytes().to_vec()))
+    }
+}
+
+impl From<String> for SecretValue {
+    fn from(str: String) -> Self {
+        Self(str.as_bytes().to_vec())
+    }
+}
+
+impl From<&String> for SecretValue {
+    fn from(str: &String) -> Self {
+        Self(str.as_bytes().to_vec())
+    }
+}
+
+impl From<&str> for SecretValue {
+    fn from(str: &str) -> Self {
+        Self(str.as_bytes().to_vec())
     }
 }
 

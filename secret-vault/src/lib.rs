@@ -1,4 +1,4 @@
-#![allow(unused_parens)]
+#![allow(unused_parens, clippy::new_without_default)]
 
 mod allocator;
 pub use allocator::*;
@@ -9,6 +9,9 @@ pub use encryption::*;
 pub mod errors;
 mod secrets_source;
 pub use secrets_source::*;
+
+mod simple_sources;
+pub use simple_sources::*;
 
 mod vault_store;
 
