@@ -72,7 +72,7 @@ pub struct SecretVaultBuilderWithAllocator<
 impl<S: SecretsSource, E: SecretVaultEncryption, AR: SecretVaultStoreValueAllocator>
     SecretVaultBuilderWithAllocator<S, E, AR>
 {
-    pub fn build(self) -> SecretVaultResult<SecretVault<S, AR::R, AR, E>> {
+    pub fn build(self) -> SecretVaultResult<SecretVault<S, AR, E>> {
         let store = SecretVaultStore::new(self.encryption, self.allocator);
         SecretVault::new(self.source, store)
     }

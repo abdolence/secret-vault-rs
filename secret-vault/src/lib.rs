@@ -4,6 +4,8 @@ mod allocator;
 pub use allocator::*;
 
 mod encryption;
+pub use encryption::*;
+
 pub mod errors;
 mod secrets_source;
 pub use secrets_source::*;
@@ -11,6 +13,7 @@ pub use secrets_source::*;
 mod vault_store;
 
 mod common_types;
+pub use common_types::*;
 
 #[cfg(feature = "memory-protect")]
 pub mod locked_allocator;
@@ -28,3 +31,6 @@ pub use vault::*;
 
 mod vault_builder;
 pub use vault_builder::SecretVaultBuilder;
+
+mod vault_viewer;
+pub use vault_viewer::*;

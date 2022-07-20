@@ -1,5 +1,4 @@
 use crate::allocator::*;
-use rsb_derive::*;
 use secret_vault_value::SecretValue;
 use std::collections::HashMap;
 
@@ -7,26 +6,20 @@ use crate::common_types::*;
 use crate::encryption::*;
 use crate::SecretVaultResult;
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Builder)]
-pub struct SecretVaultStoreRef {
-    pub secret_name: SecretName,
-    pub secret_version: Option<SecretVersion>,
-}
-
-pub struct SecretVaultStore<R, AR, E>
+pub struct SecretVaultStore<AR, E>
 where
     E: SecretVaultEncryption,
-    AR: SecretVaultStoreValueAllocator<R = R>,
+    AR: SecretVaultStoreValueAllocator,
 {
-    secrets: HashMap<SecretVaultStoreRef, SecretVaultStoreValue<R>>,
+    secrets: HashMap<SecretVaultRef, SecretVaultStoreValue<AR::R>>,
     encrypter: E,
     allocator: AR,
 }
 
-impl<R, AR, E> SecretVaultStore<R, AR, E>
+impl<AR, E> SecretVaultStore<AR, E>
 where
     E: SecretVaultEncryption,
-    AR: SecretVaultStoreValueAllocator<R = R>,
+    AR: SecretVaultStoreValueAllocator,
 {
     pub fn new(encrypter: E, allocator: AR) -> Self {
         Self {
@@ -36,9 +29,9 @@ where
         }
     }
 
-    pub fn store(
+    pub fn insert(
         &mut self,
-        secret_ref: SecretVaultStoreRef,
+        secret_ref: SecretVaultRef,
         secret: &SecretValue,
     ) -> SecretVaultResult<()> {
         let encrypted_secret_value = self
@@ -52,9 +45,9 @@ where
 
     pub fn get_secret(
         &self,
-        secret_ref: SecretVaultStoreRef,
+        secret_ref: &SecretVaultRef,
     ) -> SecretVaultResult<Option<SecretValue>> {
-        match self.secrets.get(&secret_ref) {
+        match self.secrets.get(secret_ref) {
             Some(encrypted_stored_value) => Ok(Some(self.encrypter.decrypt_value(
                 &secret_ref.secret_name,
                 &self.allocator.extract(encrypted_stored_value)?,

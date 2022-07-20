@@ -39,6 +39,7 @@ serde_json = { version = "1" }
 proptest = "1.0"
 tracing-subscriber = { version ="0.3", features = ["env-filter"] }
 tokio = { version = "1", features = ["full"] }
+criterion = { version="0.3", features=["html_reports"] }
 
 [features]
 default = []
@@ -54,3 +55,7 @@ all-features = true
 [[example]]
 name="gcloud_secret_manager_vault"
 required-features = ["gcloud-secretmanager", "encrypted-ring", "memory-protect"]
+
+[[bench]]
+name = "ring_encrypted_vault"
+harness = false

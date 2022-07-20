@@ -161,7 +161,7 @@ impl AsRef<[u8]> for &SecretName {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
     use proptest::prelude::*;
 

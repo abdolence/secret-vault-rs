@@ -1,15 +1,17 @@
-use crate::vault_store::SecretVaultStoreRef;
-use crate::SecretVaultResult;
+use crate::{SecretVaultRef, SecretVaultResult};
 use async_trait::*;
 use secret_vault_value::SecretValue;
 use std::collections::HashMap;
 
 #[async_trait]
 pub trait SecretsSource {
+
+    fn name(&self) -> String;
+
     async fn get_secrets(
         &self,
-        references: Vec<SecretVaultStoreRef>,
-    ) -> SecretVaultResult<HashMap<SecretVaultStoreRef, SecretValue>>;
+        references: &Vec<SecretVaultRef>,
+    ) -> SecretVaultResult<HashMap<SecretVaultRef, SecretValue>>;
 }
 
 pub struct MultipleSecretsSources {
@@ -24,13 +26,18 @@ impl MultipleSecretsSources {
 
 #[async_trait]
 impl SecretsSource for MultipleSecretsSources {
+
+    fn name(&self) -> String {
+        self.sources.iter().map(|source| source.name()).collect::<Vec<String>>().join(", ")
+    }
+
     async fn get_secrets(
         &self,
-        references: Vec<SecretVaultStoreRef>,
-    ) -> SecretVaultResult<HashMap<SecretVaultStoreRef, SecretValue>> {
-        let mut result_map: HashMap<SecretVaultStoreRef, SecretValue> = HashMap::new();
+        references: &Vec<SecretVaultRef>,
+    ) -> SecretVaultResult<HashMap<SecretVaultRef, SecretValue>> {
+        let mut result_map: HashMap<SecretVaultRef, SecretValue> = HashMap::new();
         for source in self.sources.iter() {
-            let mut source_secrets = source.get_secrets(references.clone()).await?;
+            let mut source_secrets = source.get_secrets(references).await?;
             for (secret_ref, secret_value) in source_secrets.drain() {
                 result_map.insert(secret_ref, secret_value);
             }

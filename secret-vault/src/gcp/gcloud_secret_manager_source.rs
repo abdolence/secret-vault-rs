@@ -5,7 +5,6 @@ use std::collections::HashMap;
 
 use crate::errors::*;
 use crate::secrets_source::SecretsSource;
-use crate::vault_store::SecretVaultStoreRef;
 use crate::*;
 use secret_vault_value::SecretValue;
 
@@ -37,12 +36,17 @@ impl GoogleSecretManagerSource {
 
 #[async_trait]
 impl SecretsSource for GoogleSecretManagerSource {
+
+    fn name(&self) -> String {
+        "GoogleSecretManager".to_string()
+    }
+
     async fn get_secrets(
         &self,
-        mut references: Vec<SecretVaultStoreRef>,
-    ) -> SecretVaultResult<HashMap<SecretVaultStoreRef, SecretValue>> {
-        let mut result_map: HashMap<SecretVaultStoreRef, SecretValue> = HashMap::new();
-        for secret_ref in references.drain(0..) {
+        references: &Vec<SecretVaultRef>,
+    ) -> SecretVaultResult<HashMap<SecretVaultRef, SecretValue>> {
+        let mut result_map: HashMap<SecretVaultRef, SecretValue> = HashMap::new();
+        for secret_ref in references {
             let response = self
                 .secret_manager_client
                 .get()
@@ -64,7 +68,7 @@ impl SecretsSource for GoogleSecretManagerSource {
 
             let secret_response = response.into_inner();
             if let Some(payload) = secret_response.payload {
-                result_map.insert(secret_ref, payload.data);
+                result_map.insert(secret_ref.clone(), payload.data);
             }
         }
         Ok(result_map)
