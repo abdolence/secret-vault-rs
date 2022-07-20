@@ -22,9 +22,9 @@ pub trait SecretVaultEncryption {
 }
 
 #[derive(Debug)]
-pub struct NoEncryption;
+pub struct SecretVaultNoEncryption;
 
-impl SecretVaultEncryption for NoEncryption {
+impl SecretVaultEncryption for SecretVaultNoEncryption {
     fn encrypt_value(
         &self,
         _secret_name: &SecretName,

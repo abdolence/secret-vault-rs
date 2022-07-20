@@ -19,6 +19,7 @@ maintenance = { status = "actively-developed" }
 [lib]
 name = "secret_vault"
 path = "src/lib.rs"
+bench = false
 
 [dependencies]
 tracing = "0.1"
@@ -39,7 +40,7 @@ serde_json = { version = "1" }
 proptest = "1.0"
 tracing-subscriber = { version ="0.3", features = ["env-filter"] }
 tokio = { version = "1", features = ["full"] }
-criterion = { version="0.3", features=["html_reports"] }
+criterion = { version="0.3", features=["html_reports", "futures", "tokio", "async_tokio"] }
 
 [features]
 default = []
@@ -61,4 +62,7 @@ name="insecure_env_secret_vault"
 
 [[bench]]
 name = "ring_encrypted_vault"
+harness = false
+[[bench]]
+name = "read_vault_bench"
 harness = false

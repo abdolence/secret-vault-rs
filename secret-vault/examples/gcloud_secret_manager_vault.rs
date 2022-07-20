@@ -1,4 +1,4 @@
-use secret_vault::locked_allocator::SecretVaultStoreMemoryProtectAllocator;
+use secret_vault::locked_allocator::SecretVaultMemoryProtectAllocator;
 use secret_vault::*;
 use secret_vault_value::SecretValue;
 
@@ -25,7 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         gcp::GoogleSecretManagerSource::new(&config_env_var("PROJECT_ID")?).await?,
     )
     .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
-    .with_memory_protection(SecretVaultStoreMemoryProtectAllocator::new())
+    .with_memory_protection(SecretVaultMemoryProtectAllocator::new())
     .build()?;
 
     // Registering your secrets and receiving them from source

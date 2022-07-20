@@ -53,27 +53,33 @@ impl SecretsSource for MockSecretsSource {
     }
 }
 
-use proptest::prelude::*;
+#[cfg(test)]
+pub mod source_tests {
+    use crate::*;
+    use proptest::prelude::*;
+    use secret_vault_value::SecretValue;
 
-pub fn generate_secret_value() -> BoxedStrategy<SecretValue> {
-    ("[a-zA-Z0-9]*")
-        .prop_map(|(mock_secret_str)| SecretValue::new(mock_secret_str.as_bytes().to_vec()))
+    pub fn generate_secret_value() -> BoxedStrategy<SecretValue> {
+        ("[a-zA-Z0-9]*")
+            .prop_map(|(mock_secret_str)| SecretValue::new(mock_secret_str.as_bytes().to_vec()))
+            .boxed()
+    }
+
+    pub fn generate_secret_ref() -> BoxedStrategy<SecretVaultRef> {
+        ("[a-zA-Z0-9]*")
+            .prop_map(|(mock_secret_name)| SecretVaultRef::new(mock_secret_name.into()))
+            .boxed()
+    }
+
+    pub fn generate_mock_secrets_source() -> BoxedStrategy<MockSecretsSource> {
+        prop::collection::vec(
+            generate_secret_ref().prop_flat_map(move |secret_ref| {
+                generate_secret_value()
+                    .prop_map(move |secret_value| (secret_ref.clone(), secret_value))
+            }),
+            1..100,
+        )
+        .prop_map(|vec| MockSecretsSource::new(vec))
         .boxed()
-}
-
-pub fn generate_secret_ref() -> BoxedStrategy<SecretVaultRef> {
-    ("[a-zA-Z0-9]*")
-        .prop_map(|(mock_secret_name)| SecretVaultRef::new(mock_secret_name.into()))
-        .boxed()
-}
-
-pub fn generate_mock_secrets_source() -> BoxedStrategy<MockSecretsSource> {
-    prop::collection::vec(
-        generate_secret_ref().prop_flat_map(move |secret_ref| {
-            generate_secret_value().prop_map(move |secret_value| (secret_ref.clone(), secret_value))
-        }),
-        1..100,
-    )
-    .prop_map(|vec| MockSecretsSource::new(vec))
-    .boxed()
+    }
 }

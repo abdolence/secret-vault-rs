@@ -22,9 +22,9 @@ pub trait SecretVaultStoreValueAllocator {
 }
 
 #[derive(Debug)]
-pub struct SecretVaultStoreValueNoAllocator;
+pub struct SecretVaultNoAllocator;
 
-impl SecretVaultStoreValueAllocator for SecretVaultStoreValueNoAllocator {
+impl SecretVaultStoreValueAllocator for SecretVaultNoAllocator {
     type R = EncryptedSecretValue;
 
     fn allocate(

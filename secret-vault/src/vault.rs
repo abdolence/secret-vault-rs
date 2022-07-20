@@ -85,6 +85,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::source_tests::*;
     use crate::*;
     use proptest::prelude::*;
     use proptest::strategy::ValueTree;

@@ -23,10 +23,12 @@ impl<S: SecretsSource> SecretVaultBuilderWithSource<S> {
         }
     }
 
-    pub fn without_encryption(self) -> SecretVaultBuilderWithEncryption<S, NoEncryption> {
+    pub fn without_encryption(
+        self,
+    ) -> SecretVaultBuilderWithEncryption<S, SecretVaultNoEncryption> {
         SecretVaultBuilderWithEncryption {
             source: self.0,
-            encryption: NoEncryption {},
+            encryption: SecretVaultNoEncryption {},
         }
     }
 }
@@ -50,11 +52,11 @@ impl<S: SecretsSource, E: SecretVaultEncryption> SecretVaultBuilderWithEncryptio
 
     pub fn without_memory_protection(
         self,
-    ) -> SecretVaultBuilderWithAllocator<S, E, SecretVaultStoreValueNoAllocator> {
+    ) -> SecretVaultBuilderWithAllocator<S, E, SecretVaultNoAllocator> {
         SecretVaultBuilderWithAllocator {
             source: self.source,
             encryption: self.encryption,
-            allocator: SecretVaultStoreValueNoAllocator,
+            allocator: SecretVaultNoAllocator,
         }
     }
 }

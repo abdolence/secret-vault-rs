@@ -163,7 +163,7 @@ impl AsRef<[u8]> for &SecretName {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::generate_secret_value;
+    use crate::source_tests::*;
     use proptest::prelude::*;
 
     fn encryption_test_for(mock_secret_value: SecretValue) {
