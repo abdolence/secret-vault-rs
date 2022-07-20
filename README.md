@@ -130,6 +130,18 @@ So don't consider this is a completely safe solution for all possible attacks.
 Mitigation some of the attacks is not possible without implementing
 additional support on hardware/OS level (such as Intel SGX project, for instance).
 
+## Performance details
+
+The comparison between reading performance of encrypted and non-encrypted vault:
+
+```
+read-secrets-perf-simple-vault
+                        time:   [74.328 ns 74.587 ns 74.893 ns]
+
+read-secrets-perf-encrypted-vault
+                        time:   [241.53 ns 241.69 ns 241.88 ns]
+```
+
 ## Licence
 Apache Software License (ASL)
 

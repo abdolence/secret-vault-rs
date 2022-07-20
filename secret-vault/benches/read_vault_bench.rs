@@ -4,7 +4,6 @@ use criterion::*;
 
 use proptest::prelude::*;
 use proptest::test_runner::TestRunner;
-use secret_vault::locked_allocator::SecretVaultMemoryProtectAllocator;
 use secret_vault::ring_encryption::SecretVaultRingAeadEncryption;
 use secret_vault::*;
 use secret_vault_value::SecretValue;
@@ -32,13 +31,12 @@ pub fn generate_mock_secrets_source() -> BoxedStrategy<MockSecretsSource> {
     .boxed()
 }
 
-fn read_secrets_perf_test<AR, E>(
-    viewer: &SecretVaultSnapshot<AR, E>,
+fn read_secrets_perf_test<E>(
+    viewer: &SecretVaultSnapshot<E>,
     secret_ref: &SecretVaultRef,
 ) -> SecretVaultResult<Option<Secret>>
 where
     E: SecretVaultEncryption,
-    AR: SecretVaultStoreValueAllocator,
 {
     viewer.get_secret_by_ref(secret_ref)
 }
@@ -57,7 +55,6 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let mut simple_vault = SecretVaultBuilder::with_source(mock_secrets_store.clone())
         .without_encryption()
-        .without_memory_protection()
         .build()
         .unwrap();
 
@@ -73,25 +70,8 @@ fn criterion_benchmark(c: &mut Criterion) {
         simple_vault.snapshot()
     });
 
-    let mut vault_with_protection = SecretVaultBuilder::with_source(mock_secrets_store.clone())
-        .without_encryption()
-        .with_memory_protection(SecretVaultMemoryProtectAllocator)
-        .build()
-        .unwrap();
-
-    let vault_with_protection_snapshot = rt.block_on(async {
-        vault_with_protection
-            .with_secrets_refs(mock_secrets_store.secrets.keys().into_iter().collect())
-            .refresh()
-            .await
-            .unwrap();
-
-        vault_with_protection.snapshot()
-    });
-
     let mut vault_with_encryption = SecretVaultBuilder::with_source(mock_secrets_store.clone())
         .with_encryption(SecretVaultRingAeadEncryption::new().unwrap())
-        .without_memory_protection()
         .build()
         .unwrap();
 
@@ -107,14 +87,6 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     c.bench_function("read-secrets-perf-simple-vault", |b| {
         b.iter(|| read_secrets_perf_test(black_box(&simple_vault_snapshot), black_box(secret_ref)))
-    });
-    c.bench_function("read-secrets-perf-memprotected-vault", |b| {
-        b.iter(|| {
-            read_secrets_perf_test(
-                black_box(&vault_with_protection_snapshot),
-                black_box(secret_ref),
-            )
-        })
     });
     c.bench_function("read-secrets-perf-encrypted-vault", |b| {
         b.iter(|| {
