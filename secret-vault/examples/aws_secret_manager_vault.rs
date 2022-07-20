@@ -14,14 +14,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // Describing secrets and marking them non-required
     // since this is only example and they don't exist in your project
-    let secret1 = SecretVaultRef::new("test-secret1".into()).with_required(false);
+    let secret1 = SecretVaultRef::new("test-secret-xRnpry".into()).with_required(false);
     let secret2 = SecretVaultRef::new("test-secret2".into())
         .with_secret_version("1".into())
         .with_required(false);
 
     // Building the vault
     let mut vault = SecretVaultBuilder::with_source(
-        gcp::GoogleSecretManagerSource::new(&config_env_var("PROJECT_ID")?).await?,
+        aws::AmazonSecretManagerSource::new(config_env_var("ACCOUNT_ID")?, None).await?,
     )
     .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
     .with_memory_protection(locked_allocator::SecretVaultMemoryProtectAllocator::new())

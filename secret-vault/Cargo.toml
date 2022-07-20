@@ -33,6 +33,8 @@ region = { version = "3.0.0", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 gcloud-sdk = { version = "0.14", optional = true, features = ["google-cloud-secretmanager-v1"], path = "../../gcloud-sdk/gcloud-sdk" }
 tonic = { version = "0.7", optional = true }
+aws-config = { version = "0.15", optional = true }
+aws-sdk-secretsmanager = { version = "0.15", optional = true }
 
 [dev-dependencies]
 cargo-husky = { version = "1.5", default-features = false, features = ["run-for-all", "prepush-hook", "run-cargo-fmt"] }
@@ -49,6 +51,8 @@ memory-protect = ["dep:region"]
 encrypted-ring = ["dep:ring"]
 gcloud = ["dep:gcloud-sdk", "dep:tonic"]
 gcloud-secretmanager = ["gcloud"]
+aws = ["dep:aws-config", "dep:aws-sdk-secretsmanager"]
+aws-secretmanager = ["aws"]
 
 [package.metadata.docs.rs]
 all-features = true
@@ -56,6 +60,11 @@ all-features = true
 [[example]]
 name="gcloud_secret_manager_vault"
 required-features = ["gcloud-secretmanager", "encrypted-ring", "memory-protect"]
+
+[[example]]
+name="aws_secret_manager_vault"
+required-features = ["aws-secretmanager", "encrypted-ring", "memory-protect"]
+
 
 [[example]]
 name="insecure_env_secret_vault"

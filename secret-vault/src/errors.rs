@@ -274,3 +274,16 @@ impl From<tonic::Status> for SecretVaultError {
         }
     }
 }
+
+#[cfg(feature = "aws")]
+impl From<aws_sdk_secretsmanager::Error> for SecretVaultError {
+    fn from(e: aws_sdk_secretsmanager::Error) -> Self {
+        SecretVaultError::SecretsSourceError(
+            SecretsSourceError::new(
+                SecretVaultErrorPublicGenericDetails::new(format!("{:?}", e)),
+                format!("AWS error: {}", e),
+            )
+            .with_root_cause(Box::new(e)),
+        )
+    }
+}

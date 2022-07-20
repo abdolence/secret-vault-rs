@@ -92,8 +92,8 @@ impl SecretsSource for GoogleSecretManagerSource {
                     }
                     _ => {
                         error!(
-                            "Unable to read secret or secret version {}.",
-                            gcp_secret_path
+                            "Unable to read secret or secret version {}: {}.",
+                            gcp_secret_path, err
                         );
                         return Err(err);
                     }

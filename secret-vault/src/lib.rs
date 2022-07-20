@@ -27,6 +27,9 @@ pub mod ring_encryption;
 #[cfg(feature = "gcloud")]
 pub mod gcp;
 
+#[cfg(feature = "aws")]
+pub mod aws;
+
 pub type SecretVaultResult<T> = std::result::Result<T, errors::SecretVaultError>;
 
 mod vault;
