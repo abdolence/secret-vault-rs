@@ -1,5 +1,4 @@
 use crate::allocator::*;
-use secret_vault_value::SecretValue;
 use std::collections::HashMap;
 
 use crate::common_types::*;
@@ -30,29 +29,34 @@ where
         }
     }
 
-    pub fn insert(
-        &mut self,
-        secret_ref: SecretVaultRef,
-        secret: &SecretValue,
-    ) -> SecretVaultResult<()> {
+    pub fn insert(&mut self, secret_ref: SecretVaultRef, secret: &Secret) -> SecretVaultResult<()> {
         let encrypted_secret_value = self
             .encrypter
-            .encrypt_value(&secret_ref.secret_name, secret)?;
-        self.secrets
-            .insert(secret_ref, self.allocator.allocate(encrypted_secret_value)?);
+            .encrypt_value(&secret_ref.secret_name, &secret.value)?;
+        let allocated_data = self.allocator.allocate(encrypted_secret_value)?;
+        self.secrets.insert(
+            secret_ref,
+            SecretVaultStoreValue {
+                data: allocated_data,
+                metadata: SecretMetadata::new(),
+            },
+        );
 
         Ok(())
     }
 
-    pub fn get_secret(
-        &self,
-        secret_ref: &SecretVaultRef,
-    ) -> SecretVaultResult<Option<SecretValue>> {
+    pub fn get_secret(&self, secret_ref: &SecretVaultRef) -> SecretVaultResult<Option<Secret>> {
         match self.secrets.get(secret_ref) {
-            Some(encrypted_stored_value) => Ok(Some(self.encrypter.decrypt_value(
-                &secret_ref.secret_name,
-                &self.allocator.extract(encrypted_stored_value)?,
-            )?)),
+            Some(stored_value) => {
+                let secret_value = self.encrypter.decrypt_value(
+                    &secret_ref.secret_name,
+                    &self.allocator.extract(&stored_value.data)?,
+                )?;
+                Ok(Some(Secret::new(
+                    secret_value,
+                    stored_value.metadata.clone(),
+                )))
+            }
             None => Ok(None),
         }
     }

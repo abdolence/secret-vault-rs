@@ -24,8 +24,8 @@ impl SecretsSource for InsecureEnvSource {
     async fn get_secrets(
         &self,
         references: &[SecretVaultRef],
-    ) -> SecretVaultResult<HashMap<SecretVaultRef, SecretValue>> {
-        let mut result_map: HashMap<SecretVaultRef, SecretValue> = HashMap::new();
+    ) -> SecretVaultResult<HashMap<SecretVaultRef, Secret>> {
+        let mut result_map: HashMap<SecretVaultRef, Secret> = HashMap::new();
 
         for secret_ref in references {
             let env_secret_name: String = format!(
@@ -49,7 +49,10 @@ impl SecretsSource for InsecureEnvSource {
             {
                 Some(env) => {
                     let secret_value = SecretValue::from(env);
-                    result_map.insert(secret_ref.clone(), secret_value);
+                    result_map.insert(
+                        secret_ref.clone(),
+                        Secret::new(secret_value, SecretMetadata::new()),
+                    );
                 }
                 None if secret_ref.required => {
                     return Err(SecretVaultError::DataNotFoundError(

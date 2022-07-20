@@ -1,5 +1,4 @@
 use secret_vault::*;
-use secret_vault_value::SecretValue;
 
 pub fn config_env_var(name: &str) -> Result<String, String> {
     std::env::var(name).map_err(|e| format!("{}: {}", name, e))
@@ -33,8 +32,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .refresh()
         .await?;
 
-    // Reading the secret values
-    let secret_value: Option<SecretValue> = vault.get_secret_by_ref(&secret1)?;
+    // Reading the secret
+    let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret1)?;
 
     println!("Received secret: {:?}", secret_value);
 

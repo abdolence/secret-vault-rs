@@ -2,10 +2,7 @@ use crate::allocator::SecretVaultStoreValueAllocator;
 use crate::encryption::SecretVaultEncryption;
 use crate::secrets_source::SecretsSource;
 use crate::vault_store::SecretVaultStore;
-use crate::{
-    SecretVaultRef, SecretVaultResult, SecretVaultSnapshot, SecretVaultView, SecretVaultViewer,
-};
-use secret_vault_value::SecretValue;
+use crate::*;
 use tracing::*;
 
 pub struct SecretVault<S, AR, E>
@@ -51,8 +48,8 @@ where
 
         let mut secrets_map = self.source.get_secrets(&self.refs).await?;
 
-        for (secret_ref, secret_value) in secrets_map.drain() {
-            self.store.insert(secret_ref, &secret_value)?;
+        for (secret_ref, secret) in secrets_map.drain() {
+            self.store.insert(secret_ref, &secret)?;
         }
 
         info!("Secret vault contains: {} secrets", self.store.len());
@@ -75,10 +72,7 @@ where
     E: SecretVaultEncryption,
     AR: SecretVaultStoreValueAllocator,
 {
-    fn get_secret_by_ref(
-        &self,
-        secret_ref: &SecretVaultRef,
-    ) -> SecretVaultResult<Option<SecretValue>> {
+    fn get_secret_by_ref(&self, secret_ref: &SecretVaultRef) -> SecretVaultResult<Option<Secret>> {
         self.store.get_secret(secret_ref)
     }
 }
@@ -112,7 +106,11 @@ mod tests {
 
         for secret_ref in mock_secrets_store.secrets.keys() {
             assert_eq!(
-                vault.get_secret_by_ref(secret_ref).unwrap().as_ref(),
+                vault
+                    .get_secret_by_ref(secret_ref)
+                    .unwrap()
+                    .map(|secret| secret.value)
+                    .as_ref(),
                 mock_secrets_store.secrets.get(secret_ref)
             )
         }

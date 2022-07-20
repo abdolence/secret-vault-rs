@@ -46,8 +46,8 @@ impl SecretsSource for AmazonSecretManagerSource {
     async fn get_secrets(
         &self,
         references: &[SecretVaultRef],
-    ) -> SecretVaultResult<HashMap<SecretVaultRef, SecretValue>> {
-        let mut result_map: HashMap<SecretVaultRef, SecretValue> = HashMap::new();
+    ) -> SecretVaultResult<HashMap<SecretVaultRef, Secret>> {
+        let mut result_map: HashMap<SecretVaultRef, Secret> = HashMap::new();
 
         for secret_ref in references {
             let aws_secret_arn = format!(
@@ -65,7 +65,29 @@ impl SecretsSource for AmazonSecretManagerSource {
                 .await
             {
                 Ok(aws_secret) => {
-                    result_map.insert(secret_ref.clone(), aws_secret.secret_string.unwrap().into());
+                    let maybe_secret_value =
+                        aws_secret
+                            .secret_string
+                            .map(SecretValue::from)
+                            .or(aws_secret
+                                .secret_binary
+                                .map(|secret_binary| SecretValue::new(secret_binary.into_inner())));
+
+                    if let Some(secret_value) = maybe_secret_value {
+                        let metadata = SecretMetadata::new()
+                            .opt_version(aws_secret.version_id.map(|v| v.into()));
+                        result_map.insert(secret_ref.clone(), Secret::new(secret_value, metadata));
+                    } else if secret_ref.required {
+                        return Err(SecretVaultError::DataNotFoundError(
+                            SecretVaultDataNotFoundError::new(
+                                SecretVaultErrorPublicGenericDetails::new("SECRET_PAYLOAD".into()),
+                                format!(
+                                    "Secret is required but payload is not found for {}",
+                                    aws_secret_arn
+                                ),
+                            ),
+                        ));
+                    }
                 }
                 Err(err) => {
                     let err_string = err.to_string();

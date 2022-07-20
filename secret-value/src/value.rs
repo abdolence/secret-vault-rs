@@ -2,7 +2,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 use zeroize::*;
 
-#[derive(Zeroize, ZeroizeOnDrop, PartialEq, Default)]
+#[derive(Zeroize, ZeroizeOnDrop, Eq, PartialEq, Default)]
 pub struct SecretValue(Vec<u8>);
 
 impl SecretValue {

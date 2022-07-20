@@ -1,4 +1,4 @@
-use crate::allocator::{SecretVaultStoreValue, SecretVaultStoreValueAllocator};
+use crate::allocator::SecretVaultStoreValueAllocator;
 use crate::encryption::EncryptedSecretValue;
 use crate::errors::*;
 use crate::SecretVaultResult;
@@ -17,10 +17,7 @@ impl SecretVaultMemoryProtectAllocator {
 impl SecretVaultStoreValueAllocator for SecretVaultMemoryProtectAllocator {
     type R = SecretVaultStoreValueLockMemItem;
 
-    fn allocate(
-        &mut self,
-        encrypted_secret: EncryptedSecretValue,
-    ) -> SecretVaultResult<SecretVaultStoreValue<Self::R>> {
+    fn allocate(&mut self, encrypted_secret: EncryptedSecretValue) -> SecretVaultResult<Self::R> {
         let len = encrypted_secret.value().ref_sensitive_value().len();
         assert!(len > 0);
         let data = unsafe {
@@ -52,26 +49,22 @@ impl SecretVaultStoreValueAllocator for SecretVaultMemoryProtectAllocator {
                 data_len: len,
             }
         };
-        Ok(SecretVaultStoreValue { data })
+        Ok(data)
     }
 
-    fn extract(
-        &self,
-        allocated: &SecretVaultStoreValue<Self::R>,
-    ) -> SecretVaultResult<EncryptedSecretValue> {
-        let mut src_data = Vec::with_capacity(allocated.data.data_len);
+    fn extract(&self, allocated: &Self::R) -> SecretVaultResult<EncryptedSecretValue> {
+        let mut src_data = Vec::with_capacity(allocated.data_len);
         unsafe {
-            src_data.set_len(allocated.data.data_len);
+            src_data.set_len(allocated.data_len);
             allocated
-                .data
                 .alloc
                 .as_ptr::<u8>()
-                .copy_to(src_data.as_mut_ptr(), allocated.data.data_len);
+                .copy_to(src_data.as_mut_ptr(), allocated.data_len);
         }
         Ok(EncryptedSecretValue::from(SecretValue::new(src_data)))
     }
 
-    fn destroy(&mut self, value: SecretVaultStoreValue<Self::R>) {
+    fn destroy(&mut self, value: Self::R) {
         drop(value);
     }
 }

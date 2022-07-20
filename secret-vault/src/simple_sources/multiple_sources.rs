@@ -1,6 +1,5 @@
 use crate::*;
 use async_trait::*;
-use secret_vault_value::SecretValue;
 use std::collections::HashMap;
 
 pub struct MultipleSecretsSources {
@@ -26,12 +25,12 @@ impl SecretsSource for MultipleSecretsSources {
     async fn get_secrets(
         &self,
         references: &[SecretVaultRef],
-    ) -> SecretVaultResult<HashMap<SecretVaultRef, SecretValue>> {
-        let mut result_map: HashMap<SecretVaultRef, SecretValue> = HashMap::new();
+    ) -> SecretVaultResult<HashMap<SecretVaultRef, Secret>> {
+        let mut result_map: HashMap<SecretVaultRef, Secret> = HashMap::new();
         for source in self.sources.iter() {
             let mut source_secrets = source.get_secrets(references).await?;
-            for (secret_ref, secret_value) in source_secrets.drain() {
-                result_map.insert(secret_ref, secret_value);
+            for (secret_ref, secret) in source_secrets.drain() {
+                result_map.insert(secret_ref, secret);
             }
         }
 

@@ -35,7 +35,7 @@ pub fn generate_mock_secrets_source() -> BoxedStrategy<MockSecretsSource> {
 fn read_secrets_perf_test<AR, E>(
     viewer: &SecretVaultSnapshot<AR, E>,
     secret_ref: &SecretVaultRef,
-) -> SecretVaultResult<Option<SecretValue>>
+) -> SecretVaultResult<Option<Secret>>
 where
     E: SecretVaultEncryption,
     AR: SecretVaultStoreValueAllocator,

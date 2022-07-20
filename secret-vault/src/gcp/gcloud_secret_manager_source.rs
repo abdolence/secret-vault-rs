@@ -6,7 +6,6 @@ use std::collections::HashMap;
 use crate::errors::*;
 use crate::secrets_source::SecretsSource;
 use crate::*;
-use secret_vault_value::SecretValue;
 use tracing::*;
 
 use async_trait::*;
@@ -44,18 +43,20 @@ impl SecretsSource for GoogleSecretManagerSource {
     async fn get_secrets(
         &self,
         references: &[SecretVaultRef],
-    ) -> SecretVaultResult<HashMap<SecretVaultRef, SecretValue>> {
-        let mut result_map: HashMap<SecretVaultRef, SecretValue> = HashMap::new();
+    ) -> SecretVaultResult<HashMap<SecretVaultRef, Secret>> {
+        let mut result_map: HashMap<SecretVaultRef, Secret> = HashMap::new();
         for secret_ref in references {
+            let gcp_secret_version = secret_ref
+                .secret_version
+                .as_ref()
+                .map(|v| v.value().clone())
+                .unwrap_or_else(|| "latest".to_string());
+
             let gcp_secret_path = format!(
                 "projects/{}/secrets/{}/versions/{}",
                 self.google_project_id,
                 secret_ref.secret_name.value(),
-                secret_ref
-                    .secret_version
-                    .as_ref()
-                    .map(|v| v.value().clone())
-                    .unwrap_or_else(|| "latest".to_string())
+                &gcp_secret_version
             );
 
             trace!("Reading GCP secret: {}", gcp_secret_path);
@@ -73,7 +74,10 @@ impl SecretsSource for GoogleSecretManagerSource {
                 Ok(response) => {
                     let secret_response = response.into_inner();
                     if let Some(payload) = secret_response.payload {
-                        result_map.insert(secret_ref.clone(), payload.data);
+                        let metadata =
+                            SecretMetadata::new().with_version(gcp_secret_version.into());
+
+                        result_map.insert(secret_ref.clone(), Secret::new(payload.data, metadata));
                     } else if secret_ref.required {
                         return Err(SecretVaultError::DataNotFoundError(
                             SecretVaultDataNotFoundError::new(

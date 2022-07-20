@@ -1,6 +1,5 @@
-use crate::{SecretVaultRef, SecretVaultResult};
+use crate::{Secret, SecretVaultRef, SecretVaultResult};
 use async_trait::*;
-use secret_vault_value::SecretValue;
 use std::collections::HashMap;
 
 #[async_trait]
@@ -10,5 +9,5 @@ pub trait SecretsSource {
     async fn get_secrets(
         &self,
         references: &[SecretVaultRef],
-    ) -> SecretVaultResult<HashMap<SecretVaultRef, SecretValue>>;
+    ) -> SecretVaultResult<HashMap<SecretVaultRef, Secret>>;
 }
