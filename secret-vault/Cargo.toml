@@ -56,6 +56,9 @@ all-features = true
 name="gcloud_secret_manager_vault"
 required-features = ["gcloud-secretmanager", "encrypted-ring", "memory-protect"]
 
+[[example]]
+name="insecure_env_secret_vault"
+
 [[bench]]
 name = "ring_encrypted_vault"
 harness = false

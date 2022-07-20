@@ -1,6 +1,7 @@
 use crate::encryption::EncryptedSecretValue;
 use crate::SecretVaultResult;
 
+#[derive(Debug)]
 pub struct SecretVaultStoreValue<R> {
     pub data: R,
 }
@@ -20,6 +21,7 @@ pub trait SecretVaultStoreValueAllocator {
     fn destroy(&mut self, value: SecretVaultStoreValue<Self::R>);
 }
 
+#[derive(Debug)]
 pub struct SecretVaultStoreValueNoAllocator;
 
 impl SecretVaultStoreValueAllocator for SecretVaultStoreValueNoAllocator {

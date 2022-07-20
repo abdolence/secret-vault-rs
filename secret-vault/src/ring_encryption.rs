@@ -163,13 +163,8 @@ impl AsRef<[u8]> for &SecretName {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::generate_secret_value;
     use proptest::prelude::*;
-
-    fn generate_secret_value() -> BoxedStrategy<SecretValue> {
-        ("[a-zA-Z0-9]*")
-            .prop_map(|(mock_secret_str)| SecretValue::new(mock_secret_str.as_bytes().to_vec()))
-            .boxed()
-    }
 
     fn encryption_test_for(mock_secret_value: SecretValue) {
         let mock_secret_name: SecretName = "test".to_string().into();

@@ -6,6 +6,7 @@ use crate::common_types::*;
 use crate::encryption::*;
 use crate::SecretVaultResult;
 
+#[derive(Debug)]
 pub struct SecretVaultStore<AR, E>
 where
     E: SecretVaultEncryption,

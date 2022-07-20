@@ -82,3 +82,38 @@ where
         self.store.get_secret(secret_ref)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::*;
+    use proptest::prelude::*;
+    use proptest::strategy::ValueTree;
+    use proptest::test_runner::TestRunner;
+
+    #[tokio::test]
+    async fn refresh_vault_test() {
+        let mut runner = TestRunner::default();
+        let mock_secrets_store = generate_mock_secrets_source()
+            .new_tree(&mut runner)
+            .unwrap()
+            .current();
+        let mut vault = SecretVaultBuilder::with_source(mock_secrets_store.clone())
+            .without_encryption()
+            .without_memory_protection()
+            .build()
+            .unwrap();
+
+        vault
+            .with_secrets_refs(mock_secrets_store.secrets.keys().into_iter().collect())
+            .refresh()
+            .await
+            .unwrap();
+
+        for secret_ref in mock_secrets_store.secrets.keys() {
+            assert_eq!(
+                vault.get_secret_by_ref(secret_ref).unwrap().as_ref(),
+                mock_secrets_store.secrets.get(secret_ref)
+            )
+        }
+    }
+}

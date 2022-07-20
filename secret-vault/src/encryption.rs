@@ -21,6 +21,7 @@ pub trait SecretVaultEncryption {
     ) -> SecretVaultResult<SecretValue>;
 }
 
+#[derive(Debug)]
 pub struct NoEncryption;
 
 impl SecretVaultEncryption for NoEncryption {
