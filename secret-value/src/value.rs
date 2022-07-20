@@ -1,5 +1,5 @@
 use std::fmt::{Debug, Display, Formatter};
-use std::str::FromStr;
+use std::str::{FromStr, Utf8Error};
 use zeroize::*;
 
 #[derive(Zeroize, ZeroizeOnDrop, Eq, PartialEq, Default)]
@@ -16,6 +16,10 @@ impl SecretValue {
 
     pub fn ref_sensitive_value_mut(&mut self) -> &mut Vec<u8> {
         &mut self.0
+    }
+
+    pub fn sensitive_value_to_str(&self) -> Result<&str, Utf8Error> {
+        std::str::from_utf8(&self.0)
     }
 }
 

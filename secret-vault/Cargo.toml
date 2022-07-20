@@ -47,7 +47,7 @@ criterion = { version="0.3", features=["html_reports", "futures", "tokio", "asyn
 
 [features]
 default = []
-serde = ["dep:serde", "chrono/serde"]
+serde = ["dep:serde", "chrono/serde", "secret-vault-value/serde"]
 memory-protect = ["dep:region"]
 encrypted-ring = ["dep:ring"]
 gcloud = ["dep:gcloud-sdk", "dep:tonic"]
