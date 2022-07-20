@@ -43,7 +43,7 @@ impl SecretsSource for InsecureEnvSource {
                 &env_secret_name
             );
             match std::env::var_os(env_secret_name.clone())
-                .or(std::env::var_os(env_secret_name.to_uppercase().clone()))
+                .or_else(|| std::env::var_os(env_secret_name.to_uppercase()))
                 .as_ref()
                 .and_then(|env| env.to_str())
             {
