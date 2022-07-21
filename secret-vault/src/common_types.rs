@@ -22,6 +22,9 @@ pub struct SecretVaultRef {
 
     #[default = "true"]
     pub required: bool,
+
+    #[default = "false"]
+    pub auto_refresh: bool,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Builder)]

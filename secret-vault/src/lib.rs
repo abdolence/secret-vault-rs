@@ -8,9 +8,10 @@
 //!
 //! ## Features
 //! - Caching registered secrets in memory from sources;
+//! - Extensible and strongly typed API to be able to implement any kind of sources;
 //! - Memory encryption using AEAD cryptography (optional);
 //! - Memory encryption using Google/AWS KMS envelope encryption (https://cloud.google.com/kms/docs/envelope-encryption) (optional);
-//! - Extensible and strongly typed API to be able to implement any kind of sources;
+//! - Automatic refresh secrets from the sources support (optional);
 //!
 //! ## Example, security considerations and benchmarks:
 //! Available at github: https://github.com/abdolence/secret-vault-rs
@@ -56,3 +57,6 @@ pub use vault_builder::SecretVaultBuilder;
 
 mod vault_viewer;
 pub use vault_viewer::*;
+
+mod vault_auto_refresher;
+pub use vault_auto_refresher::*;

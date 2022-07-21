@@ -29,13 +29,18 @@ where
         })
     }
 
+    pub fn with_secrets_refs(mut self, secret_refs: Vec<&SecretVaultRef>) -> Self {
+        self.refs = secret_refs.into_iter().cloned().collect();
+        self
+    }
+
     pub fn register_secrets_refs(&mut self, secret_refs: Vec<&SecretVaultRef>) -> &mut Self {
         self.refs = secret_refs.into_iter().cloned().collect();
         self
     }
 
     pub async fn refresh(&self) -> SecretVaultResult<&Self> {
-        info!(
+        debug!(
             "Refreshing secrets from the source: {}. Expected: {}. Required: {}",
             self.source.name(),
             self.refs.len(),
@@ -51,9 +56,13 @@ where
             self.store.insert(secret_ref, &secret).await?;
         }
 
-        info!("Secret vault contains: {} secrets", self.store.len().await);
+        debug!("Secret vault contains: {} secrets", self.store.len().await);
 
         Ok(self)
+    }
+
+    pub async fn store_len(&self) -> usize {
+        self.store.len().await
     }
 
     pub fn viewer(&self) -> SecretVaultViewer<E> {

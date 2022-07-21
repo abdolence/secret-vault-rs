@@ -85,6 +85,11 @@ required-features = ["aws-secretmanager", "aws-kms-encryption"]
 name = "insecure_env_secret_vault"
 path = "examples/insecure_env_secret_vault.rs"
 
+[[example]]
+name = "auto_refresh_secret_manager_vault"
+path = "examples/auto_refresh_secret_manager_vault.rs"
+required-features = ["aws-secretmanager"]
+
 [[bench]]
 name = "ring_encrypted_vault"
 path = "benches/ring_encrypted_vault.rs"

@@ -33,7 +33,9 @@ Library provides a secure memory-backed storage of secrets coming to your applic
 - Reading/caching registered secrets in memory from defined sources;
 - Memory encryption using AEAD cryptography (optional);
 - Memory encryption using Google/AWS KMS [envelope encryption](https://cloud.google.com/kms/docs/envelope-encryption) (optional);
+- Automatic refresh secrets from the sources support (optional);
 - Extensible and strongly typed API to be able to implement any kind of sources;
+
 
 ## Quick start
 
@@ -76,7 +78,7 @@ let mut vault = SecretVaultBuilder::with_source(
 
 // Registering your secrets and receiving them from source
 vault
-    .with_secrets_refs(vec![&secret1, &secret2])
+    .register_secrets_refs(vec![&secret1, &secret2])
     .refresh()
     .await?;
 
