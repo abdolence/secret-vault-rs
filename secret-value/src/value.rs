@@ -23,7 +23,8 @@ impl SecretValue {
     }
 
     pub fn secure_clear(&mut self) {
-        self.0.zeroize()
+        self.0.zeroize();
+        self.0.clear();
     }
 }
 
