@@ -37,6 +37,7 @@ serde = { version = "1", features = ["derive"], optional = true }
 gcloud-sdk = { version = "0.16", optional = true }
 tonic = { version = "0.7", optional = true }
 aws-config = { version = "0.15", optional = true }
+aws-types = { version = "0.15", optional = true }
 aws-sdk-secretsmanager = { version = "0.15", optional = true }
 aws-sdk-kms = { version = "0.15", optional = true }
 
@@ -55,9 +56,9 @@ encrypted-ring = ["dep:ring"]
 gcloud = ["dep:tonic", "gcloud-sdk"]
 gcloud-secretmanager =  ["gcloud-sdk/google-cloud-secretmanager-v1", "gcloud"]
 gcloud-kms-encryption = ["gcloud-sdk/google-cloud-kms-v1", "gcloud", "encrypted-ring"]
-aws = ["dep:aws-config", "dep:aws-sdk-secretsmanager"]
-aws-secretmanager = ["aws"]
-aws-kms-encryption = ["dep:aws-config", "dep:aws-sdk-kms", "encrypted-ring"]
+aws = ["dep:aws-config", "dep:aws-types"]
+aws-secretmanager = ["aws", "dep:aws-sdk-secretsmanager"]
+aws-kms-encryption = ["aws", "dep:aws-sdk-kms", "encrypted-ring"]
 
 [package.metadata.docs.rs]
 all-features = true

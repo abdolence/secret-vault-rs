@@ -1,6 +1,7 @@
 use crate::errors::*;
 use crate::*;
 use async_trait::*;
+use aws_sdk_secretsmanager::types::SdkError;
 use rvstruct::ValueStruct;
 use secret_vault_value::SecretValue;
 use std::collections::HashMap;
@@ -89,11 +90,12 @@ impl SecretsSource for AmazonSecretManagerSource {
                         ));
                     }
                 }
-                Err(err) => {
-                    let err_string = err.to_string();
-                    if err_string.contains("ResourceNotFoundException") {
-                        if secret_ref.required {
-                            return Err(SecretVaultError::DataNotFoundError(
+                Err(SdkError::ServiceError {
+                    err: get_secret_err,
+                    raw: _,
+                }) if get_secret_err.is_resource_not_found_exception() => {
+                    if secret_ref.required {
+                        return Err(SecretVaultError::DataNotFoundError(
                                 SecretVaultDataNotFoundError::new(
                                     SecretVaultErrorPublicGenericDetails::new("SECRET_NOT_FOUND".into()),
                                     format!(
@@ -102,21 +104,16 @@ impl SecretsSource for AmazonSecretManagerSource {
                                     ),
                                 ),
                             ));
-                        } else {
-                            debug!("Secret or secret version {}/{:?} doesn't exist and since it is not required it is skipped",aws_secret_arn, &secret_ref.secret_version);
-                        }
                     } else {
-                        error!(
-                            "Unable to read secret or secret version {}/{:?}: {}.",
-                            aws_secret_arn, &secret_ref.secret_version, err
-                        );
-                        return Err(SecretVaultError::SecretsSourceError(
-                            SecretsSourceError::new(
-                                SecretVaultErrorPublicGenericDetails::new("AWS_ERROR".into()),
-                                format!("AWS error {:?}: {}", secret_ref.secret_name, err_string),
-                            ),
-                        ));
+                        debug!("Secret or secret version {}/{:?} doesn't exist and since it is not required it is skipped",aws_secret_arn, &secret_ref.secret_version);
                     }
+                }
+                Err(err) => {
+                    error!(
+                        "Unable to read secret or secret version {}/{:?}: {}.",
+                        aws_secret_arn, &secret_ref.secret_version, err
+                    );
+                    return Err(SecretVaultError::from(err));
                 }
             }
         }

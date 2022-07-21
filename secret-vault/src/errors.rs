@@ -227,7 +227,7 @@ impl Display for SecretsSourceError {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(
             f,
-            "SecretVault memory error: {:?} / {}",
+            "SecretVault source error: {:?} / {}",
             self.public, self.message
         )
     }
@@ -275,13 +275,30 @@ impl From<tonic::Status> for SecretVaultError {
     }
 }
 
-#[cfg(feature = "aws")]
-impl From<aws_sdk_secretsmanager::Error> for SecretVaultError {
-    fn from(e: aws_sdk_secretsmanager::Error) -> Self {
+#[cfg(feature = "aws-secretmanager")]
+impl<E: Display + Error + Sync + Send + 'static> From<aws_sdk_secretsmanager::types::SdkError<E>>
+    for SecretVaultError
+{
+    fn from(e: aws_sdk_secretsmanager::types::SdkError<E>) -> Self {
         SecretVaultError::SecretsSourceError(
             SecretsSourceError::new(
-                SecretVaultErrorPublicGenericDetails::new(format!("{:?}", e)),
+                SecretVaultErrorPublicGenericDetails::new(format!("{}", e)),
                 format!("AWS error: {}", e),
+            )
+            .with_root_cause(Box::new(e)),
+        )
+    }
+}
+
+#[cfg(feature = "aws-kms-encryption")]
+impl<E: Display + Error + Sync + Send + 'static> From<aws_sdk_kms::types::SdkError<E>>
+    for SecretVaultError
+{
+    fn from(e: aws_sdk_kms::types::SdkError<E>) -> Self {
+        SecretVaultError::SecretsSourceError(
+            SecretsSourceError::new(
+                SecretVaultErrorPublicGenericDetails::new(format!("{}", e)),
+                format!("AWS KMS error: {}", e),
             )
             .with_root_cause(Box::new(e)),
         )
