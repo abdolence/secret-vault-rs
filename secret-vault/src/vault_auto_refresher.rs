@@ -139,7 +139,7 @@ mod tests {
             SecretVaultBuilder::with_source(mock_secrets_store.clone())
                 .build()
                 .unwrap()
-                .with_secrets_refs(secret_refs.into()),
+                .with_secrets_refs(secret_refs.clone()),
         );
 
         let mut refresher = SecretVaultAutoRefresher::new(
@@ -153,15 +153,15 @@ mod tests {
 
         refresher.shutdown().await.unwrap();
 
-        for secret_ref in mock_secrets_store.secrets.keys() {
+        for secret_ref in secret_refs {
             assert_eq!(
                 vault
-                    .get_secret_by_ref(secret_ref)
+                    .get_secret_by_ref(&secret_ref)
                     .await
                     .unwrap()
                     .map(|secret| secret.value)
                     .as_ref(),
-                mock_secrets_store.secrets.get(secret_ref)
+                mock_secrets_store.secrets.get(&secret_ref)
             )
         }
     }
