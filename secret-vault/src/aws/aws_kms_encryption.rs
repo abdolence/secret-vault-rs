@@ -146,9 +146,7 @@ impl AwsKmsEnvelopeEncryption {
             ))
             .send()
             .await
-            .map_err(|err| {
-                SecretVaultError::from(err)
-            })?;
+            .map_err(|err| SecretVaultError::from(err))?;
 
         if let Some(plaintext) = decrypt_response.plaintext {
             Ok(secret_vault_value::SecretValue::new(
