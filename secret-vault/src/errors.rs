@@ -290,6 +290,7 @@ impl<E: Display + Error + Sync + Send + 'static> From<aws_sdk_secretsmanager::ty
     }
 }
 
+#[cfg(not(feature = "aws-secretmanager"))]
 #[cfg(feature = "aws-kms-encryption")]
 impl<E: Display + Error + Sync + Send + 'static> From<aws_sdk_kms::types::SdkError<E>>
     for SecretVaultError
