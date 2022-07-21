@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // Registering your secrets and receiving them from source
     vault
-        .register_secrets_refs(vec![&secret1])
+        .register_secrets_refs(vec![secret1.clone()])
         .refresh()
         .await?;
 

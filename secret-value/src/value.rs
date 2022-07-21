@@ -1,5 +1,5 @@
 use std::fmt::{Debug, Display, Formatter};
-use std::str::{FromStr, Utf8Error};
+use std::str::Utf8Error;
 use zeroize::*;
 
 #[derive(Zeroize, ZeroizeOnDrop, Eq, PartialEq, Default)]
@@ -23,23 +23,33 @@ impl SecretValue {
     }
 }
 
-impl FromStr for SecretValue {
-    type Err = ();
-
-    fn from_str(str: &str) -> Result<Self, Self::Err> {
-        Ok(Self(str.as_bytes().to_vec()))
-    }
-}
-
 impl From<String> for SecretValue {
-    fn from(str: String) -> Self {
-        Self(str.as_bytes().to_vec())
+    fn from(mut str: String) -> Self {
+        let result = Self(str.as_bytes().to_vec());
+        str.zeroize();
+        result
     }
 }
 
-impl From<&String> for SecretValue {
-    fn from(str: &String) -> Self {
-        Self(str.as_bytes().to_vec())
+impl From<&mut String> for SecretValue {
+    fn from(str: &mut String) -> Self {
+        let result = Self(str.as_bytes().to_vec());
+        str.zeroize();
+        result
+    }
+}
+
+impl From<Vec<u8>> for SecretValue {
+    fn from(vec: Vec<u8>) -> Self {
+        Self(vec)
+    }
+}
+
+impl From<&mut Vec<u8>> for SecretValue {
+    fn from(vec: &mut Vec<u8>) -> Self {
+        let result = Self(vec.clone());
+        vec.zeroize();
+        result
     }
 }
 

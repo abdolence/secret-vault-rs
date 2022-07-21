@@ -127,11 +127,19 @@ mod tests {
             .unwrap()
             .current();
 
+        let secret_refs: Vec<SecretVaultRef> = mock_secrets_store
+            .secrets
+            .keys()
+            .into_iter()
+            .cloned()
+            .map(|secret_ref| secret_ref.with_auto_refresh(true))
+            .collect();
+
         let vault = Arc::new(
             SecretVaultBuilder::with_source(mock_secrets_store.clone())
                 .build()
                 .unwrap()
-                .with_secrets_refs(mock_secrets_store.secrets.keys().into_iter().collect()),
+                .with_secrets_refs(secret_refs.into()),
         );
 
         let mut refresher = SecretVaultAutoRefresher::new(

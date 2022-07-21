@@ -17,7 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // Describing secrets and marking them non-required
     // since this is only example and they don't exist in your project
-    let secret1 = SecretVaultRef::new("test-secret1".into()).with_required(false);
+    let secret_ref1 = SecretVaultRef::new("test-secret1".into()).with_required(false);
 
     // Building the vault
     let mut vault = SecretVaultBuilder::with_source(
@@ -36,12 +36,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // Registering your secrets and receiving them from source
     vault
-        .register_secrets_refs(vec![&secret1])
+        .register_secrets_refs(vec![secret_ref1.clone()])
         .refresh()
         .await?;
 
     // Reading the secret values
-    let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret1).await?;
+    let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret_ref1).await?;
 
     println!("Received secret: {:?}", secret_value);
     Ok(())

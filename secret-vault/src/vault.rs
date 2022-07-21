@@ -29,13 +29,13 @@ where
         })
     }
 
-    pub fn with_secrets_refs(mut self, secret_refs: Vec<&SecretVaultRef>) -> Self {
-        self.refs = secret_refs.into_iter().cloned().collect();
+    pub fn with_secrets_refs(mut self, secret_refs: Vec<SecretVaultRef>) -> Self {
+        self.refs = secret_refs;
         self
     }
 
-    pub fn register_secrets_refs(&mut self, secret_refs: Vec<&SecretVaultRef>) -> &mut Self {
-        self.refs = secret_refs.into_iter().cloned().collect();
+    pub fn register_secrets_refs(&mut self, secret_refs: Vec<SecretVaultRef>) -> &mut Self {
+        self.refs = secret_refs;
         self
     }
 
@@ -137,7 +137,14 @@ mod tests {
             .unwrap();
 
         vault
-            .register_secrets_refs(mock_secrets_store.secrets.keys().into_iter().collect())
+            .register_secrets_refs(
+                mock_secrets_store
+                    .secrets
+                    .keys()
+                    .into_iter()
+                    .cloned()
+                    .collect(),
+            )
             .refresh()
             .await
             .unwrap();

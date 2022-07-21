@@ -1,4 +1,5 @@
 use secret_vault::*;
+use std::time::Duration;
 
 pub fn config_env_var(name: &str) -> Result<String, String> {
     std::env::var(name).map_err(|e| format!("{}: {}", name, e))
@@ -13,10 +14,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // Describing secrets and marking them non-required
     // since this is only example and they don't exist in your project
-    let secret1 = SecretVaultRef::new("test-secret-xRnpry".into())
+    let secret_ref1 = SecretVaultRef::new("test-secret-xRnpry".into())
         .with_required(false)
         .with_secret_version("AWSCURRENT".into());
-    let secret2 = SecretVaultRef::new("another-secret-222222".into()).with_required(false);
+    let secret_ref2 = SecretVaultRef::new("another-secret-222222".into()).with_required(false);
 
     // Building the vault
     let mut vault = SecretVaultBuilder::with_source(
@@ -27,20 +28,39 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // Registering your secrets and receiving them from source
     vault
-        .register_secrets_refs(vec![&secret1, &secret2])
+        .register_secrets_refs(vec![secret_ref1.clone(), secret_ref2.clone()])
         .refresh()
         .await?;
 
     // Reading the secret
-    let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret1).await?;
+    let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret_ref1).await?;
     // Or if you require it available
     // let secret_value: Secret = vault.require_secret_by_ref(&secret1).await?;
 
-    println!("Received secret: {:?}", secret_value);
+    println!(
+        "Received secret: {:?}",
+        secret_value
+            .as_ref()
+            .unwrap()
+            .value
+            .ref_sensitive_value()
+            .len()
+    );
+    println!(
+        "Received secret: {:?}",
+        secret_value
+            .as_ref()
+            .unwrap()
+            .value
+            .sensitive_value_to_str()
+            .unwrap()
+    );
 
     // Using the Viewer API to share only methods able to read secrets
     let vault_viewer = vault.viewer();
-    vault_viewer.get_secret_by_ref(&secret2).await?;
+    vault_viewer.get_secret_by_ref(&secret_ref2).await?;
+
+    tokio::time::sleep(Duration::from_secs(3600)).await;
 
     Ok(())
 }
