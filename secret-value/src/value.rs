@@ -21,6 +21,10 @@ impl SecretValue {
     pub fn sensitive_value_to_str(&self) -> Result<&str, Utf8Error> {
         std::str::from_utf8(&self.0)
     }
+
+    pub fn secure_clear(&mut self) {
+        self.0.zeroize()
+    }
 }
 
 impl From<String> for SecretValue {
