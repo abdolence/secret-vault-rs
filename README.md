@@ -81,7 +81,9 @@ vault
     .await?;
 
 // Reading the secret values
-let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret1).await?;
+let secret: Option<Secret> = vault.get_secret_by_ref(&secret1).await?;
+// Or if you require it available
+let secret: Secret = vault.require_secret_by_ref(&secret1).await?;
 
 println!("Received secret: {:?}", secret);
 

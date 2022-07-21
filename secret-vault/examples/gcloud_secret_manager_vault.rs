@@ -34,6 +34,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Reading the secret values
     let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret1).await?;
 
+    // Or if you require it available
+    // let secret_value: Secret = vault.require_secret_by_ref(&secret1).await?;
+
     println!("Received secret: {:?}", secret_value);
 
     // Using the Viewer API to share only methods able to read secrets

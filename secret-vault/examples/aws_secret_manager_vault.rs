@@ -13,10 +13,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // Describing secrets and marking them non-required
     // since this is only example and they don't exist in your project
-    let secret1 = SecretVaultRef::new("test-secret-xRnpry".into()).with_required(false);
-    let secret2 = SecretVaultRef::new("test-secret2".into())
-        .with_secret_version("1".into())
-        .with_required(false);
+    let secret1 = SecretVaultRef::new("test-secret-xRnpry".into())
+        .with_required(false)
+        .with_secret_version("AWSCURRENT".into());
+    let secret2 = SecretVaultRef::new("another-secret-222222".into()).with_required(false);
 
     // Building the vault
     let mut vault = SecretVaultBuilder::with_source(
@@ -33,6 +33,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // Reading the secret
     let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret1).await?;
+    // Or if you require it available
+    // let secret_value: Secret = vault.require_secret_by_ref(&secret1).await?;
 
     println!("Received secret: {:?}", secret_value);
 

@@ -61,6 +61,7 @@ impl SecretsSource for AmazonSecretManagerSource {
                 .client
                 .get_secret_value()
                 .secret_id(aws_secret_arn.clone())
+                .set_version_stage(secret_ref.secret_version.as_ref().map(|v| v.value().into()))
                 .send()
                 .await
             {
@@ -74,8 +75,7 @@ impl SecretsSource for AmazonSecretManagerSource {
                                 .map(|secret_binary| SecretValue::new(secret_binary.into_inner())));
 
                     if let Some(secret_value) = maybe_secret_value {
-                        let metadata = SecretMetadata::new()
-                            .opt_version(aws_secret.version_id.map(|v| v.into()));
+                        let metadata = SecretMetadata::new();
                         result_map.insert(secret_ref.clone(), Secret::new(secret_value, metadata));
                     } else if secret_ref.required {
                         return Err(SecretVaultError::DataNotFoundError(
@@ -103,12 +103,12 @@ impl SecretsSource for AmazonSecretManagerSource {
                                 ),
                             ));
                         } else {
-                            debug!("Secret or secret version {} doesn't exist and since it is not required it is skipped",aws_secret_arn);
+                            debug!("Secret or secret version {}/{:?} doesn't exist and since it is not required it is skipped",aws_secret_arn, &secret_ref.secret_version);
                         }
                     } else {
                         error!(
-                            "Unable to read secret or secret version {}: {}.",
-                            aws_secret_arn, err
+                            "Unable to read secret or secret version {}/{:?}: {}.",
+                            aws_secret_arn, &secret_ref.secret_version, err
                         );
                         return Err(SecretVaultError::SecretsSourceError(
                             SecretsSourceError::new(
