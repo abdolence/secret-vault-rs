@@ -32,7 +32,7 @@ Library provides a secure memory-backed storage of secrets coming to your applic
 ### Features
 - Reading/caching registered secrets in memory from defined sources;
 - Memory encryption using AEAD cryptography (optional);
-- Memory encryption using Google KMS envelope encryption + AEAD cryptography (optional);
+- Memory encryption using Google/AWS KMS [envelope encryption](https://cloud.google.com/kms/docs/envelope-encryption) (optional);
 - Extensible and strongly typed API to be able to implement any kind of sources;
 
 ## Quick start

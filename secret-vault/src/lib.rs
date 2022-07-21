@@ -7,8 +7,9 @@
 //! - Amazon Secrets Manager
 //!
 //! ## Features
-//! - Caching registered secrets in memory from sources.;
+//! - Caching registered secrets in memory from sources;
 //! - Memory encryption using AEAD cryptography (optional);
+//! - Memory encryption using Google/AWS KMS envelope encryption (https://cloud.google.com/kms/docs/envelope-encryption) (optional);
 //! - Extensible and strongly typed API to be able to implement any kind of sources;
 //!
 //! ## Example, security considerations and benchmarks:
