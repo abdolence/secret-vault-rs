@@ -133,6 +133,23 @@ read-secrets-perf-encrypted-vault
                         time:   [292.15 ns 292.97 ns 293.95 ns]
 ```
 
+## Rotating application secrets strategy without downtime
+This is mostly application specific area, but general idea is
+to have at least two version of secrets:
+
+- Current/latest version of secret which will be used for the new transactions/requests/data
+  in your application.
+- Previous version which still need to be valid to interact.
+
+Then you have two options for configuration/version management:
+
+- Use some configuration in your app that contains those versions and redeploy your app when you need to rotate.
+  That means it will trigger refreshing all secrets at the start.
+  Recommended for most of the cases, since this is more auditable and declarative.
+- Updating automatically secrets and their versions using `SecretVaultAutoRefresher`
+  (or your own implementation) without redeploys.
+
+
 ## Licence
 Apache Software License (ASL)
 
