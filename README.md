@@ -108,7 +108,7 @@ reading sensitive information.
 
 ### Versioning
 Please don't use broad version dependency management not to include
-a new version of dependency automatically without your auditing the changes.
+a new version of dependency automatically without auditing the changes.
 
 ### Protect your secrets in GCP/AWS using IAM and service accounts
 Don't expose all of your secrets to the apps. 
