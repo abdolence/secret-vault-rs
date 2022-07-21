@@ -125,7 +125,7 @@ The most secure setup/config at the moment available is:
 - GCP Secret Manager + KMS enveloper encryption and AEAD
 
 because in case of GCP there are additional effort in Google Cloud SDK provided integration with this library.
-One of the unexpected side-effects not having the official SDK for Rust from Google.
+One of the unexpected side-effects of not having the official SDK for Rust from Google.
 
 ## Performance details
 
