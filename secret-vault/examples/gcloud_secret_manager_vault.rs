@@ -27,7 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // Registering your secrets and receiving them from source
     vault
-        .with_secrets_refs(vec![&secret1, &secret2])
+        .register_secrets_refs(vec![&secret1, &secret2])
         .refresh()
         .await?;
 
@@ -39,11 +39,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Using the Viewer API to share only methods able to read secrets
     let vault_viewer = vault.viewer();
     vault_viewer.get_secret_by_ref(&secret2).await?;
-
-    // Using the Snapshot API to be able to share the instance without having to store `vault`
-    // Since this point `vault` is not available anymore to borrow and update secrets
-    let vault_snapshot = vault.snapshot();
-    vault_snapshot.get_secret_by_ref(&secret2).await?;
 
     Ok(())
 }

@@ -21,7 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .build()?;
 
     // Registering your secrets and receiving them from source
-    vault.with_secrets_refs(vec![&secret]).refresh().await?;
+    vault.register_secrets_refs(vec![&secret]).refresh().await?;
 
     // Reading the secret values
     let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret).await?;

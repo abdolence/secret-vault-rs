@@ -1,6 +1,7 @@
 use crate::vault_store::SecretVaultStore;
 use crate::*;
 use async_trait::async_trait;
+use std::sync::Arc;
 
 #[async_trait]
 pub trait SecretVaultView {
@@ -25,53 +26,25 @@ pub trait SecretVaultView {
     ) -> SecretVaultResult<Option<Secret>>;
 }
 
-pub struct SecretVaultViewer<'a, E>
+#[derive(Clone)]
+pub struct SecretVaultViewer<E>
 where
     E: SecretVaultEncryption,
 {
-    store_ref: &'a SecretVaultStore<E>,
+    store: Arc<SecretVaultStore<E>>,
 }
 
-impl<'a, E> SecretVaultViewer<'a, E>
+impl<E> SecretVaultViewer<E>
 where
     E: SecretVaultEncryption,
 {
-    pub fn new(store: &'a SecretVaultStore<E>) -> Self {
-        Self { store_ref: store }
-    }
-}
-
-#[async_trait]
-impl<'a, E> SecretVaultView for SecretVaultViewer<'a, E>
-where
-    E: SecretVaultEncryption + Send + Sync,
-{
-    async fn get_secret_by_ref(
-        &self,
-        secret_ref: &SecretVaultRef,
-    ) -> SecretVaultResult<Option<Secret>> {
-        self.store_ref.get_secret(secret_ref).await
-    }
-}
-
-pub struct SecretVaultSnapshot<E>
-where
-    E: SecretVaultEncryption,
-{
-    store: SecretVaultStore<E>,
-}
-
-impl<E> SecretVaultSnapshot<E>
-where
-    E: SecretVaultEncryption,
-{
-    pub fn new(store: SecretVaultStore<E>) -> Self {
+    pub fn new(store: Arc<SecretVaultStore<E>>) -> Self {
         Self { store }
     }
 }
 
 #[async_trait]
-impl<E> SecretVaultView for SecretVaultSnapshot<E>
+impl<E> SecretVaultView for SecretVaultViewer<E>
 where
     E: SecretVaultEncryption + Send + Sync,
 {

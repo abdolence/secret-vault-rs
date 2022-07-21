@@ -32,7 +32,7 @@ pub fn generate_mock_secrets_source() -> BoxedStrategy<MockSecretsSource> {
 }
 
 async fn read_secrets_perf_test<E>(
-    viewer: &SecretVaultSnapshot<E>,
+    viewer: &SecretVaultViewer<E>,
     secret_ref: &SecretVaultRef,
 ) -> SecretVaultResult<Option<Secret>>
 where
@@ -62,12 +62,12 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let simple_vault_snapshot = rt.block_on(async {
         simple_vault
-            .with_secrets_refs(mock_secrets_store.secrets.keys().into_iter().collect())
+            .register_secrets_refs(mock_secrets_store.secrets.keys().into_iter().collect())
             .refresh()
             .await
             .unwrap();
 
-        simple_vault.snapshot()
+        simple_vault.viewer()
     });
 
     let mut vault_with_encryption = SecretVaultBuilder::with_source(mock_secrets_store.clone())
@@ -77,12 +77,12 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let vault_with_encryption_snapshot = rt.block_on(async {
         vault_with_encryption
-            .with_secrets_refs(mock_secrets_store.secrets.keys().into_iter().collect())
+            .register_secrets_refs(mock_secrets_store.secrets.keys().into_iter().collect())
             .refresh()
             .await
             .unwrap();
 
-        vault_with_encryption.snapshot()
+        vault_with_encryption.viewer()
     });
 
     c.bench_function("read-secrets-perf-simple-vault", |b| {

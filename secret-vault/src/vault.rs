@@ -3,6 +3,7 @@ use crate::secrets_source::SecretsSource;
 use crate::vault_store::SecretVaultStore;
 use crate::*;
 use async_trait::async_trait;
+use std::sync::Arc;
 use tracing::*;
 
 pub struct SecretVault<S, E>
@@ -11,7 +12,7 @@ where
     E: SecretVaultEncryption + Sync + Send,
 {
     source: S,
-    store: SecretVaultStore<E>,
+    store: Arc<SecretVaultStore<E>>,
     refs: Vec<SecretVaultRef>,
 }
 
@@ -23,17 +24,17 @@ where
     pub fn new(source: S, store: SecretVaultStore<E>) -> SecretVaultResult<Self> {
         Ok(Self {
             source,
-            store,
+            store: Arc::new(store),
             refs: Vec::new(),
         })
     }
 
-    pub fn with_secrets_refs(&mut self, secret_refs: Vec<&SecretVaultRef>) -> &mut Self {
+    pub fn register_secrets_refs(&mut self, secret_refs: Vec<&SecretVaultRef>) -> &mut Self {
         self.refs = secret_refs.into_iter().cloned().collect();
         self
     }
 
-    pub async fn refresh(&mut self) -> SecretVaultResult<&mut Self> {
+    pub async fn refresh(&self) -> SecretVaultResult<&Self> {
         info!(
             "Refreshing secrets from the source: {}. Expected: {}. Required: {}",
             self.source.name(),
@@ -50,17 +51,13 @@ where
             self.store.insert(secret_ref, &secret).await?;
         }
 
-        info!("Secret vault contains: {} secrets", self.store.len());
+        info!("Secret vault contains: {} secrets", self.store.len().await);
 
         Ok(self)
     }
 
     pub fn viewer(&self) -> SecretVaultViewer<E> {
-        SecretVaultViewer::new(&self.store)
-    }
-
-    pub fn snapshot(self) -> SecretVaultSnapshot<E> {
-        SecretVaultSnapshot::new(self.store)
+        SecretVaultViewer::new(self.store.clone())
     }
 }
 
@@ -99,7 +96,7 @@ mod tests {
             .unwrap();
 
         vault
-            .with_secrets_refs(mock_secrets_store.secrets.keys().into_iter().collect())
+            .register_secrets_refs(mock_secrets_store.secrets.keys().into_iter().collect())
             .refresh()
             .await
             .unwrap();

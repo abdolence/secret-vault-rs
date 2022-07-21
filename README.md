@@ -89,11 +89,6 @@ println!("Received secret: {:?}", secret);
 let vault_viewer = vault.viewer();
 vault_viewer.get_secret_by_ref(&secret2).await?;
 
-// Using the Snapshot API to be able to share the instance without having to store `vault`
-// Since this point `vault` is not available anymore to borrow and update secrets
-let vault_snapshot = vault.snapshot();
-vault_snapshot.get_secret_by_ref(&secret2).await?;
-
 ```
 
 All examples available at [secret-vault/examples](secret-vault/examples) directory.
@@ -138,10 +133,10 @@ The comparison between reading performance of encrypted and non-encrypted vault:
 
 ```
 read-secrets-perf-simple-vault
-                        time:   [74.328 ns 74.587 ns 74.893 ns]
+                        time:   [126.47 ns 126.70 ns 126.99 ns]
 
 read-secrets-perf-encrypted-vault
-                        time:   [241.53 ns 241.69 ns 241.88 ns]
+                        time:   [292.15 ns 292.97 ns 293.95 ns]
 ```
 
 ## Licence

@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
 use crate::common_types::*;
 use crate::encryption::*;
@@ -15,7 +17,7 @@ pub struct SecretVaultStore<E>
 where
     E: SecretVaultEncryption,
 {
-    secrets: HashMap<SecretVaultRef, SecretVaultStoreValue>,
+    secrets: Arc<RwLock<HashMap<SecretVaultRef, SecretVaultStoreValue>>>,
     encrypter: E,
 }
 
@@ -25,13 +27,13 @@ where
 {
     pub fn new(encrypter: E) -> Self {
         Self {
-            secrets: HashMap::new(),
+            secrets: Arc::new(RwLock::new(HashMap::new())),
             encrypter,
         }
     }
 
     pub async fn insert(
-        &mut self,
+        &self,
         secret_ref: SecretVaultRef,
         secret: &Secret,
     ) -> SecretVaultResult<()> {
@@ -39,7 +41,9 @@ where
             .encrypter
             .encrypt_value(&secret_ref.secret_name, &secret.value)
             .await?;
-        self.secrets.insert(
+
+        let mut secrets_write = self.secrets.write().await;
+        secrets_write.insert(
             secret_ref,
             SecretVaultStoreValue {
                 data: encrypted_secret_value,
@@ -54,7 +58,9 @@ where
         &self,
         secret_ref: &SecretVaultRef,
     ) -> SecretVaultResult<Option<Secret>> {
-        match self.secrets.get(secret_ref) {
+        let secrets_read = self.secrets.read().await;
+
+        match secrets_read.get(secret_ref) {
             Some(stored_value) => {
                 let secret_value = self
                     .encrypter
@@ -69,7 +75,8 @@ where
         }
     }
 
-    pub fn len(&self) -> usize {
-        self.secrets.len()
+    pub async fn len(&self) -> usize {
+        let secrets_read = self.secrets.read().await;
+        secrets_read.len()
     }
 }
