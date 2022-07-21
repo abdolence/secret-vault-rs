@@ -21,9 +21,9 @@ Library provides the native support for the secrets coming to your application f
 ## Features
 - Reading/caching registered secrets in memory from defined sources;
 - Memory encryption using AEAD cryptography (optional);
-- Memory encryption using Google/AWS KMS [envelope encryption](https://cloud.google.com/kms/docs/envelope-encryption) (optional);
 - Automatic refresh secrets from the sources support (optional);
 - Extensible and strongly typed API to be able to implement any kind of sources;
+- Memory encryption using Google/AWS KMS [envelope encryption](https://cloud.google.com/kms/docs/envelope-encryption) (optional);
 
 
 ## Quick start
