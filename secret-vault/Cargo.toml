@@ -1,6 +1,6 @@
 [package]
 name = "secret-vault"
-version = "0.4.3"
+version = "0.5.0"
 authors = ["Abdulla Abdurakhmanov <me@abdolence.dev>"]
 edition = "2021"
 license = "Apache-2.0"
@@ -23,7 +23,7 @@ bench = false
 
 [dependencies]
 tracing = "0.1"
-secret-vault-value = { version = "0.1" }
+secret-vault-value = { version = "0.2" }
 rvstruct = "0.3"
 rsb_derive = "0.5"
 async-trait = "0.1"
@@ -34,7 +34,7 @@ hex = "0.4"
 ring = { version = "0.16", features = ["default", "std"], optional = true }
 region = { version = "3.0.0", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
-gcloud-sdk = { version = "0.15", optional = true }
+gcloud-sdk = { version = "0.16", optional = true }
 tonic = { version = "0.7", optional = true }
 aws-config = { version = "0.15", optional = true }
 aws-sdk-secretsmanager = { version = "0.15", optional = true }

@@ -31,8 +31,8 @@ Library provides the native support for the secrets coming to your application f
 Cargo.toml:
 ```toml
 [dependencies]
-secret-vault = { version = "0.4.<x>", features=["..."] }
-secret-vault-type = { version = "0.1.<x>", features=["..."] }
+secret-vault = { version = "0.5.<x>", features=["..."] }
+secret-vault-type = { version = "0.2.<x>", features=["..."] }
 ```
 See security consideration below about versioning.
 
@@ -114,12 +114,18 @@ Don't expose all of your secrets to the apps.
 Use IAM and different service accounts to give access only on as-needed basis.
 
 ### Zeroing, protecting memory and encryption don't provide 100% safety
-There are still allocations on the protocol layers, there is
-a session secret key available in memory, privileged users on OS still
-have broad access, etc.
+There are still allocations on the protocol layers (such as the official Amazon SDK, for instance), 
+there is a session secret key available in memory without KMS, etc.
+
 So don't consider this is a completely safe solution for all possible attacks.
-Mitigation some of the attacks is not possible without implementing
+The mitigation some of the attacks is not possible without implementing
 additional support on hardware/OS level (such as Intel SGX project, for instance).
+
+The most secure setup/config at the moment available is:
+- GCP Secret Manager + KMS enveloper encryption and AEAD
+
+because in case of GCP there are additional effort in Google Cloud SDK provided integration with this library.
+One of the unexpected side-effects not having the official SDK for Rust from Google.
 
 ## Performance details
 

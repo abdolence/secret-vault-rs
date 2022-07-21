@@ -13,7 +13,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // Describing secrets and marking them non-required
     // since this is only example and they don't exist in your project
-    let secret1_ref = SecretVaultRef::new("test-secret1".into()).with_required(false);
+    let secret1_ref = SecretVaultRef::new("tm-http-sessions-secret".into()).with_required(false);
     let secret_ref2 = SecretVaultRef::new("test-secret2".into())
         .with_secret_version("1".into())
         .with_required(false);
