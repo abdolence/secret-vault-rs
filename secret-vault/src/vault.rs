@@ -61,7 +61,10 @@ where
         Ok(self)
     }
 
-    pub async fn refresh_only(&self, predicate: fn(&SecretVaultRef) -> bool) -> SecretVaultResult<&Self> {
+    pub async fn refresh_only(
+        &self,
+        predicate: fn(&SecretVaultRef) -> bool,
+    ) -> SecretVaultResult<&Self> {
         let refs_auto_refresh_enabled: Vec<SecretVaultRef> = self
             .refs
             .iter()
