@@ -11,23 +11,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
+    let aws_account_id = config_env_var("ACCOUNT_ID")?;
+    let aws_key_id: String = config_env_var("KMS_KEY_ID")?;
+
     // Describing secrets and marking them non-required
     // since this is only example and they don't exist in your project
     let secret1 = SecretVaultRef::new("test-secret-xRnpry".into()).with_required(false);
-    let secret2 = SecretVaultRef::new("test-secret2".into())
-        .with_secret_version("1".into())
-        .with_required(false);
 
     // Building the vault
     let mut vault = SecretVaultBuilder::with_source(
-        aws::AmazonSecretManagerSource::new(&config_env_var("ACCOUNT_ID")?, None).await?,
+        aws::AmazonSecretManagerSource::new(&aws_account_id, None).await?,
     )
-    .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
+    .with_encryption(
+        aws::AwsKmsEnvelopeEncryption::new(&aws::AwsKmsKeyRef::new(aws_account_id, aws_key_id))
+            .await?,
+    )
     .build()?;
 
     // Registering your secrets and receiving them from source
     vault
-        .register_secrets_refs(vec![&secret1, &secret2])
+        .register_secrets_refs(vec![&secret1])
         .refresh()
         .await?;
 
@@ -35,10 +38,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret1).await?;
 
     println!("Received secret: {:?}", secret_value);
-
-    // Using the Viewer API to share only methods able to read secrets
-    let vault_viewer = vault.viewer();
-    vault_viewer.get_secret_by_ref(&secret2).await?;
 
     Ok(())
 }

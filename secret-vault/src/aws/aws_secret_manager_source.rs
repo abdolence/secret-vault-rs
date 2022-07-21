@@ -15,7 +15,7 @@ pub struct AmazonSecretManagerSource {
 
 impl AmazonSecretManagerSource {
     pub async fn new(
-        account_id: String,
+        account_id: &String,
         region: Option<aws_sdk_secretsmanager::Region>,
     ) -> SecretVaultResult<Self> {
         let shared_config = aws_config::load_from_env().await;
@@ -30,7 +30,7 @@ impl AmazonSecretManagerSource {
 
         let client = aws_sdk_secretsmanager::Client::new(&shared_config);
         Ok(AmazonSecretManagerSource {
-            account_id,
+            account_id: account_id.clone(),
             client,
             aws_region: effective_region,
         })

@@ -49,7 +49,7 @@ impl GoogleKmsEnvelopeEncryption {
         algo: &'static ring::aead::Algorithm,
     ) -> SecretVaultResult<Self> {
         debug!(
-            "Initialising KMS envelope encryption for {}",
+            "Initialising Google KMS envelope encryption for {}",
             kms_key_ref.to_google_ref()
         );
 

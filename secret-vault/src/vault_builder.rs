@@ -9,11 +9,14 @@ pub struct SecretVaultBuilder<
 }
 
 impl<S> SecretVaultBuilder<S, SecretVaultNoEncryption>
-    where
-        S: SecretsSource + Sync + Send
+where
+    S: SecretsSource + Sync + Send,
 {
     pub fn with_source(source: S) -> SecretVaultBuilder<S, SecretVaultNoEncryption> {
-        SecretVaultBuilder { source, encryption: SecretVaultNoEncryption {} }
+        SecretVaultBuilder {
+            source,
+            encryption: SecretVaultNoEncryption {},
+        }
     }
 }
 
@@ -22,12 +25,9 @@ where
     S: SecretsSource + Sync + Send,
     E: SecretVaultEncryption + Sync + Send,
 {
-    pub fn with_encryption<NE>(
-        self,
-        encryption: NE,
-    ) -> SecretVaultBuilder<S, NE>
-        where
-            NE: SecretVaultEncryption + Sync + Send
+    pub fn with_encryption<NE>(self, encryption: NE) -> SecretVaultBuilder<S, NE>
+    where
+        NE: SecretVaultEncryption + Sync + Send,
     {
         SecretVaultBuilder {
             source: self.source,
@@ -35,15 +35,13 @@ where
         }
     }
 
-    pub fn without_encryption(
-        self
-    ) -> SecretVaultBuilder<S, SecretVaultNoEncryption>
-        where
-            E: Sync + Send,
+    pub fn without_encryption(self) -> SecretVaultBuilder<S, SecretVaultNoEncryption>
+    where
+        E: Sync + Send,
     {
         SecretVaultBuilder {
             source: self.source,
-            encryption: SecretVaultNoEncryption {}
+            encryption: SecretVaultNoEncryption {},
         }
     }
 
