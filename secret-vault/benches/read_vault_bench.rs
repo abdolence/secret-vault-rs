@@ -62,7 +62,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let simple_vault_snapshot = rt.block_on(async {
         simple_vault
-            .register_secrets_refs(mock_secrets_store.secrets.keys().into_iter().collect())
+            .register_secrets_refs(mock_secrets_store.secrets.keys().into_iter().cloned().collect())
             .refresh()
             .await
             .unwrap();
@@ -77,7 +77,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let vault_with_encryption_snapshot = rt.block_on(async {
         vault_with_encryption
-            .register_secrets_refs(mock_secrets_store.secrets.keys().into_iter().collect())
+            .register_secrets_refs(mock_secrets_store.secrets.keys().into_iter().cloned().collect())
             .refresh()
             .await
             .unwrap();
