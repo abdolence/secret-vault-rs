@@ -12,12 +12,27 @@ pub struct SecretVaultStoreValue {
     pub metadata: SecretMetadata,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub struct SecretVaultKey {
+    pub secret_name: SecretName,
+    pub secret_version: Option<SecretVersion>,
+}
+
+impl From<SecretVaultRef> for SecretVaultKey {
+    fn from(key_ref: SecretVaultRef) -> Self {
+        SecretVaultKey {
+            secret_name: key_ref.secret_name,
+            secret_version: key_ref.secret_version,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct SecretVaultStore<E>
 where
     E: SecretVaultEncryption,
 {
-    secrets: Arc<RwLock<HashMap<SecretVaultRef, SecretVaultStoreValue>>>,
+    secrets: Arc<RwLock<HashMap<SecretVaultKey, SecretVaultStoreValue>>>,
     encrypter: E,
 }
 
@@ -44,7 +59,7 @@ where
 
         let mut secrets_write = self.secrets.write().await;
         secrets_write.insert(
-            secret_ref,
+            secret_ref.into(),
             SecretVaultStoreValue {
                 data: encrypted_secret_value,
                 metadata: SecretMetadata::new(),
@@ -60,7 +75,7 @@ where
     ) -> SecretVaultResult<Option<Secret>> {
         let secrets_read = self.secrets.read().await;
 
-        match secrets_read.get(secret_ref) {
+        match secrets_read.get(&secret_ref.clone().into()) {
             Some(stored_value) => {
                 let secret_value = self
                     .encrypter
