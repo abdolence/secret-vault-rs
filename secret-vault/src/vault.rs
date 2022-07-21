@@ -21,10 +21,10 @@ where
     S: SecretsSource,
     E: SecretVaultEncryption + Sync + Send,
 {
-    pub fn new(source: S, store: SecretVaultStore<E>) -> SecretVaultResult<Self> {
+    pub fn new(source: S, encrypter: E) -> SecretVaultResult<Self> {
         Ok(Self {
             source,
-            store: Arc::new(store),
+            store: Arc::new(SecretVaultStore::new(encrypter)),
             refs: Vec::new(),
         })
     }
@@ -90,8 +90,8 @@ mod tests {
             .new_tree(&mut runner)
             .unwrap()
             .current();
+
         let mut vault = SecretVaultBuilder::with_source(mock_secrets_store.clone())
-            .without_encryption()
             .build()
             .unwrap();
 
