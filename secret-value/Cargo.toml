@@ -1,6 +1,6 @@
 [package]
 name = "secret-vault-value"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Abdulla Abdurakhmanov <me@abdolence.dev>"]
 edition = "2021"
 license = "Apache-2.0"
@@ -8,9 +8,10 @@ description = "Library provides a simple implementation of a secure and serializ
 homepage = "https://github.com/abdolence/secret-vault-rs"
 repository = "https://github.com/abdolence/secret-vault-rs"
 documentation = "https://docs.rs/secret-vault"
-keywords = ["secret", "google", "client"]
+categories = ["cryptography"]
+keywords = ["data-structures"]
 readme = "../README.md"
-include = ["Cargo.toml", "src/**/*.rs", "../README.md", "../LICENSE", "../SECURITY.md"]
+include = ["Cargo.toml", "src/**/*.rs", "README.md", "../LICENSE", "../SECURITY.md"]
 
 [badges]
 maintenance = { status = "actively-developed" }

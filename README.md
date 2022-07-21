@@ -7,29 +7,18 @@
 
 Library provides following crates:
 
-## Secret value type
-A simple implementation of a secure and serializable (serde and proto) type
-of any kind of secrets:
- - Automatically cleaning up its value after destruction in memory using [zeroize](https://docs.rs/zeroize/latest/zeroize/)
- - Prevents leaking in logs and stack traces
- - Stored as a byte array and suitable not just for string typed secrets
-
-### Working with the type:
-
-```rust
- use secret_vault_value::*;
-
- let secret_value = SecretValue::from("test");
-  // Use `secret_value.ref_sensitive_value()`
-```
+- General secret value type - a simple implementation of a secure and serializable (serde and proto) type
+  of any kind of secrets. Documentation located [here](secret-value/README.md).
+- Secret vault - a library provides a secure memory-backed storage of the application secrets to store them secure way.
+  Documentation is below.
 
 ## Secret Vault 
 
-Library provides a secure memory-backed storage of secrets coming to your application from external sources:
+Library provides the native support for the secrets coming to your application from external sources:
  - Google Cloud Secret Manager
  - Amazon Secrets Manager
 
-### Features
+## Features
 - Reading/caching registered secrets in memory from defined sources;
 - Memory encryption using AEAD cryptography (optional);
 - Memory encryption using Google/AWS KMS [envelope encryption](https://cloud.google.com/kms/docs/envelope-encryption) (optional);

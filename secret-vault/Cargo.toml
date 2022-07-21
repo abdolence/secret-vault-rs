@@ -1,6 +1,6 @@
 [package]
 name = "secret-vault"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Abdulla Abdurakhmanov <me@abdolence.dev>"]
 edition = "2021"
 license = "Apache-2.0"
@@ -8,6 +8,7 @@ description = "Library provides a secure vault to store application secrets in m
 homepage = "https://github.com/abdolence/secret-vault-rs"
 repository = "https://github.com/abdolence/secret-vault-rs"
 documentation = "https://docs.rs/secret-vault"
+categories = ["cryptography","api-bindings"]
 keywords = ["secret", "google", "aws"]
 readme = "../README.md"
 include = ["Cargo.toml", "src/**/*.rs", "../README.md", "../LICENSE", "../SECURITY.md"]
