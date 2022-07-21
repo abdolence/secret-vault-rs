@@ -16,7 +16,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Describing secrets and marking them non-required
     let secret1 = SecretVaultRef::new("test-secret-xRnpry".into())
         .with_required(false)
-        .with_secret_version("AWSCURRENT".into());
+        .with_secret_version("AWSCURRENT".into())
+        .with_auto_refresh(true);
 
     // Building the vault
     let vault = Arc::new(

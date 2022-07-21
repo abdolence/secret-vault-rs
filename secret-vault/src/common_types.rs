@@ -35,6 +35,9 @@ pub struct SecretMetadataLabel {
 
 #[derive(Debug, Clone, Eq, PartialEq, Builder)]
 pub struct SecretMetadata {
+    #[default = "Utc::now()"]
+    pub cached_at: DateTime<Utc>,
+
     pub labels: Option<Vec<SecretMetadataLabel>>,
     pub description: Option<String>,
     pub expire_at: Option<DateTime<Utc>>,

@@ -40,7 +40,7 @@ where
     }
 
     pub async fn refresh(&self) -> SecretVaultResult<&Self> {
-        debug!(
+        info!(
             "Refreshing secrets from the source: {}. Expected: {}. Required: {}",
             self.source.name(),
             self.refs.len(),
@@ -56,7 +56,36 @@ where
             self.store.insert(secret_ref, &secret).await?;
         }
 
-        debug!("Secret vault contains: {} secrets", self.store.len().await);
+        info!("Secret vault contains: {} secrets", self.store.len().await);
+
+        Ok(self)
+    }
+
+    pub async fn refresh_only_auto_enabled(&self) -> SecretVaultResult<&Self> {
+        let refs_auto_refresh_enabled: Vec<SecretVaultRef> = self
+            .refs
+            .iter()
+            .filter(|secret_ref| secret_ref.auto_refresh)
+            .cloned()
+            .collect();
+
+        trace!(
+            "Auto refreshing secrets from the source: {}. All registered secrets: {}. Expected to be refreshed: {}",
+            self.source.name(),
+            self.refs.len(),
+            refs_auto_refresh_enabled.len()
+        );
+
+        let mut secrets_map = self.source.get_secrets(&refs_auto_refresh_enabled).await?;
+
+        for (secret_ref, secret) in secrets_map.drain() {
+            self.store.insert(secret_ref, &secret).await?;
+        }
+
+        trace!(
+            "Secret vault now contains: {} secrets",
+            self.store.len().await
+        );
 
         Ok(self)
     }
