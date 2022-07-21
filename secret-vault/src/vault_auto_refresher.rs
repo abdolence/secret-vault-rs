@@ -97,7 +97,7 @@ where
                         shutdown_receiver.close();
                         break;
                     }
-                    match vault.refresh_only_auto_enabled().await {
+                    match vault.refresh_only(|secret_ref| secret_ref.auto_refresh).await {
                         Ok(_) => {},
                         Err(err) => {
                             warn!("Automatic refresh vault error: {}", err);

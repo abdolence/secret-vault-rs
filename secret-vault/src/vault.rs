@@ -61,16 +61,16 @@ where
         Ok(self)
     }
 
-    pub async fn refresh_only_auto_enabled(&self) -> SecretVaultResult<&Self> {
+    pub async fn refresh_only(&self, predicate: fn(&SecretVaultRef) -> bool) -> SecretVaultResult<&Self> {
         let refs_auto_refresh_enabled: Vec<SecretVaultRef> = self
             .refs
             .iter()
-            .filter(|secret_ref| secret_ref.auto_refresh)
+            .filter(|secret_ref| predicate(secret_ref))
             .cloned()
             .collect();
 
         trace!(
-            "Auto refreshing secrets from the source: {}. All registered secrets: {}. Expected to be refreshed: {}",
+            "Refreshing secrets from the source: {}. All registered secrets: {}. Expected to be refreshed: {}",
             self.source.name(),
             self.refs.len(),
             refs_auto_refresh_enabled.len()
@@ -83,7 +83,7 @@ where
         }
 
         trace!(
-            "Secret vault now contains: {} secrets",
+            "Secret vault now contains: {} secrets in total",
             self.store.len().await
         );
 
