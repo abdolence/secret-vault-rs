@@ -147,14 +147,7 @@ impl AwsKmsEnvelopeEncryption {
             .send()
             .await
             .map_err(|err| {
-                SecretVaultError::EncryptionError(SecretVaultEncryptionError::new(
-                    SecretVaultErrorPublicGenericDetails::new("AWS_ERROR".into()),
-                    format!(
-                        "AWS decrypt error {:?}: {}",
-                        self.aws_key_ref.to_key_arn(),
-                        err
-                    ),
-                ))
+                SecretVaultError::from(err)
             })?;
 
         if let Some(plaintext) = decrypt_response.plaintext {
