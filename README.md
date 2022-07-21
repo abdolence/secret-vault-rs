@@ -123,7 +123,7 @@ The mitigation some of the attacks is not possible without implementing
 additional support on hardware/OS level (such as Intel SGX project, for instance).
 
 In general, consider this as one small additional effort to mitigate some risks,
-but keep in mind this is not the only solution you rely on.
+but keep in mind this is not the only solution you should rely on.
 
 The most secure setup/config at the moment available is:
 - GCP Secret Manager + KMS enveloper encryption and AEAD
