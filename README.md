@@ -42,7 +42,7 @@ Library provides a secure memory-backed storage of secrets coming to your applic
 Cargo.toml:
 ```toml
 [dependencies]
-secret-vault = { version = "0.3.<x>", features=["..."] }
+secret-vault = { version = "0.4.<x>", features=["..."] }
 secret-vault-type = { version = "0.1.<x>", features=["..."] }
 ```
 See security consideration below about versioning.
@@ -59,7 +59,8 @@ See security consideration below about versioning.
 - `prost` for protobuf serialization support
 
 
-## Example for GCP with memory protection and encryption:
+## Example for GCP with AEAD encryption:
+
 ```rust
 
 // Describing secrets and marking them non-required
@@ -95,12 +96,12 @@ vault_viewer.get_secret_by_ref(&secret2).await?;
 
 ```
 
-All examples available at [secret-vault/examples](secret-vault/examples) directory.
-
 To run this example use with environment variables:
 ```
 # PROJECT_ID=<your-google-project-id> cargo run --example gcloud_secret_manager_vault
 ```
+
+All examples available at [secret-vault/examples](secret-vault/examples) directory.
 
 ## Security considerations and risks
 
