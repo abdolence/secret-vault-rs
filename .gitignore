@@ -6,3 +6,4 @@ Cargo.lock
 *.orig
 *.swp
 proptest-regressions/
+.run
