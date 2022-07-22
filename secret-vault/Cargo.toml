@@ -1,6 +1,6 @@
 [package]
 name = "secret-vault"
-version = "0.5.1"
+version = "0.6.0"
 authors = ["Abdulla Abdurakhmanov <me@abdolence.dev>"]
 edition = "2021"
 license = "Apache-2.0"
@@ -37,9 +37,9 @@ serde = { version = "1", features = ["derive"], optional = true }
 gcloud-sdk = { version = "0.16", optional = true }
 tonic = { version = "0.7", optional = true }
 aws-config = { version = "0.15", optional = true }
-aws-types = { version = "0.15", optional = true }
 aws-sdk-secretsmanager = { version = "0.15", optional = true }
 aws-sdk-kms = { version = "0.15", optional = true }
+kms-aead = { version = "0.1", optional = true }
 
 [dev-dependencies]
 cargo-husky = { version = "1.5", default-features = false, features = ["run-for-all", "prepush-hook", "run-cargo-fmt"] }
@@ -53,20 +53,21 @@ criterion = { version = "0.3", features = ["async", "async_futures", "cargo_benc
 default = []
 serde = ["dep:serde", "chrono/serde", "secret-vault-value/serde"]
 encrypted-ring = ["dep:ring"]
-gcloud = ["dep:tonic", "gcloud-sdk"]
-gcloud-secretmanager =  ["gcloud-sdk/google-cloud-secretmanager-v1", "gcloud"]
-gcloud-kms-encryption = ["gcloud-sdk/google-cloud-kms-v1", "gcloud", "encrypted-ring"]
-aws = ["dep:aws-config", "dep:aws-types"]
+kms = ["kms-aead/default"]
+gcp = ["dep:tonic", "gcloud-sdk"]
+gcp-secretmanager =  ["gcp","gcloud-sdk/google-cloud-secretmanager-v1"]
+gcp-kms-encryption = ["gcp", "kms", "gcloud-sdk/google-cloud-kms-v1", "kms-aead/gcp-kms-encryption"]
+aws = ["dep:aws-config"]
 aws-secretmanager = ["aws", "dep:aws-sdk-secretsmanager"]
-aws-kms-encryption = ["aws", "dep:aws-sdk-kms", "encrypted-ring"]
+aws-kms-encryption = ["aws", "kms", "dep:aws-sdk-kms", "kms-aead/aws-kms-encryption"]
 
 [package.metadata.docs.rs]
 all-features = true
 
 [[example]]
-name = "gcloud_secret_manager_vault"
-path = "examples/gcloud_secret_manager_vault.rs"
-required-features = ["gcloud-secretmanager", "encrypted-ring"]
+name = "gcp_secret_manager_vault"
+path = "examples/gcp_secret_manager_vault.rs"
+required-features = ["gcp-secretmanager", "encrypted-ring"]
 
 [[example]]
 name = "aws_secret_manager_vault"
@@ -74,9 +75,9 @@ path = "examples/aws_secret_manager_vault.rs"
 required-features = ["aws-secretmanager", "encrypted-ring"]
 
 [[example]]
-name = "kms_gcloud_secret_manager_vault"
-path = "examples/kms_gcloud_secret_manager_vault.rs"
-required-features = ["gcloud-secretmanager", "gcloud-kms-encryption"]
+name = "kms_gcp_secret_manager_vault"
+path = "examples/kms_gcp_secret_manager_vault.rs"
+required-features = ["gcp-secretmanager", "gcp-kms-encryption"]
 
 [[example]]
 name = "kms_aws_secret_manager_vault"
@@ -95,9 +96,11 @@ required-features = ["aws-secretmanager"]
 [[bench]]
 name = "ring_encrypted_vault"
 path = "benches/ring_encrypted_vault.rs"
+required-features = ["encrypted-ring"]
 harness = false
 
 [[bench]]
 name = "read_vault_bench"
 path = "benches/read_vault_bench.rs"
+required-features = ["encrypted-ring"]
 harness = false

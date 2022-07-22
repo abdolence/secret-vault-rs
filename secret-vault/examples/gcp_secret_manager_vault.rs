@@ -10,39 +10,38 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .with_env_filter("secret_vault=debug")
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
-    let google_project_id = config_env_var("PROJECT_ID")?;
-    let google_project_location = config_env_var("PROJECT_LOCATION")?;
-    let google_kms_key_ring = config_env_var("KMS_KEY_RING")?;
-    let google_kms_key = config_env_var("KMS_KEY")?;
 
     // Describing secrets and marking them non-required
     // since this is only example and they don't exist in your project
-    let secret_ref1 = SecretVaultRef::new("test-secret1".into()).with_required(false);
+    let secret1_ref = SecretVaultRef::new("tm-http-sessions-secret".into()).with_required(false);
+    let secret_ref2 = SecretVaultRef::new("test-secret2".into())
+        .with_secret_version("1".into())
+        .with_required(false);
 
     // Building the vault
     let mut vault = SecretVaultBuilder::with_source(
-        gcp::GoogleSecretManagerSource::new(&google_project_id).await?,
+        gcp::GcpSecretManagerSource::new(&config_env_var("PROJECT_ID")?).await?,
     )
-    .with_encryption(
-        gcp::GoogleKmsEnvelopeEncryption::new(&gcp::GoogleKmsKeyRef::new(
-            google_project_id,
-            google_project_location,
-            google_kms_key_ring,
-            google_kms_key,
-        ))
-        .await?,
-    )
+    .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
     .build()?;
 
     // Registering your secrets and receiving them from source
     vault
-        .register_secrets_refs(vec![secret_ref1.clone()])
+        .register_secrets_refs(vec![secret1_ref.clone(), secret_ref2.clone()])
         .refresh()
         .await?;
 
     // Reading the secret values
-    let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret_ref1).await?;
+    let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret1_ref).await?;
+
+    // Or if you require it available
+    // let secret_value: Secret = vault.require_secret_by_ref(&secret1).await?;
 
     println!("Received secret: {:?}", secret_value);
+
+    // Using the Viewer API to share only methods able to read secrets
+    let vault_viewer = vault.viewer();
+    vault_viewer.get_secret_by_ref(&secret_ref2).await?;
+
     Ok(())
 }

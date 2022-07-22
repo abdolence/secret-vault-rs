@@ -235,7 +235,7 @@ impl Display for SecretsSourceError {
 
 impl std::error::Error for SecretsSourceError {}
 
-#[cfg(feature = "gcloud")]
+#[cfg(feature = "gcp")]
 impl From<gcloud_sdk::error::Error> for SecretVaultError {
     fn from(e: gcloud_sdk::error::Error) -> Self {
         SecretVaultError::SecretsSourceError(
@@ -248,7 +248,7 @@ impl From<gcloud_sdk::error::Error> for SecretVaultError {
     }
 }
 
-#[cfg(feature = "gcloud")]
+#[cfg(feature = "gcp")]
 impl From<tonic::Status> for SecretVaultError {
     fn from(status: tonic::Status) -> Self {
         match status.code() {
@@ -303,5 +303,15 @@ impl<E: Display + Error + Sync + Send + 'static> From<aws_sdk_kms::types::SdkErr
             )
             .with_root_cause(Box::new(e)),
         )
+    }
+}
+
+#[cfg(feature = "kms")]
+impl From<kms_aead::errors::KmsAeadError> for SecretVaultError {
+    fn from(e: kms_aead::errors::KmsAeadError) -> Self {
+        SecretVaultError::EncryptionError(SecretVaultEncryptionError::new(
+            SecretVaultErrorPublicGenericDetails::new(format!("{:?}", e)),
+            format!("KMS error: {}", e),
+        ))
     }
 }

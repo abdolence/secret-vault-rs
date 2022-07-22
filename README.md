@@ -31,23 +31,18 @@ Library provides the native support for the secrets coming to your application f
 Cargo.toml:
 ```toml
 [dependencies]
-secret-vault = { version = "0.5.<x>", features=["..."] }
+secret-vault = { version = "0.6.<x>", features=["..."] }
 secret-vault-type = { version = "0.2.<x>", features=["..."] }
 ```
 See security consideration below about versioning.
 
 ### Available optional features for Secret Vault:
-- `gcloud-secretmanager` for Google Secret Manager support
+- `gcp-secretmanager` for Google Secret Manager support
 - `aws-secretmanager` for Amazon Secret Manager support
 - `encrypted-ring` for encryption support
-- `gcloud-kms-encryption` for Google KMS envelope encryption support
+- `gcp-kms-encryption` for Google KMS envelope encryption support
 - `aws-kms-encryption` for Google KMS envelope encryption support
 - `serde` for serde serialization support
-
-### Available optional features for secret value type:
-- `serde` for serde serialization support
-- `prost` for protobuf serialization support
-
 
 ## Example for GCP with AEAD encryption:
 
@@ -62,7 +57,7 @@ let secret2 = SecretVaultRef::new("test-secret2".into())
 
 // Building the vault
 let mut vault = SecretVaultBuilder::with_source(
-    gcp::GoogleSecretManagerSource::new(&config_env_var("PROJECT_ID")?).await?,
+    gcp::GcpSecretManagerSource::new(&config_env_var("PROJECT_ID")?).await?,
 )
     .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
     .build()?;

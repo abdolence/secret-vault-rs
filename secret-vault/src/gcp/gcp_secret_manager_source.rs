@@ -11,12 +11,12 @@ use tracing::*;
 use async_trait::*;
 use gcloud_sdk::google::cloud::secretmanager::v1::AccessSecretVersionRequest;
 
-pub struct GoogleSecretManagerSource {
+pub struct GcpSecretManagerSource {
     secret_manager_client: GoogleApi<SecretManagerServiceClient<GoogleAuthMiddleware>>,
     google_project_id: String,
 }
 
-impl GoogleSecretManagerSource {
+impl GcpSecretManagerSource {
     pub async fn new(google_project_id: &String) -> SecretVaultResult<Self> {
         let client: GoogleApi<SecretManagerServiceClient<GoogleAuthMiddleware>> =
             GoogleApi::from_function(
@@ -35,7 +35,7 @@ impl GoogleSecretManagerSource {
 }
 
 #[async_trait]
-impl SecretsSource for GoogleSecretManagerSource {
+impl SecretsSource for GcpSecretManagerSource {
     fn name(&self) -> String {
         "GoogleSecretManager".to_string()
     }

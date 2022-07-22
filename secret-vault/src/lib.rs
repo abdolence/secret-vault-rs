@@ -41,7 +41,7 @@ pub mod ring_encryption;
 #[cfg(feature = "encrypted-ring")]
 mod ring_encryption_support;
 
-#[cfg(feature = "gcloud")]
+#[cfg(feature = "gcp")]
 pub mod gcp;
 
 #[cfg(feature = "aws")]

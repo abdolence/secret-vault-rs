@@ -2,7 +2,7 @@
 
 ## Reporting a Vulnerability
 
-Please follow general guidlines defined here:
+Please follow general guidelines defined here:
 https://cheatsheetseries.owasp.org/cheatsheets/Vulnerability_Disclosure_Cheat_Sheet.html
 
 ## Security considerations and risks

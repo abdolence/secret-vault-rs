@@ -8,13 +8,13 @@ use std::collections::HashMap;
 use tracing::*;
 
 #[derive(Debug, Clone)]
-pub struct AmazonSecretManagerSource {
+pub struct AwsSecretManagerSource {
     account_id: String,
     client: aws_sdk_secretsmanager::Client,
     aws_region: aws_sdk_secretsmanager::Region,
 }
 
-impl AmazonSecretManagerSource {
+impl AwsSecretManagerSource {
     pub async fn new(
         account_id: &String,
         region: Option<aws_sdk_secretsmanager::Region>,
@@ -30,7 +30,7 @@ impl AmazonSecretManagerSource {
         )?;
 
         let client = aws_sdk_secretsmanager::Client::new(&shared_config);
-        Ok(AmazonSecretManagerSource {
+        Ok(AwsSecretManagerSource {
             account_id: account_id.clone(),
             client,
             aws_region: effective_region,
@@ -39,7 +39,7 @@ impl AmazonSecretManagerSource {
 }
 
 #[async_trait]
-impl SecretsSource for AmazonSecretManagerSource {
+impl SecretsSource for AwsSecretManagerSource {
     fn name(&self) -> String {
         "AmazonSecretManager".to_string()
     }

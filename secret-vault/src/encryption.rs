@@ -47,3 +47,17 @@ impl SecretVaultEncryption for SecretVaultNoEncryption {
         Ok(encrypted_secret_value.value().clone())
     }
 }
+
+#[cfg(feature = "kms")]
+impl From<kms_aead::EncryptedSecretValue> for EncryptedSecretValue {
+    fn from(kms_aead_value: kms_aead::EncryptedSecretValue) -> Self {
+        EncryptedSecretValue(kms_aead_value.value().to_owned())
+    }
+}
+
+#[cfg(feature = "kms")]
+impl From<EncryptedSecretValue> for kms_aead::EncryptedSecretValue {
+    fn from(encrypted_value: EncryptedSecretValue) -> Self {
+        kms_aead::EncryptedSecretValue(encrypted_value.value().to_owned())
+    }
+}

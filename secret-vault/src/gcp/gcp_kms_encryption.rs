@@ -1,20 +1,21 @@
+use rvstruct::ValueStruct;
+
 use crate::errors::*;
 use crate::*;
 use async_trait::async_trait;
 use kms_aead::KmsAeadEnvelopeEncryption;
 
-use rvstruct::ValueStruct;
 use secret_vault_value::SecretValue;
 
-pub type AwsKmsKeyRef = kms_aead::providers::AwsKmsKeyRef;
+pub type GcpKmsKeyRef = kms_aead::providers::GcpKmsKeyRef;
 
-pub struct AwsKmsEnvelopeEncryption {
-    envelope_aead_encryption: kms_aead::KmsAeadRingEncryption<kms_aead::providers::AwsKmsProvider>,
+pub struct GcpKmsEnvelopeEncryption {
+    envelope_aead_encryption: kms_aead::KmsAeadRingEncryption<kms_aead::providers::GcpKmsProvider>,
 }
 
-impl AwsKmsEnvelopeEncryption {
-    pub async fn new(kms_key_ref: &AwsKmsKeyRef) -> SecretVaultResult<Self> {
-        let provider = kms_aead::providers::AwsKmsProvider::new(kms_key_ref)
+impl GcpKmsEnvelopeEncryption {
+    pub async fn new(kms_key_ref: &GcpKmsKeyRef) -> SecretVaultResult<Self> {
+        let provider = kms_aead::providers::GcpKmsProvider::new(kms_key_ref)
             .await
             .map_err(|e| SecretVaultError::from(e))?;
         let envelope_aead_encryption = kms_aead::KmsAeadRingEncryption::new(provider)
@@ -28,7 +29,7 @@ impl AwsKmsEnvelopeEncryption {
 }
 
 #[async_trait]
-impl SecretVaultEncryption for AwsKmsEnvelopeEncryption {
+impl SecretVaultEncryption for GcpKmsEnvelopeEncryption {
     async fn encrypt_value(
         &self,
         secret_name: &SecretName,

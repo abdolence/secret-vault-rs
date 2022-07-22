@@ -20,7 +20,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // Building the vault
     let mut vault = SecretVaultBuilder::with_source(
-        aws::AmazonSecretManagerSource::new(&aws_account_id, None).await?,
+        aws::AwsSecretManagerSource::new(&aws_account_id, None).await?,
     )
     .with_encryption(
         aws::AwsKmsEnvelopeEncryption::new(&aws::AwsKmsKeyRef::new(aws_account_id, aws_key_id))
