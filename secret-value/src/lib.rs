@@ -19,6 +19,7 @@
 //! ```
 
 #![allow(unused_parens)]
+#![forbid(unsafe_code)]
 
 mod value;
 pub use value::*;

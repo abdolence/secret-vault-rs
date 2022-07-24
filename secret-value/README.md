@@ -1,6 +1,8 @@
 [![Cargo](https://img.shields.io/crates/v/secret-vault-value.svg)](https://crates.io/crates/secret-vault-value)
 ![tests and formatting](https://github.com/abdolence/secret-vault-rs/workflows/tests%20&amp;%20formatting/badge.svg)
 ![security audit](https://github.com/abdolence/secret-vault-rs/workflows/security%20audit/badge.svg)
+![unsafe](https://img.shields.io/badge/unsafe-forbidden-success.svg)
+![license](https://img.shields.io/github/license/abdolence/secret-vault-rs)
 
 ## Secret value type
 A simple implementation of a secure and serializable (serde and proto) type

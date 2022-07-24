@@ -19,6 +19,7 @@
 //! ```
 
 #![allow(unused_parens, clippy::new_without_default)]
+#![forbid(unsafe_code)]
 
 mod encryption;
 pub use encryption::*;
