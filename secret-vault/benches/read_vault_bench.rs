@@ -67,7 +67,6 @@ fn criterion_benchmark(c: &mut Criterion) {
                     .secrets
                     .keys()
                     .into_iter()
-                    .cloned()
                     .collect(),
             )
             .refresh()
@@ -89,7 +88,6 @@ fn criterion_benchmark(c: &mut Criterion) {
                     .secrets
                     .keys()
                     .into_iter()
-                    .cloned()
                     .collect(),
             )
             .refresh()
