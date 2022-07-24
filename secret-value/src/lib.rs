@@ -33,3 +33,8 @@ pub use value_serde::*;
 mod value_proto;
 #[cfg(feature = "proto")]
 pub use value_proto::*;
+
+#[cfg(feature = "bytes")]
+mod bytes_support;
+#[cfg(feature = "bytes")]
+pub use bytes_support::*;

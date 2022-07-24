@@ -26,7 +26,7 @@ zeroize = { version = "1.5", features = ["std", "derive"] }
 serde = { version = "1", features = ["derive"], optional = true }
 prost = { version="0.10", optional = true}
 prost-types = { version="0.10", optional = true}
-
+bytes = { version="1", optional = true }
 
 [dev-dependencies]
 cargo-husky = { version = "1.5", default-features = false, features = ["run-for-all", "prepush-hook", "run-cargo-fmt"] }
@@ -37,6 +37,7 @@ proptest = "1.0"
 default = []
 serde = ["dep:serde"]
 proto = ["dep:prost", "dep:prost-types"]
+bytes = ["dep:bytes"]
 
 [package.metadata.docs.rs]
 all-features = true
