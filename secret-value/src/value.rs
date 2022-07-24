@@ -54,6 +54,7 @@ impl From<&mut Vec<u8>> for SecretValue {
     fn from(vec: &mut Vec<u8>) -> Self {
         let result = Self(vec.clone());
         vec.zeroize();
+        vec.clear();
         result
     }
 }
