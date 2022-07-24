@@ -137,13 +137,7 @@ mod tests {
             .unwrap();
 
         vault
-            .register_secrets_refs(
-                mock_secrets_store
-                    .secrets
-                    .keys()
-                    .into_iter()
-                    .collect(),
-            )
+            .register_secrets_refs(mock_secrets_store.secrets.keys().into_iter().collect())
             .refresh()
             .await
             .unwrap();
