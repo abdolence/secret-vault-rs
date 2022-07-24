@@ -28,27 +28,33 @@ impl SecretValue {
         self.0.clear();
     }
 
-    pub fn exposed_in_as_str<T, Z: Zeroize>(&self, f: fn(String) -> (T,Z)) -> T {
+    pub fn exposed_in_as_str<T, Z: Zeroize>(&self, f: fn(String) -> (T, Z)) -> T {
         let decoded_as_string = String::from_utf8(self.0.clone()).unwrap();
         let (result, mut zeroizable) = f(decoded_as_string);
         zeroizable.zeroize();
         result
     }
 
-    pub fn exposed_in_as_vec<T, Z: Zeroize>(&self, f: fn(Vec<u8>) -> (T,Z)) -> T {
+    pub fn exposed_in_as_vec<T, Z: Zeroize>(&self, f: fn(Vec<u8>) -> (T, Z)) -> T {
         let (result, mut zeroizable) = f(self.0.clone());
         zeroizable.zeroize();
         result
     }
 
-    pub async fn exposed_in_as_str_async<T, Z: Zeroize, FI>(&self, f: fn(String) -> FI) -> T where FI: Future<Output=(T,Z)> {
+    pub async fn exposed_in_as_str_async<T, Z: Zeroize, FI>(&self, f: fn(String) -> FI) -> T
+    where
+        FI: Future<Output = (T, Z)>,
+    {
         let decoded_as_string = String::from_utf8(self.0.clone()).unwrap();
         let (result, mut zeroizable) = f(decoded_as_string).await;
         zeroizable.zeroize();
         result
     }
 
-    pub async fn exposed_in_as_vec_async<T, Z: Zeroize, FI>(&self, f: fn(Vec<u8>) -> FI) -> T where FI: Future<Output=(T,Z)> {
+    pub async fn exposed_in_as_vec_async<T, Z: Zeroize, FI>(&self, f: fn(Vec<u8>) -> FI) -> T
+    where
+        FI: Future<Output = (T, Z)>,
+    {
         let (result, mut zeroizable) = f(self.0.clone()).await;
         zeroizable.zeroize();
         result
@@ -164,11 +170,13 @@ mod test {
             .unwrap()
             .current();
 
-        let insecure_copy_str =
-            mock_secret.exposed_in_as_str_async(|str| async {
-                (str.clone(), str)
-            }).await;
-        assert_eq!(insecure_copy_str.as_str(), mock_secret.sensitive_value_to_str().unwrap());
+        let insecure_copy_str = mock_secret
+            .exposed_in_as_str_async(|str| async { (str.clone(), str) })
+            .await;
+        assert_eq!(
+            insecure_copy_str.as_str(),
+            mock_secret.sensitive_value_to_str().unwrap()
+        );
     }
 
     #[tokio::test]
@@ -179,11 +187,9 @@ mod test {
             .unwrap()
             .current();
 
-        let insecure_copy_vec =
-            mock_secret.exposed_in_as_vec_async(|vec| async {
-                (vec.clone(), vec)
-            }).await;
+        let insecure_copy_vec = mock_secret
+            .exposed_in_as_vec_async(|vec| async { (vec.clone(), vec) })
+            .await;
         assert_eq!(&insecure_copy_vec, mock_secret.ref_sensitive_value());
     }
-
 }
