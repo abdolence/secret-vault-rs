@@ -21,7 +21,6 @@ name = "secret_vault_value"
 path = "src/lib.rs"
 
 [dependencies]
-tracing = "0.1"
 zeroize = { version = "1.5", features = ["std", "derive"] }
 serde = { version = "1", features = ["derive"], optional = true }
 prost = { version="0.10", optional = true}
