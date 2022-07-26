@@ -44,7 +44,7 @@ See security consideration below about versioning.
 - `aws-secretmanager` for Amazon Secret Manager support
 - `encrypted-ring` for encryption support
 - `gcp-kms-encryption` for Google KMS envelope encryption support
-- `aws-kms-encryption` for Google KMS envelope encryption support
+- `aws-kms-encryption` for Amazon KMS envelope encryption support
 - `serde` for serde serialization support
 
 ## Example for GCP with AEAD encryption:
