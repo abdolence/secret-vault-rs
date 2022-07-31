@@ -27,7 +27,7 @@ of any kind of secrets:
 Cargo.toml:
 ```toml
 [dependencies]
-secret-vault-type = { version = "0.2.<x>", features=["..."] }
+secret-vault-type = { version = "0.3.<x>", features=["..."] }
 ```
 See security consideration below about versioning.
 
