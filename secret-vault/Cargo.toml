@@ -1,6 +1,6 @@
 [package]
 name = "secret-vault"
-version = "0.10.1"
+version = "0.10.2"
 authors = ["Abdulla Abdurakhmanov <me@abdolence.dev>"]
 edition = "2021"
 license = "Apache-2.0"
@@ -54,7 +54,7 @@ cargo-husky = { version = "1.5", default-features = false, features = ["run-for-
 [features]
 default = []
 serde = ["dep:serde", "chrono/serde", "secret-vault-value/serde"]
-encrypted-ring = ["dep:ring"]
+encrypted-ring = ["dep:ring", "kms-aead/encrypted-ring"]
 kms = ["kms-aead/default"]
 gcp = ["dep:tonic", "gcloud-sdk"]
 gcp-secretmanager =  ["gcp","gcloud-sdk/google-cloud-secretmanager-v1"]
