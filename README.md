@@ -8,11 +8,11 @@
 
 # Secret Vault for Rust
 
-Library provides following crates:
+Library provides the following crates:
 
 - General secret value type - a simple implementation of a secure and serializable (serde and proto) type
   of any kind of secrets. Documentation located [here](secret-value/README.md).
-- Secret vault - a library provides a secure memory-backed storage of the application secrets to store them secure way.
+- Secret vault - a library provides a memory-backed storage for the application secrets integrated with external source of secrets.
   Documentation is below.
 
 ## Secret Vault 
