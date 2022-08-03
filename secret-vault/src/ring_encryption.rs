@@ -2,16 +2,15 @@ use crate::common_types::*;
 use crate::SecretVaultResult;
 
 use async_trait::async_trait;
-use ring::rand::SystemRandom;
+use kms_aead::ring_encryption::KmsAeadRingAeadEncryption;
+use kms_aead::KmsAeadEncryption;
+use rvstruct::ValueStruct;
 use secret_vault_value::*;
 
 use crate::encryption::*;
-use crate::ring_encryption_support::*;
 
 pub struct SecretVaultRingAeadEncryption {
-    algo: &'static ring::aead::Algorithm,
-    session_secret: SecretValue,
-    nonce_data: SecretValue,
+    ring_encryption: KmsAeadRingAeadEncryption,
 }
 
 impl SecretVaultRingAeadEncryption {
@@ -20,12 +19,8 @@ impl SecretVaultRingAeadEncryption {
     }
 
     pub fn with_algorithm(algo: &'static ring::aead::Algorithm) -> SecretVaultResult<Self> {
-        let secure_rand = SystemRandom::new();
-
         Ok(Self {
-            algo,
-            session_secret: generate_session_secret(&secure_rand, algo.key_len())?,
-            nonce_data: generate_nonce(&secure_rand)?,
+            ring_encryption: KmsAeadRingAeadEncryption::with_generated_secret(algo)?,
         })
     }
 }
@@ -37,13 +32,11 @@ impl SecretVaultEncryption for SecretVaultRingAeadEncryption {
         secret_name: &SecretName,
         secret_value: &SecretValue,
     ) -> SecretVaultResult<EncryptedSecretValue> {
-        encrypt_with_sealing_key(
-            self.algo,
-            &self.session_secret,
-            &self.nonce_data,
-            secret_name,
-            secret_value,
-        )
+        let encrypted = self
+            .ring_encryption
+            .encrypt_value(secret_name.value().clone(), secret_value)
+            .await?;
+        Ok(encrypted.into())
     }
 
     async fn decrypt_value(
@@ -51,13 +44,13 @@ impl SecretVaultEncryption for SecretVaultRingAeadEncryption {
         secret_name: &SecretName,
         encrypted_secret_value: &EncryptedSecretValue,
     ) -> SecretVaultResult<SecretValue> {
-        decrypt_with_opening_key(
-            self.algo,
-            &self.session_secret,
-            &self.nonce_data,
-            secret_name,
-            encrypted_secret_value,
-        )
+        Ok(self
+            .ring_encryption
+            .decrypt_value(
+                secret_name.value().clone(),
+                &encrypted_secret_value.clone().into(),
+            )
+            .await?)
     }
 }
 
@@ -68,7 +61,6 @@ mod tests {
     use proptest::prelude::*;
     use proptest::strategy::ValueTree;
     use proptest::test_runner::TestRunner;
-    use rvstruct::*;
 
     async fn encryption_test_for(mock_secret_value: SecretValue) {
         let mock_secret_name: SecretName = "test".to_string().into();
