@@ -4,6 +4,7 @@ use crate::SecretVaultResult;
 use async_trait::async_trait;
 use kms_aead::ring_encryption::KmsAeadRingAeadEncryption;
 use kms_aead::KmsAeadEncryption;
+use ring::rand::SystemRandom;
 use rvstruct::ValueStruct;
 use secret_vault_value::*;
 
@@ -11,6 +12,7 @@ use crate::encryption::*;
 
 pub struct SecretVaultRingAeadEncryption {
     ring_encryption: KmsAeadRingAeadEncryption,
+    vault_secret: SecretValue,
 }
 
 impl SecretVaultRingAeadEncryption {
@@ -19,8 +21,11 @@ impl SecretVaultRingAeadEncryption {
     }
 
     pub fn with_algorithm(algo: &'static ring::aead::Algorithm) -> SecretVaultResult<Self> {
+        let ring_encryption = KmsAeadRingAeadEncryption::with_algorithm(algo, SystemRandom::new())?;
+        let vault_secret = ring_encryption.generate_session_key()?;
         Ok(Self {
-            ring_encryption: KmsAeadRingAeadEncryption::with_generated_secret(algo)?,
+            ring_encryption,
+            vault_secret,
         })
     }
 }
@@ -34,7 +39,7 @@ impl SecretVaultEncryption for SecretVaultRingAeadEncryption {
     ) -> SecretVaultResult<EncryptedSecretValue> {
         let encrypted = self
             .ring_encryption
-            .encrypt_value(secret_name.value().clone(), secret_value)
+            .encrypt_value(secret_name.value(), secret_value, &self.vault_secret)
             .await?;
         Ok(encrypted.into())
     }
@@ -47,8 +52,9 @@ impl SecretVaultEncryption for SecretVaultRingAeadEncryption {
         Ok(self
             .ring_encryption
             .decrypt_value(
-                secret_name.value().clone(),
+                secret_name.value(),
                 &encrypted_secret_value.clone().into(),
+                &self.vault_secret,
             )
             .await?)
     }
