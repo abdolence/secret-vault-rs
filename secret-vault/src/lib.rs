@@ -18,7 +18,7 @@
 //!
 //! ```
 
-#![allow(unused_parens, clippy::new_without_default)]
+#![allow(unused_parens, clippy::new_without_default, clippy::needless_update)]
 #![forbid(unsafe_code)]
 
 mod encryption;

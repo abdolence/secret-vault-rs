@@ -17,7 +17,7 @@ pub struct GcpSecretManagerSource {
 }
 
 impl GcpSecretManagerSource {
-    pub async fn new(google_project_id: &String) -> SecretVaultResult<Self> {
+    pub async fn new(google_project_id: &str) -> SecretVaultResult<Self> {
         let client: GoogleApi<SecretManagerServiceClient<GoogleAuthMiddleware>> =
             GoogleApi::from_function(
                 SecretManagerServiceClient::new,
@@ -25,11 +25,11 @@ impl GcpSecretManagerSource {
                 None,
             )
             .await
-            .map_err(|e| SecretVaultError::from(e))?;
+            .map_err(SecretVaultError::from)?;
 
         Ok(Self {
             secret_manager_client: client,
-            google_project_id: google_project_id.clone(),
+            google_project_id: google_project_id.to_string(),
         })
     }
 }
@@ -68,7 +68,7 @@ impl SecretsSource for GcpSecretManagerSource {
                     ..Default::default()
                 }))
                 .await
-                .map_err(|e| SecretVaultError::from(e));
+                .map_err(SecretVaultError::from);
 
             match get_secret_response {
                 Ok(response) => {

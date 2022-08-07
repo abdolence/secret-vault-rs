@@ -16,10 +16,10 @@ impl AwsKmsEnvelopeEncryption {
     pub async fn new(kms_key_ref: &AwsKmsKeyRef) -> SecretVaultResult<Self> {
         let provider = kms_aead::providers::AwsKmsProvider::new(kms_key_ref)
             .await
-            .map_err(|e| SecretVaultError::from(e))?;
+            .map_err(SecretVaultError::from)?;
         let envelope_aead_encryption = kms_aead::KmsAeadRingEncryption::new(provider)
             .await
-            .map_err(|e| SecretVaultError::from(e))?;
+            .map_err(SecretVaultError::from)?;
 
         Ok(Self {
             envelope_aead_encryption,
@@ -36,7 +36,7 @@ impl SecretVaultEncryption for AwsKmsEnvelopeEncryption {
     ) -> SecretVaultResult<EncryptedSecretValue> {
         let (encrypted_value, _) = self
             .envelope_aead_encryption
-            .encrypt_value(secret_name.value().into(), secret_value)
+            .encrypt_value(secret_name.value(), secret_value)
             .await?;
 
         Ok(encrypted_value.into())
@@ -49,10 +49,7 @@ impl SecretVaultEncryption for AwsKmsEnvelopeEncryption {
     ) -> SecretVaultResult<SecretValue> {
         let (secret_value, _) = self
             .envelope_aead_encryption
-            .decrypt_value(
-                secret_name.value().into(),
-                &encrypted_secret_value.clone().into(),
-            )
+            .decrypt_value(secret_name.value(), &encrypted_secret_value.clone().into())
             .await?;
         Ok(secret_value)
     }

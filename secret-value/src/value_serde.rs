@@ -9,7 +9,7 @@ impl Serialize for SecretValue {
     {
         serializer.serialize_str(
             String::from_utf8(self.ref_sensitive_value().clone())
-                .map_err(|e| serde::ser::Error::custom(e))?
+                .map_err(serde::ser::Error::custom)?
                 .as_str(),
         )
     }

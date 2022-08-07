@@ -16,22 +16,24 @@ pub struct AwsSecretManagerSource {
 
 impl AwsSecretManagerSource {
     pub async fn new(
-        account_id: &String,
+        account_id: &str,
         region: Option<aws_sdk_secretsmanager::Region>,
     ) -> SecretVaultResult<Self> {
         let shared_config = aws_config::load_from_env().await;
-        let effective_region = region.or(shared_config.region().cloned()).ok_or(
-            SecretVaultError::InvalidParametersError(SecretVaultInvalidParametersError::new(
-                SecretVaultInvalidParametersPublicDetails::new(
-                    "region".into(),
-                    "AWS region must be specified or available in the AWS shared config".into(),
-                ),
-            )),
-        )?;
+        let effective_region = region
+            .or_else(|| shared_config.region().cloned())
+            .ok_or_else(|| {
+                SecretVaultError::InvalidParametersError(SecretVaultInvalidParametersError::new(
+                    SecretVaultInvalidParametersPublicDetails::new(
+                        "region".into(),
+                        "AWS region must be specified or available in the AWS shared config".into(),
+                    ),
+                ))
+            })?;
 
         let client = aws_sdk_secretsmanager::Client::new(&shared_config);
         Ok(AwsSecretManagerSource {
-            account_id: account_id.clone(),
+            account_id: account_id.to_string(),
             client,
             aws_region: effective_region,
         })
@@ -68,12 +70,11 @@ impl SecretsSource for AwsSecretManagerSource {
             {
                 Ok(aws_secret) => {
                     let maybe_secret_value =
-                        aws_secret
-                            .secret_string
-                            .map(SecretValue::from)
-                            .or(aws_secret
+                        aws_secret.secret_string.map(SecretValue::from).or_else(|| {
+                            aws_secret
                                 .secret_binary
-                                .map(|secret_binary| SecretValue::new(secret_binary.into_inner())));
+                                .map(|secret_binary| SecretValue::new(secret_binary.into_inner()))
+                        });
 
                     if let Some(secret_value) = maybe_secret_value {
                         let metadata = SecretMetadata::new();
