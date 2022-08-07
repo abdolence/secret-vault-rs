@@ -62,7 +62,7 @@ where
             secret_ref.into(),
             SecretVaultStoreValue {
                 data: encrypted_secret_value,
-                metadata: SecretMetadata::new(),
+                metadata: secret.metadata.clone(),
             },
         );
 
