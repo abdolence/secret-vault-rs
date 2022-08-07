@@ -3,7 +3,7 @@ use crate::SecretVaultResult;
 
 use async_trait::async_trait;
 use kms_aead::ring_encryption::KmsAeadRingAeadEncryption;
-use kms_aead::KmsAeadEncryption;
+use kms_aead::{DataEncryptionKey, KmsAeadEncryption};
 use ring::rand::SystemRandom;
 use rvstruct::ValueStruct;
 use secret_vault_value::*;
@@ -12,7 +12,7 @@ use crate::encryption::*;
 
 pub struct SecretVaultRingAeadEncryption {
     ring_encryption: KmsAeadRingAeadEncryption,
-    vault_secret: SecretValue,
+    vault_secret: DataEncryptionKey,
 }
 
 impl SecretVaultRingAeadEncryption {
@@ -22,7 +22,8 @@ impl SecretVaultRingAeadEncryption {
 
     pub fn with_algorithm(algo: &'static ring::aead::Algorithm) -> SecretVaultResult<Self> {
         let ring_encryption = KmsAeadRingAeadEncryption::with_algorithm(algo, SystemRandom::new())?;
-        let vault_secret = ring_encryption.generate_session_key()?;
+        let vault_secret = ring_encryption.generate_data_encryption_key()?;
+
         Ok(Self {
             ring_encryption,
             vault_secret,
@@ -76,7 +77,10 @@ mod tests {
             .encrypt_value(&mock_secret_name, &mock_secret_value)
             .await
             .unwrap();
-        assert_ne!(*encrypted_value.value(), mock_secret_value);
+        assert_ne!(
+            encrypted_value.value(),
+            mock_secret_value.ref_sensitive_value()
+        );
 
         let decrypted_value = encryption
             .decrypt_value(&mock_secret_name, &encrypted_value)

@@ -36,7 +36,7 @@ mod vault_store;
 mod common_types;
 pub use common_types::*;
 
-#[cfg(feature = "encrypted-ring")]
+#[cfg(feature = "ring-aead-encryption")]
 pub mod ring_encryption;
 
 #[cfg(feature = "gcp")]

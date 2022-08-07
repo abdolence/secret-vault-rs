@@ -1,6 +1,6 @@
 [package]
 name = "secret-vault"
-version = "0.11.0"
+version = "0.14.0"
 authors = ["Abdulla Abdurakhmanov <me@abdolence.dev>"]
 edition = "2021"
 license = "Apache-2.0"
@@ -39,7 +39,7 @@ tonic = { version = "0.8", optional = true }
 aws-config = { version = "0.46", optional = true }
 aws-sdk-secretsmanager = { version = "0.16", optional = true }
 aws-sdk-kms = { version = "0.16", optional = true }
-kms-aead = { version = "0.5", optional = true }
+kms-aead = { version = "0.6", optional = true }
 
 [dev-dependencies]
 serde_json = { version = "1" }
@@ -54,7 +54,7 @@ cargo-husky = { version = "1.5", default-features = false, features = ["run-for-
 [features]
 default = []
 serde = ["dep:serde", "chrono/serde", "secret-vault-value/serde"]
-encrypted-ring = ["dep:ring", "kms-aead/encrypted-ring"]
+ring-aead-encryption = ["dep:ring", "kms-aead/ring-aead-encryption"]
 kms = ["kms-aead/default"]
 gcp = ["dep:tonic", "gcloud-sdk"]
 gcp-secretmanager =  ["gcp","gcloud-sdk/google-cloud-secretmanager-v1"]
@@ -69,12 +69,12 @@ all-features = true
 [[example]]
 name = "gcp_secret_manager_vault"
 path = "examples/gcp_secret_manager_vault.rs"
-required-features = ["gcp-secretmanager", "encrypted-ring"]
+required-features = ["gcp-secretmanager", "ring-aead-encryption"]
 
 [[example]]
 name = "aws_secret_manager_vault"
 path = "examples/aws_secret_manager_vault.rs"
-required-features = ["aws-secretmanager", "encrypted-ring"]
+required-features = ["aws-secretmanager", "ring-aead-encryption"]
 
 [[example]]
 name = "kms_gcp_secret_manager_vault"
@@ -98,11 +98,11 @@ required-features = ["aws-secretmanager"]
 [[bench]]
 name = "ring_encrypted_vault"
 path = "benches/ring_encrypted_vault.rs"
-required-features = ["encrypted-ring"]
+required-features = ["ring-aead-encryption"]
 harness = false
 
 [[bench]]
 name = "read_vault_bench"
 path = "benches/read_vault_bench.rs"
-required-features = ["encrypted-ring"]
+required-features = ["ring-aead-encryption"]
 harness = false

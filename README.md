@@ -42,7 +42,7 @@ See security consideration below about versioning.
 ### Available optional features for Secret Vault:
 - `gcp-secretmanager` for Google Secret Manager support
 - `aws-secretmanager` for Amazon Secret Manager support
-- `encrypted-ring` for encryption support
+- `ring-aead-encryption` for encryption support using Ring AEAD
 - `gcp-kms-encryption` for Google KMS envelope encryption support
 - `aws-kms-encryption` for Amazon KMS envelope encryption support
 - `serde` for serde serialization support

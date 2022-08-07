@@ -6,7 +6,7 @@ use rvstruct::*;
 use secret_vault_value::SecretValue;
 
 #[derive(Debug, Clone, PartialEq, ValueStruct)]
-pub struct EncryptedSecretValue(pub SecretValue);
+pub struct EncryptedSecretValue(pub Vec<u8>);
 
 #[derive(Debug, Clone, PartialEq, ValueStruct)]
 pub struct WrappedSessionKey(pub SecretValue);
@@ -36,7 +36,9 @@ impl SecretVaultEncryption for SecretVaultNoEncryption {
         _secret_name: &SecretName,
         secret_value: &SecretValue,
     ) -> SecretVaultResult<EncryptedSecretValue> {
-        Ok(EncryptedSecretValue(secret_value.clone()))
+        Ok(EncryptedSecretValue::from(
+            secret_value.ref_sensitive_value().clone(),
+        ))
     }
 
     async fn decrypt_value(
@@ -44,20 +46,20 @@ impl SecretVaultEncryption for SecretVaultNoEncryption {
         _secret_name: &SecretName,
         encrypted_secret_value: &EncryptedSecretValue,
     ) -> SecretVaultResult<SecretValue> {
-        Ok(encrypted_secret_value.value().clone())
+        Ok(SecretValue::from(encrypted_secret_value.value().clone()))
     }
 }
 
-#[cfg(any(feature = "kms", feature = "encrypted-ring"))]
-impl From<kms_aead::EncryptedSecretValue> for EncryptedSecretValue {
-    fn from(kms_aead_value: kms_aead::EncryptedSecretValue) -> Self {
+#[cfg(any(feature = "kms", feature = "ring-aead-encryption"))]
+impl From<kms_aead::CipherText> for EncryptedSecretValue {
+    fn from(kms_aead_value: kms_aead::CipherText) -> Self {
         EncryptedSecretValue(kms_aead_value.value().to_owned())
     }
 }
 
-#[cfg(any(feature = "kms", feature = "encrypted-ring"))]
-impl From<EncryptedSecretValue> for kms_aead::EncryptedSecretValue {
+#[cfg(any(feature = "kms", feature = "ring-aead-encryption"))]
+impl From<EncryptedSecretValue> for kms_aead::CipherText {
     fn from(encrypted_value: EncryptedSecretValue) -> Self {
-        kms_aead::EncryptedSecretValue(encrypted_value.value().to_owned())
+        kms_aead::CipherText(encrypted_value.value().to_owned())
     }
 }

@@ -306,7 +306,7 @@ impl<E: Display + Error + Sync + Send + 'static> From<aws_sdk_kms::types::SdkErr
     }
 }
 
-#[cfg(any(feature = "kms", feature = "encrypted-ring"))]
+#[cfg(any(feature = "kms", feature = "ring-aead-encryption"))]
 impl From<kms_aead::errors::KmsAeadError> for SecretVaultError {
     fn from(e: kms_aead::errors::KmsAeadError) -> Self {
         SecretVaultError::EncryptionError(SecretVaultEncryptionError::new(

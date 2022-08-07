@@ -10,7 +10,8 @@ use secret_vault_value::SecretValue;
 pub type GcpKmsKeyRef = kms_aead::providers::GcpKmsKeyRef;
 
 pub struct GcpKmsEnvelopeEncryption {
-    envelope_aead_encryption: kms_aead::KmsAeadRingEncryption<kms_aead::providers::GcpKmsProvider>,
+    envelope_aead_encryption:
+        kms_aead::KmsAeadRingEnvelopeEncryption<kms_aead::providers::GcpKmsProvider>,
 }
 
 impl GcpKmsEnvelopeEncryption {
@@ -18,7 +19,7 @@ impl GcpKmsEnvelopeEncryption {
         let provider = kms_aead::providers::GcpKmsProvider::new(kms_key_ref)
             .await
             .map_err(SecretVaultError::from)?;
-        let envelope_aead_encryption = kms_aead::KmsAeadRingEncryption::new(provider)
+        let envelope_aead_encryption = kms_aead::KmsAeadRingEnvelopeEncryption::new(provider)
             .await
             .map_err(SecretVaultError::from)?;
 
@@ -37,7 +38,7 @@ impl SecretVaultEncryption for GcpKmsEnvelopeEncryption {
     ) -> SecretVaultResult<EncryptedSecretValue> {
         let (encrypted_value, _) = self
             .envelope_aead_encryption
-            .encrypt_value(secret_name.value(), secret_value)
+            .encrypt_value_with_current_key(secret_name.value(), secret_value)
             .await?;
 
         Ok(encrypted_value.into())
@@ -50,7 +51,10 @@ impl SecretVaultEncryption for GcpKmsEnvelopeEncryption {
     ) -> SecretVaultResult<SecretValue> {
         let (secret_value, _) = self
             .envelope_aead_encryption
-            .decrypt_value(secret_name.value(), &encrypted_secret_value.clone().into())
+            .decrypt_value_with_current_key(
+                secret_name.value(),
+                &encrypted_secret_value.clone().into(),
+            )
             .await?;
         Ok(secret_value)
     }
