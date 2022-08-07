@@ -1,6 +1,6 @@
 [package]
 name = "secret-vault-value"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Abdulla Abdurakhmanov <me@abdolence.dev>"]
 edition = "2021"
 license = "Apache-2.0"
@@ -31,7 +31,7 @@ bytes = { version="1", optional = true }
 cargo-husky = { version = "1.5", default-features = false, features = ["run-for-all", "prepush-hook", "run-cargo-fmt"] }
 serde_json = { version = "1" }
 proptest = "1.0"
-tokio = "1.20"
+tokio = { version = "1", features = ["full"] }
 
 [features]
 default = []

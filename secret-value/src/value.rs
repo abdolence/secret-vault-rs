@@ -28,21 +28,28 @@ impl SecretValue {
         self.0.clear();
     }
 
-    pub fn exposed_in_as_str<T, Z: Zeroize>(&self, f: fn(String) -> (T, Z)) -> T {
+    pub fn exposed_in_as_str<T, Z: Zeroize, FN>(&self, f: FN) -> T
+    where
+        FN: Fn(String) -> (T, Z),
+    {
         let decoded_as_string = String::from_utf8(self.0.clone()).unwrap();
         let (result, mut zeroizable) = f(decoded_as_string);
         zeroizable.zeroize();
         result
     }
 
-    pub fn exposed_in_as_vec<T, Z: Zeroize>(&self, f: fn(Vec<u8>) -> (T, Z)) -> T {
+    pub fn exposed_in_as_vec<T, Z: Zeroize, FN>(&self, f: FN) -> T
+    where
+        FN: Fn(Vec<u8>) -> (T, Z),
+    {
         let (result, mut zeroizable) = f(self.0.clone());
         zeroizable.zeroize();
         result
     }
 
-    pub async fn exposed_in_as_str_async<T, Z: Zeroize, FI>(&self, f: fn(String) -> FI) -> T
+    pub async fn exposed_in_as_str_async<T, Z: Zeroize, FN, FI>(&self, f: FN) -> T
     where
+        FN: Fn(String) -> FI,
         FI: Future<Output = (T, Z)>,
     {
         let decoded_as_string = String::from_utf8(self.0.clone()).unwrap();
@@ -51,8 +58,9 @@ impl SecretValue {
         result
     }
 
-    pub async fn exposed_in_as_vec_async<T, Z: Zeroize, FI>(&self, f: fn(Vec<u8>) -> FI) -> T
+    pub async fn exposed_in_as_vec_async<T, Z: Zeroize, FN, FI>(&self, f: FN) -> T
     where
+        FN: Fn(Vec<u8>) -> FI,
         FI: Future<Output = (T, Z)>,
     {
         let (result, mut zeroizable) = f(self.0.clone()).await;
@@ -180,6 +188,32 @@ mod test {
     }
 
     #[tokio::test]
+    async fn exposed_function_str_async_closure() {
+        let mut runner = TestRunner::default();
+        let mock_secret = generate_secret_value()
+            .new_tree(&mut runner)
+            .unwrap()
+            .current();
+
+        let test_var_to_capture: String = "test-captured".to_string();
+
+        let insecure_copy_str = mock_secret
+            .exposed_in_as_str_async(|str| async {
+                (format!("{}{}", test_var_to_capture, str), str)
+            })
+            .await;
+
+        assert_eq!(
+            insecure_copy_str.as_str(),
+            format!(
+                "{}{}",
+                test_var_to_capture,
+                mock_secret.sensitive_value_to_str().unwrap()
+            )
+        );
+    }
+
+    #[tokio::test]
     async fn exposed_function_vec_async() {
         let mut runner = TestRunner::default();
         let mock_secret = generate_secret_value()
@@ -191,5 +225,31 @@ mod test {
             .exposed_in_as_vec_async(|vec| async { (vec.clone(), vec) })
             .await;
         assert_eq!(&insecure_copy_vec, mock_secret.ref_sensitive_value());
+    }
+
+    #[tokio::test]
+    async fn exposed_function_vec_async_closure() {
+        let mut runner = TestRunner::default();
+        let mock_secret = generate_secret_value()
+            .new_tree(&mut runner)
+            .unwrap()
+            .current();
+
+        let test_var_to_capture: Vec<u8> = "test-captured".to_string().as_bytes().to_vec();
+
+        let insecure_copy_vec = mock_secret
+            .exposed_in_as_vec_async(|vec| async {
+                ([test_var_to_capture.clone(), vec.clone()].concat(), vec)
+            })
+            .await;
+
+        assert_eq!(
+            insecure_copy_vec,
+            [
+                test_var_to_capture.clone(),
+                mock_secret.ref_sensitive_value().to_vec()
+            ]
+            .concat()
+        );
     }
 }
