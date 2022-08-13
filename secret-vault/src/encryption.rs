@@ -8,9 +8,6 @@ use secret_vault_value::SecretValue;
 #[derive(Debug, Clone, PartialEq, ValueStruct)]
 pub struct EncryptedSecretValue(pub Vec<u8>);
 
-#[derive(Debug, Clone, PartialEq, ValueStruct)]
-pub struct WrappedSessionKey(pub SecretValue);
-
 #[async_trait]
 pub trait SecretVaultEncryption {
     async fn encrypt_value(
