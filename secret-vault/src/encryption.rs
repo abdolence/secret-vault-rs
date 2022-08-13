@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use rvstruct::*;
 use secret_vault_value::SecretValue;
 
-#[derive(Debug, Clone, PartialEq, ValueStruct)]
+#[derive(Debug, Clone, Eq, PartialEq, ValueStruct)]
 pub struct EncryptedSecretValue(pub Vec<u8>);
 
 #[async_trait]

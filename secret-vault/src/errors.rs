@@ -47,13 +47,13 @@ impl std::error::Error for SecretVaultError {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Builder)]
+#[derive(Debug, Eq, PartialEq, Clone, Builder)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SecretVaultErrorPublicGenericDetails {
     pub code: String,
 }
 
-#[derive(Debug, PartialEq, Clone, Builder)]
+#[derive(Debug, Eq, PartialEq, Clone, Builder)]
 pub struct SecretVaultSystemError {
     pub public: SecretVaultErrorPublicGenericDetails,
     pub message: String,
@@ -122,7 +122,7 @@ impl Display for SecretVaultDataNotFoundError {
 
 impl std::error::Error for SecretVaultDataNotFoundError {}
 
-#[derive(Debug, PartialEq, Clone, Builder)]
+#[derive(Debug, Eq, PartialEq, Clone, Builder)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SecretVaultInvalidParametersPublicDetails {
     pub field: String,
@@ -142,13 +142,13 @@ impl Display for SecretVaultInvalidParametersError {
 
 impl std::error::Error for SecretVaultInvalidParametersError {}
 
-#[derive(Debug, PartialEq, Clone, Builder)]
+#[derive(Debug, Eq, PartialEq, Clone, Builder)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SecretVaultInvalidJsonErrorPublicDetails {
     pub code: String,
 }
 
-#[derive(Debug, PartialEq, Clone, Builder)]
+#[derive(Debug, Eq, PartialEq, Clone, Builder)]
 pub struct SecretVaultNetworkError {
     pub public: SecretVaultErrorPublicGenericDetails,
     pub message: String,
@@ -162,7 +162,7 @@ impl Display for SecretVaultNetworkError {
 
 impl std::error::Error for SecretVaultNetworkError {}
 
-#[derive(Debug, PartialEq, Clone, Builder)]
+#[derive(Debug, Eq, PartialEq, Clone, Builder)]
 pub struct SecretVaultEncryptionError {
     pub public: SecretVaultErrorPublicGenericDetails,
     pub message: String,
@@ -189,7 +189,7 @@ impl Display for SecretVaultEncryptionError {
 
 impl std::error::Error for SecretVaultEncryptionError {}
 
-#[derive(Debug, PartialEq, Clone, Builder)]
+#[derive(Debug, Eq, PartialEq, Clone, Builder)]
 pub struct SecretVaultMemoryError {
     pub public: SecretVaultErrorPublicGenericDetails,
     pub message: String,
