@@ -157,6 +157,19 @@ Then you have two options for configuration/version management:
 - Updating automatically secrets and their versions using `SecretVaultAutoRefresher`
   (or your own implementation) without redeploys.
 
+## Making `SecretVaultRef` available globally
+It is convenient to make those references globally available inside your apps since
+they don't contain any sensitive information.
+To make it easy consider using crates such as `lazy_static` or `once_cell`:
+
+```rust
+use once_cell::sync::Lazy;
+
+pub static MY_SECRET_REF: Lazy<SecretVaultRef> = Lazy::new(|| {
+   SecretVaultRef::new("my-secret".into())
+});
+```
+
 ## Licence
 Apache Software License (ASL)
 
