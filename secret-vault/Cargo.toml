@@ -1,6 +1,6 @@
 [package]
 name = "secret-vault"
-version = "0.15.1"
+version = "0.16.0"
 authors = ["Abdulla Abdurakhmanov <me@abdolence.dev>"]
 edition = "2021"
 license = "Apache-2.0"
@@ -36,10 +36,10 @@ region = { version = "3.0.0", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 gcloud-sdk = { version = "0.18", optional = true }
 tonic = { version = "0.8", optional = true }
-aws-config = { version = "0.46", optional = true }
-aws-sdk-secretsmanager = { version = "0.16", optional = true }
-aws-sdk-kms = { version = "0.16", optional = true }
-kms-aead = { version = "0.6", optional = true }
+aws-config = { version = "0.47", optional = true }
+aws-sdk-secretsmanager = { version = "0.17", optional = true }
+aws-sdk-kms = { version = "0.17", optional = true }
+kms-aead = { version = "0.7", optional = true }
 
 [dev-dependencies]
 serde_json = { version = "1" }
