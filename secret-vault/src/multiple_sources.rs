@@ -40,7 +40,7 @@ impl SecretsSource for MultipleSecretsSources {
         let mut result_map: HashMap<SecretVaultRef, Secret> = HashMap::new();
         for (namespace, source) in self.sources.iter() {
             let source_references: Vec<SecretVaultRef> = references
-                .into_iter()
+                .iter()
                 .filter(|reference| {
                     reference
                         .namespace
