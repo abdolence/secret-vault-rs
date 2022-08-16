@@ -16,6 +16,7 @@ pub struct SecretVaultStoreValue {
 pub struct SecretVaultKey {
     pub secret_name: SecretName,
     pub secret_version: Option<SecretVersion>,
+    pub namespace: Option<SecretNamespace>,
 }
 
 impl From<SecretVaultRef> for SecretVaultKey {
@@ -23,6 +24,7 @@ impl From<SecretVaultRef> for SecretVaultKey {
         SecretVaultKey {
             secret_name: key_ref.secret_name,
             secret_version: key_ref.secret_version,
+            namespace: key_ref.namespace,
         }
     }
 }
