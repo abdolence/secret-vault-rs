@@ -40,9 +40,11 @@ impl SecretsSource for MockSecretsSource {
                 None if secret_ref.required => {
                     return Err(SecretVaultError::DataNotFoundError(
                         SecretVaultDataNotFoundError::new(
-                            SecretVaultErrorPublicGenericDetails::new("ENV_NOT_FOUND".into()),
+                            SecretVaultErrorPublicGenericDetails::new(
+                                "MOCK_SECRET_NOT_FOUND".into(),
+                            ),
                             format!(
-                                "Secret is required but not found in environment variables {:?}",
+                                "Secret is required but not found in mock variables {:?}",
                                 secret_ref.secret_name
                             ),
                         ),
@@ -74,11 +76,18 @@ pub mod source_tests {
             .boxed()
     }
 
-    pub fn generate_mock_secrets_source() -> BoxedStrategy<MockSecretsSource> {
+    pub fn generate_mock_secrets_source(
+        namespace: SecretNamespace,
+    ) -> BoxedStrategy<MockSecretsSource> {
         prop::collection::vec(
             generate_secret_ref().prop_flat_map(move |secret_ref| {
-                generate_secret_value()
-                    .prop_map(move |secret_value| (secret_ref.clone(), secret_value))
+                let namespace = namespace.clone();
+                generate_secret_value().prop_map(move |secret_value| {
+                    (
+                        secret_ref.clone().with_namespace(namespace.clone()),
+                        secret_value,
+                    )
+                })
             }),
             1..100,
         )

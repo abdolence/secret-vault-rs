@@ -20,6 +20,7 @@ Library provides the following crates:
 Library provides the native support for the secrets coming to your application from external sources:
  - Google Cloud Secret Manager
  - Amazon Secrets Manager
+ - Environment variables
 
 ## Features
 - Reading/caching registered secrets in memory from defined sources;
@@ -27,6 +28,7 @@ Library provides the native support for the secrets coming to your application f
 - Automatic refresh secrets from the sources support (optional);
 - Extensible and strongly typed API to be able to implement any kind of sources;
 - Memory encryption using Google/AWS KMS [envelope encryption](https://cloud.google.com/kms/docs/envelope-encryption) (optional);
+- Multi-sources support;
 
 
 ## Quick start
@@ -91,6 +93,29 @@ To run this example use with environment variables:
 
 All examples available at [secret-vault/examples](secret-vault/examples) directory.
 
+## Multiple sources
+The library supports reading from multiple sources using the concept of namespaces:
+
+```rust
+
+let secret_aws_namespace: SecretNamespace = "aws".into();
+let secret_env_namespace: SecretNamespace = "env".into();
+
+SecretVaultBuilder::with_source(
+        MultipleSecretsSources::new()
+            .with_source(&secret_env_namespace, InsecureEnvSource::new())
+            .with_source(&secret_aws_namespace, 
+                aws::AwsSecretManagerSource::new(&config_env_var("ACCOUNT_ID")?, None).await?
+            )
+)
+
+let secret_ref_aws = SecretVaultRef::new("test-secret-xRnpry".into()).with_namespace(secret_aws_namespace.clone());
+let secret_ref_env = SecretVaultRef::new("user".into()).with_namespace(secret_env_namespace.clone());
+
+vault.register_secrets_refs(vec![&secret_ref_aws, &secret_ref_env]).refresh().await?;
+
+```
+
 ## Security considerations and risks
 
 ### OSS
@@ -145,7 +170,7 @@ read-secrets-perf-encrypted-vault
 This is mostly application specific area, but general idea is
 to have at least two version of secrets:
 
-- Current/latest version of secret which will be used for the new transactions/requests/data
+- The current/latest version of secret which will be used for the new transactions/requests/data
   in your application.
 - Previous version which still need to be valid to interact.
 

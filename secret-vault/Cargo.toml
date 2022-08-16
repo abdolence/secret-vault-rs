@@ -1,6 +1,6 @@
 [package]
 name = "secret-vault"
-version = "0.14.1"
+version = "0.15.0"
 authors = ["Abdulla Abdurakhmanov <me@abdolence.dev>"]
 edition = "2021"
 license = "Apache-2.0"
@@ -106,3 +106,8 @@ name = "read_vault_bench"
 path = "benches/read_vault_bench.rs"
 required-features = ["ring-aead-encryption"]
 harness = false
+
+[[example]]
+name = "multiple_sources"
+path = "examples/multiple_sources.rs"
+required-features = ["aws-secretmanager"]

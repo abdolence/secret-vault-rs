@@ -122,7 +122,7 @@ mod tests {
     #[tokio::test]
     async fn auto_refresh_vault_test() {
         let mut runner = TestRunner::default();
-        let mock_secrets_store = generate_mock_secrets_source()
+        let mock_secrets_store = generate_mock_secrets_source("default".into())
             .new_tree(&mut runner)
             .unwrap()
             .current();

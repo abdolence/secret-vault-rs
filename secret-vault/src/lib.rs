@@ -12,9 +12,40 @@
 //! - Memory encryption using AEAD cryptography (optional);
 //! - Memory encryption using Google/AWS KMS envelope encryption (https://cloud.google.com/kms/docs/envelope-encryption) (optional);
 //! - Automatic refresh secrets from the sources support (optional);
+//! - Multi-sources support;
 //!
-//! ## Example, security considerations and benchmarks:
-//! Available at github: https://github.com/abdolence/secret-vault-rs
+//! ```rust,ignore
+//!
+//!     // Describing secrets and marking them non-required
+//!    // since this is only example and they don't exist in your project
+//!    let secret_ref1 = SecretVaultRef::new("test-secret-xRnpry".into())
+//!        .with_required(false)
+//!        .with_secret_version("AWSCURRENT".into());
+//!    let secret_ref2 = SecretVaultRef::new("another-secret-222222".into()).with_required(false);
+//!
+//!    // Building the vault
+//!    let mut vault = SecretVaultBuilder::with_source(
+//!        aws::AwsSecretManagerSource::new(&config_env_var("ACCOUNT_ID")?, None).await?,
+//!    )
+//!    .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
+//!    .build()?;
+//!
+//!    // Registering your secrets and receiving them from source
+//!    vault
+//!        .register_secrets_refs(vec![&secret_ref1, &secret_ref2])
+//!        .refresh()
+//!        .await?;
+//!
+//!    // Reading the secret
+//!    let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret_ref1).await?;
+//!
+//!    // Using the Viewer API to share only methods able to read secrets
+//!    let vault_viewer = vault.viewer();
+//!    vault_viewer.get_secret_by_ref(&secret_ref2).await?;
+//! ```
+//!
+//! ## Examples, more detail docs and security considerations and benchmarks:
+//! Available on github: https://github.com/abdolence/secret-vault-rs
 //!
 //! ```
 
@@ -58,3 +89,6 @@ pub use vault_viewer::*;
 
 mod vault_auto_refresher;
 pub use vault_auto_refresher::*;
+
+mod multiple_sources;
+pub use multiple_sources::*;
