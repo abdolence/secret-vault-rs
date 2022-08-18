@@ -7,7 +7,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    // Mocking a secret file
+    // Secret coming from an environment variable
     let secret_ref = SecretVaultRef::new("user".into())
         .with_required(false)
         .with_allow_in_snapshots(true);
