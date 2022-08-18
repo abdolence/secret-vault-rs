@@ -30,9 +30,10 @@ impl SecretsSource for InsecureEnvSource {
         for secret_ref in references {
             let env_secret_name: String = format!(
                 "{}{}",
-                secret_ref.secret_name.value(),
+                secret_ref.key.secret_name.value(),
                 secret_ref
-                    .secret_version
+                    .key.
+                    secret_version
                     .as_ref()
                     .map(|sv| { format!("_V{}", sv.value()) })
                     .unwrap_or_else(|| "".to_string())
@@ -51,7 +52,7 @@ impl SecretsSource for InsecureEnvSource {
                     let secret_value = SecretValue::from(env);
                     result_map.insert(
                         secret_ref.clone(),
-                        Secret::new(secret_value, SecretMetadata::new(secret_ref.clone().into())),
+                        Secret::new(secret_value, SecretMetadata::new(secret_ref.key.clone())),
                     );
                 }
                 None if secret_ref.required => {

@@ -49,8 +49,9 @@ impl SecretsSource for FilesSource {
                     .and_then(|rp| rp.to_str())
                     .map(|path| format!("{}/", path))
                     .unwrap_or_else(|| "".to_string()),
-                secret_ref.secret_name.value(),
+                secret_ref.key.secret_name.value(),
                 secret_ref
+                    .key
                     .secret_version
                     .as_ref()
                     .map(|sv| { format!("_v{}", sv.value()) })
@@ -63,7 +64,7 @@ impl SecretsSource for FilesSource {
                     let secret_value = SecretValue::from(file_content);
                     result_map.insert(
                         secret_ref.clone(),
-                        Secret::new(secret_value, SecretMetadata::new(secret_ref.clone().into())),
+                        Secret::new(secret_value, SecretMetadata::new(secret_ref.key.clone())),
                     );
                 }
                 Err(err) if secret_ref.required => {

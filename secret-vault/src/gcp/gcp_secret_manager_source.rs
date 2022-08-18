@@ -47,6 +47,7 @@ impl SecretsSource for GcpSecretManagerSource {
         let mut result_map: HashMap<SecretVaultRef, Secret> = HashMap::new();
         for secret_ref in references {
             let gcp_secret_version = secret_ref
+                .key
                 .secret_version
                 .as_ref()
                 .map(|v| v.value().clone())
@@ -55,7 +56,7 @@ impl SecretsSource for GcpSecretManagerSource {
             let gcp_secret_path = format!(
                 "projects/{}/secrets/{}/versions/{}",
                 self.google_project_id,
-                secret_ref.secret_name.value(),
+                secret_ref.key.secret_name.value(),
                 &gcp_secret_version
             );
 
@@ -74,7 +75,7 @@ impl SecretsSource for GcpSecretManagerSource {
                 Ok(response) => {
                     let secret_response = response.into_inner();
                     if let Some(payload) = secret_response.payload {
-                        let metadata = SecretMetadata::new(secret_ref.clone().into())
+                        let metadata = SecretMetadata::new(secret_ref.key.clone())
                             .with_version(gcp_secret_version.into());
 
                         result_map.insert(secret_ref.clone(), Secret::new(payload.data, metadata));

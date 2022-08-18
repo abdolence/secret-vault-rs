@@ -33,6 +33,6 @@ impl SecretVaultSnapshotBuilder<SecretVaultAhashSnapshot> for SecretVaultAhashSn
 
 impl SecretVaultSnapshot for SecretVaultAhashSnapshot {
     fn get_secret_by_ref(&self, secret_ref: &SecretVaultRef) -> SecretVaultResult<Option<Secret>> {
-        Ok(self.secrets_map.get(&secret_ref.clone().into()).cloned())
+        Ok(self.secrets_map.get(&secret_ref.key).cloned())
     }
 }

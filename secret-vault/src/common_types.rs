@@ -19,20 +19,75 @@ pub struct SecretNamespace(String);
 #[derive(Debug, Clone, Eq, PartialEq, Hash, ValueStruct)]
 pub struct SecretVersion(String);
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Builder)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct SecretVaultRef {
-    pub secret_name: SecretName,
-    pub secret_version: Option<SecretVersion>,
-    pub namespace: Option<SecretNamespace>,
+    pub key: SecretVaultKey,
 
-    #[default = "true"]
     pub required: bool,
-
-    #[default = "false"]
     pub auto_refresh: bool,
-
-    #[default = "false"]
     pub allow_in_snapshots: bool,
+}
+
+impl SecretVaultRef {
+
+    pub fn new(secret_name: SecretName) -> Self {
+        Self {
+            key: SecretVaultKey::new(secret_name),
+            required: true,
+            auto_refresh: false,
+            allow_in_snapshots: false,
+        }
+    }
+
+    pub fn with_secret_version(self, value: SecretVersion) -> Self {
+        Self {
+            key: self.key.with_secret_version(value),
+            ..self
+        }
+    }
+
+    pub fn opt_secret_version(self, value: Option<SecretVersion>) -> Self {
+        Self {
+            key: self.key.opt_secret_version(value),
+            ..self
+        }
+    }
+
+    pub fn with_namespace(self, value: SecretNamespace) -> Self {
+        Self {
+            key: self.key.with_namespace(value),
+            ..self
+        }
+    }
+
+    pub fn opt_namespace(self, value: Option<SecretNamespace>) -> Self {
+        Self {
+            key: self.key.opt_namespace(value),
+            ..self
+        }
+    }
+
+    pub fn with_required(self, value: bool) -> Self {
+        Self {
+            required: value,
+            ..self
+        }
+    }
+
+    pub fn with_auto_refresh(self, value: bool) -> Self {
+        Self {
+            auto_refresh: value,
+            ..self
+        }
+    }
+
+    pub fn with_allow_in_snapshots(self, value: bool) -> Self {
+        Self {
+            allow_in_snapshots: value,
+            ..self
+        }
+    }
+
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Builder)]

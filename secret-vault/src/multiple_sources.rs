@@ -43,6 +43,7 @@ impl SecretsSource for MultipleSecretsSources {
                 .iter()
                 .filter(|reference| {
                     reference
+                        .key
                         .namespace
                         .iter()
                         .any(|ref_namespace| *ref_namespace == *namespace)
@@ -123,7 +124,7 @@ mod tests {
                     .unwrap()
                     .map(|secret| secret.value)
                     .as_ref(),
-                if secret_ref.namespace.as_ref().unwrap().value().as_str() == "mock1" {
+                if secret_ref.key.namespace.as_ref().unwrap().value().as_str() == "mock1" {
                     mock_secrets_store1.secrets.get(&secret_ref)
                 } else {
                     mock_secrets_store2.secrets.get(&secret_ref)

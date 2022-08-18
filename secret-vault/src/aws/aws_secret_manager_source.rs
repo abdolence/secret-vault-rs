@@ -57,14 +57,14 @@ impl SecretsSource for AwsSecretManagerSource {
                 "arn:aws:secretsmanager:{}:{}:secret:{}",
                 self.aws_region,
                 self.account_id,
-                secret_ref.secret_name.value()
+                secret_ref.key.secret_name.value()
             );
 
             match self
                 .client
                 .get_secret_value()
                 .secret_id(aws_secret_arn.clone())
-                .set_version_stage(secret_ref.secret_version.as_ref().map(|v| v.value().into()))
+                .set_version_stage(secret_ref.key.secret_version.as_ref().map(|v| v.value().into()))
                 .send()
                 .await
             {
@@ -77,7 +77,7 @@ impl SecretsSource for AwsSecretManagerSource {
                         });
 
                     if let Some(secret_value) = maybe_secret_value {
-                        let metadata = SecretMetadata::new(secret_ref.clone().into());
+                        let metadata = SecretMetadata::new(secret_ref.key.clone());
                         result_map.insert(secret_ref.clone(), Secret::new(secret_value, metadata));
                     } else if secret_ref.required {
                         return Err(SecretVaultError::DataNotFoundError(
@@ -101,18 +101,18 @@ impl SecretsSource for AwsSecretManagerSource {
                                     SecretVaultErrorPublicGenericDetails::new("SECRET_NOT_FOUND".into()),
                                     format!(
                                         "Secret is required but not found in environment variables {:?}",
-                                        secret_ref.secret_name
+                                        secret_ref.key.secret_name
                                     ),
                                 ),
                             ));
                     } else {
-                        debug!("Secret or secret version {}/{:?} doesn't exist and since it is not required it is skipped",aws_secret_arn, &secret_ref.secret_version);
+                        debug!("Secret or secret version {}/{:?} doesn't exist and since it is not required it is skipped",aws_secret_arn, &secret_ref.key.secret_version);
                     }
                 }
                 Err(err) => {
                     error!(
                         "Unable to read secret or secret version {}/{:?}: {}.",
-                        aws_secret_arn, &secret_ref.secret_version, err
+                        aws_secret_arn, &secret_ref.key.secret_version, err
                     );
                     return Err(SecretVaultError::from(err));
                 }
