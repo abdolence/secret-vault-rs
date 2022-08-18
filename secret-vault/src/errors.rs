@@ -15,7 +15,6 @@ pub enum SecretVaultError {
     InvalidParametersError(SecretVaultInvalidParametersError),
     NetworkError(SecretVaultNetworkError),
     EncryptionError(SecretVaultEncryptionError),
-    MemoryError(SecretVaultMemoryError),
     SecretsSourceError(SecretsSourceError),
 }
 
@@ -27,7 +26,6 @@ impl Display for SecretVaultError {
             SecretVaultError::InvalidParametersError(ref err) => err.fmt(f),
             SecretVaultError::NetworkError(ref err) => err.fmt(f),
             SecretVaultError::EncryptionError(ref err) => err.fmt(f),
-            SecretVaultError::MemoryError(ref err) => err.fmt(f),
             SecretVaultError::SecretsSourceError(ref err) => err.fmt(f),
         }
     }
@@ -41,7 +39,6 @@ impl std::error::Error for SecretVaultError {
             SecretVaultError::InvalidParametersError(ref err) => Some(err),
             SecretVaultError::NetworkError(ref err) => Some(err),
             SecretVaultError::EncryptionError(ref err) => Some(err),
-            SecretVaultError::MemoryError(ref err) => Some(err),
             SecretVaultError::SecretsSourceError(ref err) => Some(err),
         }
     }
@@ -188,33 +185,6 @@ impl Display for SecretVaultEncryptionError {
 }
 
 impl std::error::Error for SecretVaultEncryptionError {}
-
-#[derive(Debug, Eq, PartialEq, Clone, Builder)]
-pub struct SecretVaultMemoryError {
-    pub public: SecretVaultErrorPublicGenericDetails,
-    pub message: String,
-}
-
-impl SecretVaultMemoryError {
-    pub fn create(code: &str, message: &str) -> SecretVaultError {
-        SecretVaultError::MemoryError(SecretVaultMemoryError::new(
-            SecretVaultErrorPublicGenericDetails::new(code.to_string()),
-            message.to_string(),
-        ))
-    }
-}
-
-impl Display for SecretVaultMemoryError {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "SecretVault memory error: {:?} / {}",
-            self.public, self.message
-        )
-    }
-}
-
-impl std::error::Error for SecretVaultMemoryError {}
 
 #[derive(Debug, Builder)]
 pub struct SecretsSourceError {
