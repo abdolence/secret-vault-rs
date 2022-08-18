@@ -37,8 +37,8 @@ Library provides the native support for the secrets coming to your application f
 Cargo.toml:
 ```toml
 [dependencies]
-secret-vault = { version = "0.16", features=["..."] }
-secret-vault-type = { version = "0.3", features=["..."] }
+secret-vault = { version = "1.0", features=["..."] }
+secret-vault-type = { version = "0.3" }
 ```
 See security consideration below about versioning.
 
