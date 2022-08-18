@@ -4,7 +4,7 @@ version = "0.16.0"
 authors = ["Abdulla Abdurakhmanov <me@abdolence.dev>"]
 edition = "2021"
 license = "Apache-2.0"
-description = "Library provides a secure vault to store application secrets in memory coming from Google/AWS/other secret managers"
+description = "Library provides a secure vault to store securely application secrets in memory from Google/AWS/K8S and environment variables"
 homepage = "https://github.com/abdolence/secret-vault-rs"
 repository = "https://github.com/abdolence/secret-vault-rs"
 documentation = "https://docs.rs/secret-vault"
@@ -45,6 +45,7 @@ kms-aead = { version = "0.7", optional = true }
 serde_json = { version = "1" }
 proptest = "1.0"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tempfile = "3.3"
 
 criterion = { version = "0.3", features = ["async", "async_futures", "cargo_bench_support", "html_reports", "futures", "tokio", "async_tokio"] }
 
@@ -111,3 +112,8 @@ harness = false
 name = "multiple_sources"
 path = "examples/multiple_sources.rs"
 required-features = ["aws-secretmanager"]
+
+[[example]]
+name = "files_source"
+path = "examples/files_source.rs"
+

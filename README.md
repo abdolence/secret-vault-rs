@@ -21,6 +21,7 @@ Library provides the native support for the secrets coming to your application f
  - Google Cloud Secret Manager
  - Amazon Secrets Manager
  - Environment variables
+ - Files source (mostly designed to read K8S secrets mounted as files)
 
 ## Features
 - Reading/caching registered secrets in memory from defined sources;
@@ -36,8 +37,8 @@ Library provides the native support for the secrets coming to your application f
 Cargo.toml:
 ```toml
 [dependencies]
-secret-vault = { version = "0.15.<x>", features=["..."] }
-secret-vault-type = { version = "0.3.<x>", features=["..."] }
+secret-vault = { version = "0.16", features=["..."] }
+secret-vault-type = { version = "0.3", features=["..."] }
 ```
 See security consideration below about versioning.
 
@@ -94,7 +95,8 @@ To run this example use with environment variables:
 All examples available at [secret-vault/examples](secret-vault/examples) directory.
 
 ## Multiple sources
-The library supports reading from multiple sources using the concept of namespaces:
+The library supports reading from multiple sources simultaneously
+using the concept of namespaces:
 
 ```rust
 

@@ -5,6 +5,8 @@
 //!
 //! - Google Cloud Secret Manager
 //! - Amazon Secrets Manager
+//! - Environment variables
+//! - Files source (mostly designed to read K8S secrets mounted as files)
 //!
 //! ## Features
 //! - Caching registered secrets in memory from sources;
