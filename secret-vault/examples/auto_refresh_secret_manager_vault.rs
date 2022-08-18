@@ -24,8 +24,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         SecretVaultBuilder::with_source(
             aws::AwsSecretManagerSource::new(&config_env_var("ACCOUNT_ID")?, None).await?,
         )
-        .build()?
-        .with_secrets_refs(vec![&secret1]),
+        .with_secret_refs(vec![&secret1])
+        .build()?,
     );
 
     // Refresh the secrets first to make sure they loaded first time

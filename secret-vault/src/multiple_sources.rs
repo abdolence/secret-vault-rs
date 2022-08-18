@@ -110,7 +110,7 @@ mod tests {
         let all_mock_secrets = [mock_secrets1, mock_secrets2].concat();
 
         vault
-            .register_secrets_refs(all_mock_secrets.iter().collect())
+            .register_secret_refs(all_mock_secrets.iter().collect())
             .refresh()
             .await
             .unwrap();

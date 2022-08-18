@@ -19,17 +19,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .with_required(false);
 
     // Building the vault
-    let mut vault = SecretVaultBuilder::with_source(
+    let vault = SecretVaultBuilder::with_source(
         gcp::GcpSecretManagerSource::new(&config_env_var("PROJECT_ID")?).await?,
     )
     .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
+    .with_secret_refs(vec![&secret1_ref, &secret_ref2])
     .build()?;
 
-    // Registering your secrets and receiving them from source
-    vault
-        .register_secrets_refs(vec![&secret1_ref, &secret_ref2])
-        .refresh()
-        .await?;
+    // Load secrets from the source
+    vault.refresh().await?;
 
     // Reading the secret values
     let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret1_ref).await?;

@@ -16,26 +16,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // Describing secrets and marking them non-required
     // since this is only example and they don't exist in your project
-    let secret1 = SecretVaultRef::new("test-secret-xRnpry".into()).with_required(false);
+    let secret_ref = SecretVaultRef::new("test-secret-xRnpry".into()).with_required(false);
 
     // Building the vault
-    let mut vault = SecretVaultBuilder::with_source(
+    let vault = SecretVaultBuilder::with_source(
         aws::AwsSecretManagerSource::new(&aws_account_id, None).await?,
     )
     .with_encryption(
         aws::AwsKmsEnvelopeEncryption::new(&aws::AwsKmsKeyRef::new(aws_account_id, aws_key_id))
             .await?,
     )
+    .with_secret_refs(vec![&secret_ref])
     .build()?;
 
-    // Registering your secrets and receiving them from source
-    vault
-        .register_secrets_refs(vec![&secret1])
-        .refresh()
-        .await?;
+    // Load secrets from the source
+    vault.refresh().await?;
 
     // Reading the secret
-    let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret1).await?;
+    let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret_ref).await?;
 
     println!("Received secret: {:?}", secret_value);
 

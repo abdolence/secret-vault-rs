@@ -16,15 +16,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let secret_ref = SecretVaultRef::new("user".into()).with_required(false);
 
     // Building the vault
-    let mut vault = SecretVaultBuilder::with_source(InsecureEnvSource::new())
+    let vault = SecretVaultBuilder::with_source(InsecureEnvSource::new())
         .without_encryption()
+        .with_secret_refs(vec![&secret_ref])
         .build()?;
 
-    // Registering your secrets and receiving them from source
-    vault
-        .register_secrets_refs(vec![&secret_ref])
-        .refresh()
-        .await?;
+    // Load secrets from the source
+    vault.refresh().await?;
 
     // Reading the secret values
     let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret_ref).await?;

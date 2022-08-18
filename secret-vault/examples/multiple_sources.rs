@@ -24,7 +24,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .with_required(false);
 
     // Building the vault with two sources: Environment and AWS
-    let mut vault = SecretVaultBuilder::with_source(
+    let vault = SecretVaultBuilder::with_source(
         MultipleSecretsSources::new()
             .with_source(&secret_env_namespace, InsecureEnvSource::new())
             .with_source(
@@ -33,13 +33,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             ),
     )
     .without_encryption()
+    .with_secret_refs(vec![&secret_ref_aws, &secret_ref_env])
     .build()?;
 
-    // Registering your secrets and receiving them from source
-    vault
-        .register_secrets_refs(vec![&secret_ref_aws, &secret_ref_env])
-        .refresh()
-        .await?;
+    // Load secrets from all sources
+    vault.refresh().await?;
 
     // Reading the secret values
     let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret_ref_aws).await?;

@@ -19,17 +19,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let secret_ref2 = SecretVaultRef::new("another-secret-222222".into()).with_required(false);
 
     // Building the vault
-    let mut vault = SecretVaultBuilder::with_source(
+    let vault = SecretVaultBuilder::with_source(
         aws::AwsSecretManagerSource::new(&config_env_var("ACCOUNT_ID")?, None).await?,
     )
     .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
+    .with_secret_refs(vec![&secret_ref1, &secret_ref2])
     .build()?;
 
-    // Registering your secrets and receiving them from source
-    vault
-        .register_secrets_refs(vec![&secret_ref1, &secret_ref2])
-        .refresh()
-        .await?;
+    // Load secrets from the source
+    vault.refresh().await?;
 
     // Reading the secret
     let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret_ref1).await?;

@@ -15,20 +15,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut mock_secret_file = std::fs::File::create(mock_secret_file_path)?;
     write!(mock_secret_file, "42424242")?;
 
+    let secret_ref = SecretVaultRef::new("my-mock-secret.key".into());
+
     // Building the vault with files source
-    let mut vault = SecretVaultBuilder::with_source(FilesSource::with_options(
+    let vault = SecretVaultBuilder::with_source(FilesSource::with_options(
         FilesSourceOptions::new().with_root_path(mock_secret_dir.path().into()),
     ))
     .without_encryption()
+    .with_secret_refs(vec![&secret_ref])
     .build()?;
 
-    let secret_ref = SecretVaultRef::new("my-mock-secret.key".into());
-
-    // Registering your secrets and receiving them from source
-    vault
-        .register_secrets_refs(vec![&secret_ref])
-        .refresh()
-        .await?;
+    // Load secrets from the source
+    vault.refresh().await?;
 
     // Reading the secret value
     let secret_value: Secret = vault.require_secret_by_ref(&secret_ref).await?;

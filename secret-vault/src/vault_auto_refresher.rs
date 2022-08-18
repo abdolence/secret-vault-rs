@@ -139,7 +139,7 @@ mod tests {
             SecretVaultBuilder::with_source(mock_secrets_store.clone())
                 .build()
                 .unwrap()
-                .with_secrets_refs(secret_refs.iter().collect()),
+                .with_secret_refs(secret_refs.iter().collect()),
         );
 
         let mut refresher = SecretVaultAutoRefresher::new(

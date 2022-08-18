@@ -6,6 +6,7 @@ pub struct SecretVaultBuilder<
 > {
     source: S,
     encryption: E,
+    refs: Vec<SecretVaultRef>,
 }
 
 impl<S> SecretVaultBuilder<S, SecretVaultNoEncryption>
@@ -16,6 +17,7 @@ where
         SecretVaultBuilder {
             source,
             encryption: SecretVaultNoEncryption {},
+            refs: Vec::new(),
         }
     }
 }
@@ -32,6 +34,7 @@ where
         SecretVaultBuilder {
             source: self.source,
             encryption,
+            refs: Vec::new(),
         }
     }
 
@@ -42,10 +45,25 @@ where
         SecretVaultBuilder {
             source: self.source,
             encryption: SecretVaultNoEncryption {},
+            refs: Vec::new(),
+        }
+    }
+
+    pub fn with_secret_refs(self, secret_refs: Vec<&SecretVaultRef>) -> SecretVaultBuilder<S, E> {
+        SecretVaultBuilder {
+            source: self.source,
+            encryption: self.encryption,
+            refs: secret_refs.into_iter().cloned().collect(),
         }
     }
 
     pub fn build(self) -> SecretVaultResult<SecretVault<S, E>> {
-        SecretVault::new(self.source, self.encryption)
+        let vault = SecretVault::new(self.source, self.encryption)?;
+
+        Ok(if !self.refs.is_empty() {
+            vault.with_secret_refs(self.refs.iter().collect())
+        } else {
+            vault
+        })
     }
 }
