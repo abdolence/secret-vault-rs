@@ -62,23 +62,21 @@ let secret2 = SecretVaultRef::new("test-secret2".into())
     .with_required(false);
 
 // Building the vault
-let mut vault = SecretVaultBuilder::with_source(
+let vault = SecretVaultBuilder::with_source(
     gcp::GcpSecretManagerSource::new(&config_env_var("PROJECT_ID")?).await?,
 )
     .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
+    .with_secret_refs(vec![&secret1, &secret2])
     .build()?;
 
-// Registering your secrets and receiving them from source
-vault
-    .register_secrets_refs(vec![&secret1, &secret2])
-    .refresh()
-    .await?;
+// Load secrets from the source
+vault.refresh().await?;
 
 // Reading the secret values
 let secret: Option<Secret> = vault.get_secret_by_ref(&secret1).await?;
+
 // Or if you require it available
 let secret: Secret = vault.require_secret_by_ref(&secret1).await?;
-
 println!("Received secret: {:?}", secret);
 
 // Using the Viewer API to share only methods able to read secrets
