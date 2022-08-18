@@ -160,10 +160,16 @@ The comparison between reading performance of encrypted and non-encrypted vault:
 
 ```
 read-secrets-perf-simple-vault
-                        time:   [126.47 ns 126.70 ns 126.99 ns]
+time:   [171.15 ns 171.26 ns 171.39 ns]
 
 read-secrets-perf-encrypted-vault
-                        time:   [292.15 ns 292.97 ns 293.95 ns]
+time:   [373.58 ns 374.06 ns 374.68 ns]
+
+read-secrets-perf-std-hash-snapshot
+time:   [95.864 ns 95.924 ns 95.988 ns]
+
+read-secrets-perf-ahash-snapshot
+time:   [85.051 ns 85.190 ns 85.375 ns]
 ```
 
 ## Rotating application secrets strategy without downtime

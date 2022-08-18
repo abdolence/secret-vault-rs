@@ -90,6 +90,12 @@ pub use vault_builder::SecretVaultBuilder;
 mod vault_viewer;
 pub use vault_viewer::*;
 
+mod snapshot;
+pub use snapshot::*;
+
+mod vault_snapshot;
+pub use vault_snapshot::*;
+
 mod vault_auto_refresher;
 pub use vault_auto_refresher::*;
 

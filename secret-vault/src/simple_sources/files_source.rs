@@ -63,7 +63,7 @@ impl SecretsSource for FilesSource {
                     let secret_value = SecretValue::from(file_content);
                     result_map.insert(
                         secret_ref.clone(),
-                        Secret::new(secret_value, SecretMetadata::new()),
+                        Secret::new(secret_value, SecretMetadata::new(secret_ref.clone().into())),
                     );
                 }
                 Err(err) if secret_ref.required => {

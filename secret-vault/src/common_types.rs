@@ -1,3 +1,4 @@
+use crate::vault_store::SecretVaultKey;
 use chrono::prelude::*;
 use rsb_derive::*;
 use rvstruct::*;
@@ -29,6 +30,9 @@ pub struct SecretVaultRef {
 
     #[default = "false"]
     pub auto_refresh: bool,
+
+    #[default = "false"]
+    pub allow_in_snapshots: bool,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Builder)]
@@ -41,7 +45,7 @@ pub struct SecretMetadataLabel {
 pub struct SecretMetadata {
     #[default = "Utc::now()"]
     pub cached_at: DateTime<Utc>,
-
+    pub key: SecretVaultKey,
     pub labels: Option<Vec<SecretMetadataLabel>>,
     pub description: Option<String>,
     pub expire_at: Option<DateTime<Utc>>,

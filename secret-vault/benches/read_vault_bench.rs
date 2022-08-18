@@ -16,7 +16,9 @@ pub fn generate_secret_value() -> BoxedStrategy<SecretValue> {
 
 pub fn generate_secret_ref() -> BoxedStrategy<SecretVaultRef> {
     ("[a-zA-Z0-9]+")
-        .prop_map(|(mock_secret_name)| SecretVaultRef::new(mock_secret_name.into()))
+        .prop_map(|(mock_secret_name)| {
+            SecretVaultRef::new(mock_secret_name.into()).with_allow_in_snapshots(true)
+        })
         .boxed()
 }
 
@@ -29,16 +31,6 @@ pub fn generate_mock_secrets_source() -> BoxedStrategy<MockSecretsSource> {
     )
     .prop_map(|vec| MockSecretsSource::new(vec))
     .boxed()
-}
-
-async fn read_secrets_perf_test<E>(
-    viewer: &SecretVaultViewer<E>,
-    secret_ref: &SecretVaultRef,
-) -> SecretVaultResult<Option<Secret>>
-where
-    E: SecretVaultEncryption + Send + Sync,
-{
-    viewer.get_secret_by_ref(secret_ref).await
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
@@ -75,7 +67,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         .build()
         .unwrap();
 
-    let vault_with_encryption_snapshot = rt.block_on(async {
+    let vault_with_encryption_viewer = rt.block_on(async {
         vault_with_encryption
             .register_secret_refs(mock_secrets_store.secrets.keys().into_iter().collect())
             .refresh()
@@ -87,18 +79,46 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     c.bench_function("read-secrets-perf-simple-vault", |b| {
         b.to_async(criterion::async_executor::FuturesExecutor)
-            .iter(|| {
-                read_secrets_perf_test(black_box(&simple_vault_snapshot), black_box(secret_ref))
-            })
+            .iter(|| simple_vault_snapshot.get_secret_by_ref(black_box(secret_ref)))
     });
+
     c.bench_function("read-secrets-perf-encrypted-vault", |b| {
         b.to_async(criterion::async_executor::FuturesExecutor)
-            .iter(|| {
-                read_secrets_perf_test(
-                    black_box(&vault_with_encryption_snapshot),
-                    black_box(secret_ref),
-                )
-            })
+            .iter(|| vault_with_encryption_viewer.get_secret_by_ref(black_box(secret_ref)))
+    });
+
+    let vault_std_hash_snapshot = rt.block_on(async {
+        vault_with_encryption
+            .register_secret_refs(mock_secrets_store.secrets.keys().into_iter().collect())
+            .refresh()
+            .await
+            .unwrap();
+
+        vault_with_encryption
+            .snapshot(SecretVaultHashMapSnapshotBuilder::new())
+            .await
+            .unwrap()
+    });
+
+    c.bench_function("read-secrets-perf-std-hash-snapshot", |b| {
+        b.iter(|| vault_std_hash_snapshot.get_secret_by_ref(black_box(secret_ref)))
+    });
+
+    let vault_ahash_snapshot = rt.block_on(async {
+        vault_with_encryption
+            .register_secret_refs(mock_secrets_store.secrets.keys().into_iter().collect())
+            .refresh()
+            .await
+            .unwrap();
+
+        vault_with_encryption
+            .snapshot(SecretVaultAhashSnapshotBuilder::new())
+            .await
+            .unwrap()
+    });
+
+    c.bench_function("read-secrets-perf-ahash-snapshot", |b| {
+        b.iter(|| vault_ahash_snapshot.get_secret_by_ref(black_box(secret_ref)))
     });
 }
 

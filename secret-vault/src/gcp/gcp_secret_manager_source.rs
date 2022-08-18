@@ -74,8 +74,8 @@ impl SecretsSource for GcpSecretManagerSource {
                 Ok(response) => {
                     let secret_response = response.into_inner();
                     if let Some(payload) = secret_response.payload {
-                        let metadata =
-                            SecretMetadata::new().with_version(gcp_secret_version.into());
+                        let metadata = SecretMetadata::new(secret_ref.clone().into())
+                            .with_version(gcp_secret_version.into());
 
                         result_map.insert(secret_ref.clone(), Secret::new(payload.data, metadata));
                     } else if secret_ref.required {

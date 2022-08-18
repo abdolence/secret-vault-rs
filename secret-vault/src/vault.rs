@@ -110,6 +110,29 @@ where
     pub fn viewer(&self) -> SecretVaultViewer<E> {
         SecretVaultViewer::new(self.store.clone())
     }
+
+    pub async fn snapshot<SNB, SN>(&self, builder: SNB) -> SecretVaultResult<SN>
+    where
+        SN: SecretVaultSnapshot,
+        SNB: SecretVaultSnapshotBuilder<SN>,
+    {
+        let refs_allowed_in_snapshot: Vec<SecretVaultRef> = self
+            .refs
+            .iter()
+            .filter(|secret_ref| secret_ref.allow_in_snapshots)
+            .cloned()
+            .collect();
+
+        let mut secrets: Vec<Secret> = Vec::with_capacity(refs_allowed_in_snapshot.len());
+
+        for secret_ref in refs_allowed_in_snapshot {
+            if let Some(secret) = self.store.get_secret(&secret_ref).await? {
+                secrets.push(secret);
+            }
+        }
+
+        Ok(builder.build_snapshot(secrets))
+    }
 }
 
 #[async_trait]

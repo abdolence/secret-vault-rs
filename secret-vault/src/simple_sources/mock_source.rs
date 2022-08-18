@@ -34,7 +34,10 @@ impl SecretsSource for MockSecretsSource {
                 Some(secret_value) => {
                     result_map.insert(
                         secret_ref.clone(),
-                        Secret::new(secret_value.clone(), SecretMetadata::new()),
+                        Secret::new(
+                            secret_value.clone(),
+                            SecretMetadata::new(secret_ref.clone().into()),
+                        ),
                     );
                 }
                 None if secret_ref.required => {

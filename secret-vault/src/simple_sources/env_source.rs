@@ -51,7 +51,7 @@ impl SecretsSource for InsecureEnvSource {
                     let secret_value = SecretValue::from(env);
                     result_map.insert(
                         secret_ref.clone(),
-                        Secret::new(secret_value, SecretMetadata::new()),
+                        Secret::new(secret_value, SecretMetadata::new(secret_ref.clone().into())),
                     );
                 }
                 None if secret_ref.required => {
