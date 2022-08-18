@@ -12,7 +12,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .with_required(false)
         .with_allow_in_snapshots(true);
 
-    // Building the vault with files source
+    // Building the vault with test env source
     let vault = SecretVaultBuilder::with_source(InsecureEnvSource::new())
         .without_encryption()
         .with_secret_refs(vec![&secret_ref])
