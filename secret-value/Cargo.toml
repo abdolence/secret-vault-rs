@@ -1,6 +1,6 @@
 [package]
 name = "secret-vault-value"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["Abdulla Abdurakhmanov <me@abdolence.dev>"]
 edition = "2021"
 license = "Apache-2.0"
@@ -23,19 +23,22 @@ path = "src/lib.rs"
 [dependencies]
 zeroize = { version = "1.5", features = ["std", "derive"] }
 serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }
 prost = { version="0.11", optional = true}
 prost-types = { version="0.11", optional = true}
 bytes = { version="1", optional = true }
 
 [dev-dependencies]
 cargo-husky = { version = "1.5", default-features = false, features = ["run-for-all", "prepush-hook", "run-cargo-fmt"] }
+serde = { version = "1", features = ["derive"]}
 serde_json = { version = "1" }
 proptest = "1.0"
 tokio = { version = "1", features = ["full"] }
 
+
 [features]
 default = []
-serde = ["dep:serde"]
+serde = ["dep:serde", "dep:serde_json"]
 proto = ["dep:prost", "dep:prost-types"]
 bytes = ["dep:bytes"]
 

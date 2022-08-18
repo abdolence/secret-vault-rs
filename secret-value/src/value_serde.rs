@@ -1,6 +1,16 @@
 use crate::*;
 use serde::de::{self, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use zeroize::Zeroize;
+
+impl SecretValue {
+    pub fn expose_json_value_as<T>(&self) -> serde_json::Result<T>
+    where
+        for<'de> T: Deserialize<'de> + Zeroize,
+    {
+        serde_json::from_slice(self.ref_sensitive_value())
+    }
+}
 
 impl Serialize for SecretValue {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -82,5 +92,23 @@ mod test {
             let secret_value: SecretValue = serde_json::from_str(&mock_secret_quoted).unwrap();
             assert_eq!(String::from_utf8(secret_value.ref_sensitive_value().clone()).unwrap(), mock_secret);
         }
+    }
+
+    #[test]
+    fn deserialize_embedded_json() {
+        #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Zeroize)]
+        struct TestJson {
+            pub test_field: String,
+        }
+        let mock_json_struct = TestJson {
+            test_field: "TestValue".into(),
+        };
+
+        let secret_value: SecretValue = serde_json::to_string(&mock_json_struct).unwrap().into();
+
+        assert_eq!(
+            secret_value.expose_json_value_as::<TestJson>().unwrap(),
+            mock_json_struct
+        );
     }
 }

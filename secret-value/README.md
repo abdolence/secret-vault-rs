@@ -7,10 +7,10 @@
 ## Secret value type
 A simple implementation of a secure and serializable (serde and proto) type
 of any kind of secrets:
- - Automatically cleaning up its value after destruction in memory using [zeroize](https://docs.rs/zeroize/latest/zeroize/)
- - Prevents leaking in logs and stack traces
- - Stored as a byte array and suitable not just for string typed secrets
- - Introduces additional functions with predicates to control the exposed border
+ - Automatically cleaning up its value after destruction in memory using [zeroize](https://docs.rs/zeroize/latest/zeroize/);
+ - Prevents leaking in logs and stack traces;
+ - Stored as a byte array and suitable for binary secrets;
+ - Introduces additional functions with predicates to control the exposed border;
    of exposed secret values and clean-ups: `exposed_in_*`.
 
 ### Working with the type:
