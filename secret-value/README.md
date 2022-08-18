@@ -16,8 +16,6 @@ of any kind of secrets:
 ### Working with the type:
 
 ```rust
- use secret_vault_value::*;
-
 use secret_vault_value::*;
 
 // Creating from string
