@@ -49,6 +49,7 @@ See security consideration below about versioning.
 - `gcp-kms-encryption` for Google KMS envelope encryption support
 - `aws-kms-encryption` for Amazon KMS envelope encryption support
 - `serde` for serde serialization support
+- `ahash-snapshot` for snapshots based on [AHashMap](https://crates.io/crates/ahash)
 
 ## Example for GCP with AEAD encryption:
 
@@ -156,20 +157,24 @@ One of the unexpected side-effects of not having the official SDK for Rust from 
 
 ## Performance details
 
-The comparison between reading performance of encrypted and non-encrypted vault:
+Test config:
+- Up to 1000 generated secrets
+- CPU: Intel(R) Core(TM) i7-10700K CPU @ 3.80GHz
+
+The comparison between reading performance of encrypted, non-encrypted vault, and snapshots:
 
 ```
 read-secrets-perf-simple-vault
-time:   [171.15 ns 171.26 ns 171.39 ns]
+time:   [158.47 ns 158.81 ns 159.23 ns]
 
 read-secrets-perf-encrypted-vault
-time:   [373.58 ns 374.06 ns 374.68 ns]
+time:   [367.48 ns 368.08 ns 368.82 ns]
 
 read-secrets-perf-std-hash-snapshot
-time:   [95.864 ns 95.924 ns 95.988 ns]
+time:   [89.188 ns 89.221 ns 89.266 ns]
 
 read-secrets-perf-ahash-snapshot
-time:   [85.051 ns 85.190 ns 85.375 ns]
+time:   [76.063 ns 76.195 ns 76.360 ns]
 ```
 
 ## Rotating application secrets strategy without downtime

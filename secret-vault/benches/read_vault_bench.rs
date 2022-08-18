@@ -27,7 +27,7 @@ pub fn generate_mock_secrets_source() -> BoxedStrategy<MockSecretsSource> {
         generate_secret_ref().prop_flat_map(move |secret_ref| {
             generate_secret_value().prop_map(move |secret_value| (secret_ref.clone(), secret_value))
         }),
-        1..100,
+        1..1000,
     )
     .prop_map(|vec| MockSecretsSource::new(vec))
     .boxed()
