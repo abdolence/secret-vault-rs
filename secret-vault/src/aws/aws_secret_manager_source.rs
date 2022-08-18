@@ -64,7 +64,13 @@ impl SecretsSource for AwsSecretManagerSource {
                 .client
                 .get_secret_value()
                 .secret_id(aws_secret_arn.clone())
-                .set_version_stage(secret_ref.key.secret_version.as_ref().map(|v| v.value().into()))
+                .set_version_stage(
+                    secret_ref
+                        .key
+                        .secret_version
+                        .as_ref()
+                        .map(|v| v.value().into()),
+                )
                 .send()
                 .await
             {

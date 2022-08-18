@@ -1,4 +1,3 @@
-use crate::vault_store::SecretVaultKey;
 use chrono::prelude::*;
 use rsb_derive::*;
 use rvstruct::*;
@@ -29,7 +28,6 @@ pub struct SecretVaultRef {
 }
 
 impl SecretVaultRef {
-
     pub fn new(secret_name: SecretName) -> Self {
         Self {
             key: SecretVaultKey::new(secret_name),
@@ -87,7 +85,13 @@ impl SecretVaultRef {
             ..self
         }
     }
+}
 
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Builder)]
+pub struct SecretVaultKey {
+    pub secret_name: SecretName,
+    pub secret_version: Option<SecretVersion>,
+    pub namespace: Option<SecretNamespace>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Builder)]

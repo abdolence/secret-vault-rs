@@ -1,11 +1,9 @@
-use crate::common_types::*;
-use crate::SecretVaultResult;
+use crate::{SecretVaultKey, SecretVaultResult};
 
 use async_trait::async_trait;
 use kms_aead::ring_encryption::KmsAeadRingAeadEncryption;
 use kms_aead::{DataEncryptionKey, KmsAeadEncryption};
 use ring::rand::SystemRandom;
-use rvstruct::ValueStruct;
 use secret_vault_value::*;
 
 use crate::encryption::*;
@@ -35,25 +33,25 @@ impl SecretVaultRingAeadEncryption {
 impl SecretVaultEncryption for SecretVaultRingAeadEncryption {
     async fn encrypt_value(
         &self,
-        secret_name: &SecretName,
+        secret_vault_key: &SecretVaultKey,
         secret_value: &SecretValue,
     ) -> SecretVaultResult<EncryptedSecretValue> {
         let encrypted = self
             .ring_encryption
-            .encrypt_value(secret_name.value(), secret_value, &self.vault_secret)
+            .encrypt_value(secret_vault_key.to_aad(), secret_value, &self.vault_secret)
             .await?;
         Ok(encrypted.into())
     }
 
     async fn decrypt_value(
         &self,
-        secret_name: &SecretName,
+        secret_vault_key: &SecretVaultKey,
         encrypted_secret_value: &EncryptedSecretValue,
     ) -> SecretVaultResult<SecretValue> {
         Ok(self
             .ring_encryption
             .decrypt_value(
-                secret_name.value(),
+                secret_vault_key.to_aad(),
                 &encrypted_secret_value.clone().into(),
                 &self.vault_secret,
             )
@@ -65,16 +63,20 @@ impl SecretVaultEncryption for SecretVaultRingAeadEncryption {
 mod tests {
     use super::*;
     use crate::source_tests::*;
+    use crate::SecretName;
     use proptest::prelude::*;
     use proptest::strategy::ValueTree;
     use proptest::test_runner::TestRunner;
+    use rvstruct::*;
 
     async fn encryption_test_for(mock_secret_value: SecretValue) {
         let mock_secret_name: SecretName = "test".to_string().into();
+        let mock_secret_vault_key: SecretVaultKey = SecretVaultKey::new(mock_secret_name);
+
         let encryption = SecretVaultRingAeadEncryption::new().unwrap();
 
         let encrypted_value = encryption
-            .encrypt_value(&mock_secret_name, &mock_secret_value)
+            .encrypt_value(&mock_secret_vault_key, &mock_secret_value)
             .await
             .unwrap();
         assert_ne!(
@@ -83,7 +85,7 @@ mod tests {
         );
 
         let decrypted_value = encryption
-            .decrypt_value(&mock_secret_name, &encrypted_value)
+            .decrypt_value(&mock_secret_vault_key, &encrypted_value)
             .await
             .unwrap();
         assert_eq!(
@@ -115,16 +117,18 @@ mod tests {
     async fn wrong_secret_name_test_attest() {
         let mock_secret_name1: SecretName = "test1".to_string().into();
         let mock_secret_name2: SecretName = "test2".to_string().into();
+        let mock_secret_vault_key1: SecretVaultKey = SecretVaultKey::new(mock_secret_name1);
+        let mock_secret_vault_key2: SecretVaultKey = SecretVaultKey::new(mock_secret_name2);
 
         let mock_secret_value = SecretValue::new("42".repeat(1024).as_bytes().to_vec());
 
         let encryption = SecretVaultRingAeadEncryption::new().unwrap();
         let encrypted_value = encryption
-            .encrypt_value(&mock_secret_name1, &mock_secret_value)
+            .encrypt_value(&mock_secret_vault_key1, &mock_secret_value)
             .await
             .unwrap();
         encryption
-            .decrypt_value(&mock_secret_name2, &encrypted_value)
+            .decrypt_value(&mock_secret_vault_key2, &encrypted_value)
             .await
             .expect_err("Unable to decrypt data");
     }

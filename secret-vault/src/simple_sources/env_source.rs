@@ -32,8 +32,8 @@ impl SecretsSource for InsecureEnvSource {
                 "{}{}",
                 secret_ref.key.secret_name.value(),
                 secret_ref
-                    .key.
-                    secret_version
+                    .key
+                    .secret_version
                     .as_ref()
                     .map(|sv| { format!("_V{}", sv.value()) })
                     .unwrap_or_else(|| "".to_string())

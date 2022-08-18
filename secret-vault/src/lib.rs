@@ -15,6 +15,7 @@
 //! - Memory encryption using Google/AWS KMS envelope encryption (https://cloud.google.com/kms/docs/envelope-encryption) (optional);
 //! - Automatic refresh secrets from the sources support (optional);
 //! - Multi-sources support;
+//! - Snapshots for performance-critical secrets;
 //!
 //! ```rust,ignore
 //!

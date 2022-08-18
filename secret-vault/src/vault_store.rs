@@ -4,20 +4,12 @@ use tokio::sync::RwLock;
 
 use crate::common_types::*;
 use crate::encryption::*;
-use rsb_derive::*;
 use crate::SecretVaultResult;
 
 #[derive(Debug)]
 pub struct SecretVaultStoreValue {
     pub data: EncryptedSecretValue,
     pub metadata: SecretMetadata,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Builder)]
-pub struct SecretVaultKey {
-    pub secret_name: SecretName,
-    pub secret_version: Option<SecretVersion>,
-    pub namespace: Option<SecretNamespace>,
 }
 
 #[derive(Debug)]
@@ -47,7 +39,7 @@ where
     ) -> SecretVaultResult<()> {
         let encrypted_secret_value = self
             .encrypter
-            .encrypt_value(&secret_ref.key.secret_name, &secret.value)
+            .encrypt_value(&secret_ref.key, &secret.value)
             .await?;
 
         let mut secrets_write = self.secrets.write().await;
@@ -72,7 +64,7 @@ where
             Some(stored_value) => {
                 let secret_value = self
                     .encrypter
-                    .decrypt_value(&secret_ref.key.secret_name, &stored_value.data)
+                    .decrypt_value(&secret_ref.key, &stored_value.data)
                     .await?;
                 Ok(Some(Secret::new(
                     secret_value,

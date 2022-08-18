@@ -30,6 +30,7 @@ Library provides the native support for the secrets coming to your application f
 - Extensible and strongly typed API to be able to implement any kind of sources;
 - Memory encryption using Google/AWS KMS [envelope encryption](https://cloud.google.com/kms/docs/envelope-encryption) (optional);
 - Multi-sources support;
+- Snapshots for performance-critical secrets;
 
 
 ## Quick start
@@ -155,7 +156,16 @@ The most secure setup/config at the moment available is:
 because in case of GCP there are additional effort in Google Cloud SDK provided integration with this library.
 One of the unexpected side-effects of not having the official SDK for Rust from Google.
 
-## Performance details
+## Snapshots
+For performance critical secrets there are snapshots support reducing overheads from:
+- encryption, so snapshots are decrypted all the time
+- async runtime and possible network calls (such for KMS, etc)
+- RwLock synchronization
+
+To make secret available for snapshotting you need to enable it explicitly using `with_allow_in_snapshots` for secret refs.
+For complete example look at [ahash_snapshot.rs](secret-vault/examples/ahash_snapshot.rs) and the difference in performance below.
+
+## Performance
 
 Test config:
 - Up to 1000 generated secrets

@@ -3,7 +3,6 @@ use crate::*;
 use async_trait::async_trait;
 use kms_aead::KmsAeadEnvelopeEncryption;
 
-use rvstruct::ValueStruct;
 use secret_vault_value::SecretValue;
 
 pub type AwsKmsKeyRef = kms_aead::providers::AwsKmsKeyRef;
@@ -32,12 +31,12 @@ impl AwsKmsEnvelopeEncryption {
 impl SecretVaultEncryption for AwsKmsEnvelopeEncryption {
     async fn encrypt_value(
         &self,
-        secret_name: &SecretName,
+        secret_vault_key: &SecretVaultKey,
         secret_value: &SecretValue,
     ) -> SecretVaultResult<EncryptedSecretValue> {
         let (encrypted_value, _) = self
             .envelope_aead_encryption
-            .encrypt_value_with_current_key(secret_name.value(), secret_value)
+            .encrypt_value_with_current_key(secret_vault_key.to_aad(), secret_value)
             .await?;
 
         Ok(encrypted_value.into())
@@ -45,13 +44,13 @@ impl SecretVaultEncryption for AwsKmsEnvelopeEncryption {
 
     async fn decrypt_value(
         &self,
-        secret_name: &SecretName,
+        secret_vault_key: &SecretVaultKey,
         encrypted_secret_value: &EncryptedSecretValue,
     ) -> SecretVaultResult<SecretValue> {
         let (secret_value, _) = self
             .envelope_aead_encryption
             .decrypt_value_with_current_key(
-                secret_name.value(),
+                secret_vault_key.to_aad(),
                 &encrypted_secret_value.clone().into(),
             )
             .await?;
