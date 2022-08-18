@@ -33,6 +33,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret_ref1).await?;
     // Or if you require it available
     // let secret_value: Secret = vault.require_secret_by_ref(&secret1).await?;
+    // To work with embedded JSON from Amazon you can use `expose_json_value_as` from `secret_value.value`
 
     println!("Received secret: {:?}", secret_value);
 
