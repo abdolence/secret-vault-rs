@@ -39,6 +39,16 @@ where
         self
     }
 
+    pub fn add_secret_refs(mut self, secret_refs: Vec<&SecretVaultRef>) -> Self {
+        self.refs = [secret_refs.into_iter().cloned().collect(), self.refs].concat();
+        self
+    }
+
+    pub fn add_secret_ref(mut self, secret_ref: &SecretVaultRef) -> Self {
+        self.refs.push(secret_ref.clone());
+        self
+    }
+
     pub async fn refresh(&self) -> SecretVaultResult<&Self> {
         info!(
             "Refreshing secrets from the source: {}. Expected: {}. Required: {}",
