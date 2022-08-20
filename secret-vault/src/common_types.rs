@@ -82,7 +82,7 @@ impl SecretVaultRef {
         }
     }
 
-    pub fn add_predefined_labels(self, label: SecretMetadataLabel) -> Self {
+    pub fn add_predefined_label(self, label: SecretMetadataLabel) -> Self {
         let mut predefined_labels = self.predefined_labels;
         predefined_labels.push(label);
         Self {
@@ -112,7 +112,7 @@ pub struct SecretMetadata {
     pub key: SecretVaultKey,
     pub labels: Option<Vec<SecretMetadataLabel>>,
     pub description: Option<String>,
-    pub expire_at: Option<DateTime<Utc>>,
+    pub expiration: Option<SecretExpiration>,
     pub version: Option<SecretVersion>,
 }
 
@@ -124,10 +124,25 @@ impl SecretMetadata {
         }
         result
     }
+
+    pub fn add_label(&mut self, label: SecretMetadataLabel) -> &Self {
+        if let Some(labels) = &mut self.labels {
+            labels.push(label);
+        } else {
+            self.labels = Some(vec![label]);
+        }
+        self
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Builder)]
 pub struct Secret {
     pub value: SecretValue,
     pub metadata: SecretMetadata,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum SecretExpiration {
+    ExpireTime(chrono::DateTime<chrono::Utc>),
+    Ttl(chrono::Duration),
 }

@@ -20,7 +20,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // Building the vault
     let vault = SecretVaultBuilder::with_source(
-        gcp::GcpSecretManagerSource::new(&config_env_var("PROJECT_ID")?).await?,
+        gcp::GcpSecretManagerSource::with_options(
+            gcp::GcpSecretManagerSourceOptions::new(config_env_var("PROJECT_ID")?)
+                .with_read_metadata(true),
+        )
+        .await?,
     )
     .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
     .with_secret_refs(vec![&secret1_ref, &secret_ref2])
@@ -30,16 +34,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     vault.refresh().await?;
 
     // Reading the secret values
-    let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret1_ref).await?;
+    let secret: Option<Secret> = vault.get_secret_by_ref(&secret1_ref).await?;
 
     // Or if you require it available
     // let secret_value: Secret = vault.require_secret_by_ref(&secret1).await?;
 
-    println!("Received secret: {:?}", secret_value);
+    println!("Received secret: {:?}", secret);
 
     // Using the Viewer API to share only methods able to read secrets
     let vault_viewer = vault.viewer();
-    vault_viewer.get_secret_by_ref(&secret_ref2).await?;
+    let secret2 = vault_viewer.get_secret_by_ref(&secret_ref2).await?;
+
+    println!("Received secret: {:?}", secret2);
 
     Ok(())
 }
