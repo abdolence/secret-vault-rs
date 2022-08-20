@@ -1,7 +1,2 @@
-#[cfg(feature = "ahash-snapshot")]
-mod ahash_snapshot;
-#[cfg(feature = "ahash-snapshot")]
-pub use ahash_snapshot::*;
-
-mod std_hash_snapshot;
-pub use std_hash_snapshot::*;
+mod hash_map_snapshot;
+pub use hash_map_snapshot::*;

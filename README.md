@@ -50,7 +50,7 @@ See security consideration below about versioning.
 - `gcp-kms-encryption` for Google KMS envelope encryption support
 - `aws-kms-encryption` for Amazon KMS envelope encryption support
 - `serde` for serde serialization support
-- `ahash-snapshot` for snapshots based on [AHashMap](https://crates.io/crates/ahash)
+- `ahash` for maps and snapshots based on [AHashMap](https://crates.io/crates/ahash)
 
 ## Example for GCP with AEAD encryption:
 
@@ -176,7 +176,8 @@ For performance critical secrets there are snapshots support reducing overheads 
 - RwLock synchronization
 
 To make secret available for snapshotting you need to enable it explicitly using `with_allow_in_snapshots` for secret refs.
-For complete example look at [ahash_snapshot.rs](secret-vault/examples/ahash_snapshot.rs) and the difference in performance below.
+For complete example look at [hashmap_snapshot.rs](secret-vault/examples/hashmap_snapshot.rs)
+and verify the difference in performance below.
 
 ## Performance
 
@@ -188,16 +189,16 @@ The comparison between reading performance of encrypted, non-encrypted vault, an
 
 ```
 read-secrets-perf-simple-vault
-time:   [158.47 ns 158.81 ns 159.23 ns]
+time:   [143.53 ns 144.16 ns 144.77 ns]
 
 read-secrets-perf-encrypted-vault
-time:   [367.48 ns 368.08 ns 368.82 ns]
+time:   [338.62 ns 339.29 ns 340.22 ns]
 
 read-secrets-perf-std-hash-snapshot
 time:   [89.188 ns 89.221 ns 89.266 ns]
 
 read-secrets-perf-ahash-snapshot
-time:   [76.063 ns 76.195 ns 76.360 ns]
+time:   [68.096 ns 68.202 ns 68.339 ns]
 ```
 
 ## Rotating application secrets strategy without downtime

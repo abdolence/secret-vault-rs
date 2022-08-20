@@ -92,10 +92,6 @@ reading sensitive information.
 Please don't use broad version dependency management not to include
 a new version of dependency automatically without your auditing the changes.
 
-### Protect your secrets in GCP/AWS using IAM and service accounts
-Don't expose all of your secrets to the apps. 
-Use IAM and different service accounts to give access only on as-needed basis.
-
 ### Zeroing, protecting memory and encryption don't provide 100% safety
 There are still allocations on the protocol layers, there is
 a session secret key available in memory, privileged users on OS still

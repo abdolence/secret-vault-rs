@@ -1,6 +1,6 @@
 [package]
 name = "secret-vault"
-version = "1.1.4"
+version = "1.1.6"
 authors = ["Abdulla Abdurakhmanov <me@abdolence.dev>"]
 edition = "2021"
 license = "Apache-2.0"
@@ -64,7 +64,7 @@ gcp-kms-encryption = ["gcp", "kms", "gcloud-sdk/google-cloud-kms-v1", "kms-aead/
 aws = ["dep:aws-config"]
 aws-secretmanager = ["aws", "dep:aws-sdk-secretsmanager"]
 aws-kms-encryption = ["aws", "kms", "dep:aws-sdk-kms", "kms-aead/aws-kms-encryption"]
-ahash-snapshot = ["dep:ahash"]
+ahash = ["dep:ahash"]
 
 [package.metadata.docs.rs]
 all-features = true
@@ -101,7 +101,7 @@ required-features = ["aws-secretmanager"]
 [[bench]]
 name = "read_vault_bench"
 path = "benches/read_vault_bench.rs"
-required-features = ["ring-aead-encryption", "ahash-snapshot"]
+required-features = ["ring-aead-encryption", "ahash"]
 harness = false
 
 [[example]]
@@ -114,6 +114,6 @@ name = "files_source"
 path = "examples/files_source.rs"
 
 [[example]]
-name = "ahash_snapshot"
-path = "examples/ahash_snapshot.rs"
-required-features = ["ahash-snapshot"]
+name = "hashmap_snapshot"
+path = "examples/hashmap_snapshot.rs"
+required-features = ["ahash"]

@@ -1,10 +1,15 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use crate::common_types::*;
 use crate::encryption::*;
 use crate::SecretVaultResult;
+
+#[cfg(not(feature = "ahash"))]
+type SecretVaultMap = std::collections::HashMap<SecretVaultKey, SecretVaultStoreValue>;
+
+#[cfg(feature = "ahash")]
+type SecretVaultMap = ahash::AHashMap<SecretVaultKey, SecretVaultStoreValue>;
 
 #[derive(Debug)]
 pub struct SecretVaultStoreValue {
@@ -17,7 +22,7 @@ pub struct SecretVaultStore<E>
 where
     E: SecretVaultEncryption,
 {
-    secrets: Arc<RwLock<HashMap<SecretVaultKey, SecretVaultStoreValue>>>,
+    secrets: Arc<RwLock<SecretVaultMap>>,
     encrypter: E,
 }
 
@@ -27,7 +32,7 @@ where
 {
     pub fn new(encrypter: E) -> Self {
         Self {
-            secrets: Arc::new(RwLock::new(HashMap::new())),
+            secrets: Arc::new(RwLock::new(SecretVaultMap::new())),
             encrypter,
         }
     }

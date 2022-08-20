@@ -23,7 +23,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // Creating a snapshot
     let snapshot = vault
-        .snapshot(SecretVaultAhashSnapshotBuilder::new())
+        .snapshot(SecretVaultHashMapSnapshotBuilder::new())
         .await?;
 
     // Reading the secret value

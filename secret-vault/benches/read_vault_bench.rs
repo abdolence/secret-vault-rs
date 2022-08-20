@@ -100,25 +100,8 @@ fn criterion_benchmark(c: &mut Criterion) {
             .unwrap()
     });
 
-    c.bench_function("read-secrets-perf-std-hash-snapshot", |b| {
+    c.bench_function("read-secrets-perf-snapshot", |b| {
         b.iter(|| vault_std_hash_snapshot.get_secret_by_ref(black_box(secret_ref)))
-    });
-
-    let vault_ahash_snapshot = rt.block_on(async {
-        vault_with_encryption
-            .register_secret_refs(mock_secrets_store.secrets.keys().into_iter().collect())
-            .refresh()
-            .await
-            .unwrap();
-
-        vault_with_encryption
-            .snapshot(SecretVaultAhashSnapshotBuilder::new())
-            .await
-            .unwrap()
-    });
-
-    c.bench_function("read-secrets-perf-ahash-snapshot", |b| {
-        b.iter(|| vault_ahash_snapshot.get_secret_by_ref(black_box(secret_ref)))
     });
 }
 
