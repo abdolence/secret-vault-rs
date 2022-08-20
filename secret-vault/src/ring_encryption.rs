@@ -1,15 +1,15 @@
 use crate::{SecretVaultKey, SecretVaultResult};
 
 use async_trait::async_trait;
-use kms_aead::ring_encryption::KmsAeadRingAeadEncryption;
-use kms_aead::{DataEncryptionKey, KmsAeadEncryption};
+use kms_aead::ring_encryption::RingAeadEncryption;
+use kms_aead::*;
 use ring::rand::SystemRandom;
 use secret_vault_value::*;
 
 use crate::encryption::*;
 
 pub struct SecretVaultRingAeadEncryption {
-    ring_encryption: KmsAeadRingAeadEncryption,
+    ring_encryption: RingAeadEncryption,
     vault_secret: DataEncryptionKey,
 }
 
@@ -19,7 +19,7 @@ impl SecretVaultRingAeadEncryption {
     }
 
     pub fn with_algorithm(algo: &'static ring::aead::Algorithm) -> SecretVaultResult<Self> {
-        let ring_encryption = KmsAeadRingAeadEncryption::with_algorithm(algo, SystemRandom::new())?;
+        let ring_encryption = RingAeadEncryption::with_algorithm(algo, SystemRandom::new())?;
         let vault_secret = ring_encryption.generate_data_encryption_key()?;
 
         Ok(Self {
