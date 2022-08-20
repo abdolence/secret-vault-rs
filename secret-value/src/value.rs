@@ -28,14 +28,30 @@ impl SecretValue {
         self.0.clear();
     }
 
+    pub fn as_sensitive_str(&self) -> &str {
+        self.sensitive_value_to_str().unwrap()
+    }
+
+    pub fn as_sensitive_bytes(&self) -> &[u8] {
+        self.ref_sensitive_value()
+    }
+
     pub fn exposed_in_as_str<T, Z: Zeroize, FN>(&self, f: FN) -> T
     where
         FN: Fn(String) -> (T, Z),
     {
-        let decoded_as_string = String::from_utf8(self.0.clone()).unwrap();
+        let decoded_as_string = self.sensitive_value_to_str().unwrap().to_string();
         let (result, mut zeroizable) = f(decoded_as_string);
         zeroizable.zeroize();
         result
+    }
+
+    pub fn exposed_in_as_zstr<T, FN>(&self, f: FN) -> T
+    where
+        FN: Fn(Zeroizing<String>) -> T,
+    {
+        let decoded_as_string = Zeroizing::new(self.sensitive_value_to_str().unwrap().to_string());
+        f(decoded_as_string)
     }
 
     pub fn exposed_in_as_vec<T, Z: Zeroize, FN>(&self, f: FN) -> T
@@ -47,15 +63,31 @@ impl SecretValue {
         result
     }
 
+    pub fn exposed_in_as_zvec<T, FN>(&self, f: FN) -> T
+    where
+        FN: Fn(Zeroizing<Vec<u8>>) -> T,
+    {
+        f(Zeroizing::new(self.0.clone()))
+    }
+
     pub async fn exposed_in_as_str_async<T, Z: Zeroize, FN, FI>(&self, f: FN) -> T
     where
         FN: Fn(String) -> FI,
         FI: Future<Output = (T, Z)>,
     {
-        let decoded_as_string = String::from_utf8(self.0.clone()).unwrap();
+        let decoded_as_string = self.sensitive_value_to_str().unwrap().to_string();
         let (result, mut zeroizable) = f(decoded_as_string).await;
         zeroizable.zeroize();
         result
+    }
+
+    pub async fn exposed_in_as_zstr_async<T, FN, FI>(&self, f: FN) -> T
+    where
+        FN: Fn(Zeroizing<String>) -> FI,
+        FI: Future<Output = T>,
+    {
+        let decoded_as_string = Zeroizing::new(self.sensitive_value_to_str().unwrap().to_string());
+        f(decoded_as_string).await
     }
 
     pub async fn exposed_in_as_vec_async<T, Z: Zeroize, FN, FI>(&self, f: FN) -> T
@@ -66,6 +98,14 @@ impl SecretValue {
         let (result, mut zeroizable) = f(self.0.clone()).await;
         zeroizable.zeroize();
         result
+    }
+
+    pub async fn exposed_in_as_zvec_async<T, FN, FI>(&self, f: FN) -> T
+    where
+        FN: Fn(Zeroizing<Vec<u8>>) -> FI,
+        FI: Future<Output = T>,
+    {
+        f(Zeroizing::new(self.0.clone())).await
     }
 }
 
@@ -129,6 +169,7 @@ mod test {
     use super::*;
     use proptest::prelude::*;
     use proptest::test_runner::TestRunner;
+    use std::ops::Deref;
 
     fn generate_secret_value() -> BoxedStrategy<SecretValue> {
         ("[a-zA-Z0-9]*")
@@ -161,12 +202,31 @@ mod test {
         }
 
         #[test]
+        fn exposed_function_zstr(mock_secret_value in generate_secret_value())  {
+            let insecure_copy_str =
+            mock_secret_value.exposed_in_as_zstr(|str| {
+                str.clone()
+            });
+            assert_eq!(insecure_copy_str.as_str(), mock_secret_value.sensitive_value_to_str().unwrap());
+        }
+
+        #[test]
         fn exposed_function_vec(mock_secret_value in generate_secret_value())  {
             let insecure_copy_vec =
                 mock_secret_value.exposed_in_as_vec(|vec| {
                     (vec.clone(), vec)
                 });
             assert_eq!(&insecure_copy_vec, mock_secret_value.ref_sensitive_value());
+        }
+
+
+        #[test]
+        fn exposed_function_zvec(mock_secret_value in generate_secret_value())  {
+            let insecure_copy_vec =
+                mock_secret_value.exposed_in_as_zvec(|vec| {
+                    vec.clone()
+                });
+            assert_eq!(insecure_copy_vec.deref(), mock_secret_value.ref_sensitive_value());
         }
     }
 
@@ -180,6 +240,14 @@ mod test {
 
         let insecure_copy_str = mock_secret
             .exposed_in_as_str_async(|str| async { (str.clone(), str) })
+            .await;
+        assert_eq!(
+            insecure_copy_str.as_str(),
+            mock_secret.sensitive_value_to_str().unwrap()
+        );
+
+        let insecure_copy_str = mock_secret
+            .exposed_in_as_zstr_async(|str| async move { str.clone() })
             .await;
         assert_eq!(
             insecure_copy_str.as_str(),
@@ -225,6 +293,11 @@ mod test {
             .exposed_in_as_vec_async(|vec| async { (vec.clone(), vec) })
             .await;
         assert_eq!(&insecure_copy_vec, mock_secret.ref_sensitive_value());
+
+        let insecure_copy_vec = mock_secret
+            .exposed_in_as_zvec_async(|vec| async move { vec.clone() })
+            .await;
+        assert_eq!(insecure_copy_vec.deref(), mock_secret.ref_sensitive_value());
     }
 
     #[tokio::test]

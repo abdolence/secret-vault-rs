@@ -1,10 +1,10 @@
 [package]
 name = "secret-vault-value"
-version = "0.3.4"
+version = "0.3.5"
 authors = ["Abdulla Abdurakhmanov <me@abdolence.dev>"]
 edition = "2021"
 license = "Apache-2.0"
-description = "Library provides a simple implementation of a secure and serializable type of any kind of secrets"
+description = "Library provides a simple implementation of a secure and serializable type to store secret/sensitive values for your apps"
 homepage = "https://github.com/abdolence/secret-vault-rs"
 repository = "https://github.com/abdolence/secret-vault-rs"
 documentation = "https://docs.rs/secret-vault-value"
@@ -27,20 +27,26 @@ serde_json = { version = "1", optional = true }
 prost = { version="0.11", optional = true}
 prost-types = { version="0.11", optional = true}
 bytes = { version="1", optional = true }
+hex = { version="0.4", optional = true }
+base64 = { version="0.13", optional = true }
 
 [dev-dependencies]
 cargo-husky = { version = "1.5", default-features = false, features = ["run-for-all", "prepush-hook", "run-cargo-fmt"] }
-serde = { version = "1", features = ["derive"]}
-serde_json = { version = "1" }
 proptest = "1.0"
 tokio = { version = "1", features = ["full"] }
-
 
 [features]
 default = []
 serde = ["dep:serde", "dep:serde_json"]
 proto = ["dep:prost", "dep:prost-types"]
 bytes = ["dep:bytes"]
+hex = ["dep:hex"]
+base64 = ["dep:base64"]
 
 [package.metadata.docs.rs]
 all-features = true
+
+[[example]]
+name = "simple"
+path = "examples/simple.rs"
+required-features = ["hex", "base64", "serde", "proto"]

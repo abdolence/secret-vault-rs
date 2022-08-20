@@ -12,6 +12,7 @@ of any kind of secrets:
  - Stored as a byte array and suitable for binary secrets;
  - Introduces additional functions with predicates to control the exposed border;
    of exposed secret values and clean-ups: `exposed_in_*`.
+ - Securely encoding/decoding from hex/base64 formats;
 
 ### Working with the type:
 
@@ -21,25 +22,32 @@ use secret_vault_value::*;
 // Creating from string
 let secret_value: SecretValue = "test".into();
 
-// Reading as String
-let secret_value: &str = secret_value4.sensitive_value_to_str()?;
+// Creating from vec
+let secret_value: SecretValue = vec![4,2].into();
 
-// Reading as vector
-let secret_value: &Vec<u8> = secret_value.ref_sensitive_value();
-
-// Reading from BytesMut
+// Creating from BytesMut
 let secret_value: SecretValue = bytes::BytesMut::from("test").into();
 
+// Reading as string
+let secret_value: &str = secret_value4.as_sensitive_str();
+
+// Reading as bytes
+let secret_value: &[u8] = secret_value.as_sensitive_bytes();
+
+// Reading as hex string
+let secret_value: Zeroizing<String> = secret_value.as_sensitive_hex_str();
+
+// Reading as base64 string
+let secret_value: Zeroizing<String> = secret_value.as_sensitive_base64_str();
+
 // Controlling the exposed value with closures/lambdas
-let your_result: YourType = secret_value.exposed_in_as_str(|secret_value|{
-     let some_result: YourType = todo!();
-     (some_result, secret_value) // Returning back secret_value to zeroize
+let your_result = secret_value.exposed_in_as_zstr(|secret_value|{
+    todo!()
 });
 
 // Controlling the exposed value with async closures/lambdas
-let your_result: YourType = secret_value.exposed_in_as_str_async(|secret_value| async {
-     let some_result: YourType = todo!();
-     (some_result, secret_value) // Returning back secret_value to zeroize
+let your_result = secret_value.exposed_in_as_zstr_async(|secret_value| async {
+    todo!()
 }).await;
 
 // Deserialize embedded string value from JSON and expose it as zeroizable structure:
@@ -64,6 +72,8 @@ See security consideration below about versioning.
 - `serde` for serde serialization support
 - `prost` for protobuf serialization support
 - `bytes` for bytes conversion support
+- `hex` for hex conversion support
+- `base64` for base64 conversion support
 
 ## Security considerations and risks
 

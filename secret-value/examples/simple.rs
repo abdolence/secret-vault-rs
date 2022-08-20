@@ -1,6 +1,6 @@
 use secret_vault_value::SecretValue;
 use serde::{Deserialize, Serialize};
-use zeroize::Zeroize;
+use zeroize::{Zeroize, Zeroizing};
 
 fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let test_str1: String = "abd-abd".into();
@@ -15,6 +15,9 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let _secret_string: &str = secret_value4.sensitive_value_to_str()?;
     let _secret_vec: &Vec<u8> = secret_value4.ref_sensitive_value();
+
+    let _secret_string: Zeroizing<String> = secret_value1.as_sensitive_hex_str();
+    let _secret_string: Zeroizing<String> = secret_value1.as_sensitive_base64_str();
 
     let _your_result_closure: YourType = secret_value4.exposed_in_as_str(|secret_value| {
         let some_result: YourType = YourType {
