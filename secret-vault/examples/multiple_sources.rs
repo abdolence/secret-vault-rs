@@ -26,8 +26,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Building the vault with two sources: Environment and AWS
     let vault = SecretVaultBuilder::with_source(
         MultipleSecretsSources::new()
-            .with_source(&secret_env_namespace, InsecureEnvSource::new())
-            .with_source(
+            .add_source(&secret_env_namespace, InsecureEnvSource::new())
+            .add_source(
                 &secret_aws_namespace,
                 aws::AwsSecretManagerSource::new(&config_env_var("ACCOUNT_ID")?, None).await?,
             ),

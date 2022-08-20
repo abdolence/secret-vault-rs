@@ -14,6 +14,18 @@ impl MultipleSecretsSources {
         }
     }
 
+    pub fn add_source<S>(mut self, namespace: &SecretNamespace, source: S) -> Self
+    where
+        S: SecretsSource + Send + Sync + 'static,
+    {
+        self.sources.insert(namespace.clone(), Box::new(source));
+        self
+    }
+
+    #[deprecated(
+        since = "1.1.7",
+        note = "Use add_source to make it obvious it adds a new source, not replace it as other with_ functions do. This will be removed in next releases"
+    )]
     pub fn with_source<S>(mut self, namespace: &SecretNamespace, source: S) -> Self
     where
         S: SecretsSource + Send + Sync + 'static,
@@ -86,8 +98,8 @@ mod tests {
 
         let mut vault = SecretVaultBuilder::with_source(
             MultipleSecretsSources::new()
-                .with_source(&"mock1".into(), mock_secrets_store1.clone())
-                .with_source(&"mock2".into(), mock_secrets_store2.clone()),
+                .add_source(&"mock1".into(), mock_secrets_store1.clone())
+                .add_source(&"mock2".into(), mock_secrets_store2.clone()),
         )
         .build()
         .unwrap();
