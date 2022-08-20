@@ -19,6 +19,7 @@ pub struct SecretVaultRef {
     pub required: bool,
     pub auto_refresh: bool,
     pub allow_in_snapshots: bool,
+    pub predefined_labels: Vec<SecretMetadataLabel>,
 }
 
 impl SecretVaultRef {
@@ -28,6 +29,7 @@ impl SecretVaultRef {
             required: true,
             auto_refresh: false,
             allow_in_snapshots: false,
+            predefined_labels: Vec::new(),
         }
     }
 
@@ -79,6 +81,15 @@ impl SecretVaultRef {
             ..self
         }
     }
+
+    pub fn add_predefined_labels(self, label: SecretMetadataLabel) -> Self {
+        let mut predefined_labels = self.predefined_labels;
+        predefined_labels.push(label);
+        Self {
+            predefined_labels,
+            ..self
+        }
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Builder)]
@@ -103,6 +114,16 @@ pub struct SecretMetadata {
     pub description: Option<String>,
     pub expire_at: Option<DateTime<Utc>>,
     pub version: Option<SecretVersion>,
+}
+
+impl SecretMetadata {
+    pub fn create_from_ref(secret_ref: &SecretVaultRef) -> Self {
+        let mut result = SecretMetadata::new(secret_ref.key.clone());
+        if !secret_ref.predefined_labels.is_empty() {
+            result.labels(secret_ref.predefined_labels.clone());
+        }
+        result
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Builder)]

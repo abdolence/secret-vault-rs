@@ -36,7 +36,7 @@ impl SecretsSource for MockSecretsSource {
                         secret_ref.clone(),
                         Secret::new(
                             secret_value.clone(),
-                            SecretMetadata::new(secret_ref.key.clone()),
+                            SecretMetadata::create_from_ref(secret_ref),
                         ),
                     );
                 }

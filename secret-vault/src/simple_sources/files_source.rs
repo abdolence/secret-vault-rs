@@ -62,10 +62,9 @@ impl SecretsSource for FilesSource {
             match std::fs::read(Path::new(secret_file_name.as_str())) {
                 Ok(file_content) => {
                     let secret_value = SecretValue::from(file_content);
-                    result_map.insert(
-                        secret_ref.clone(),
-                        Secret::new(secret_value, SecretMetadata::new(secret_ref.key.clone())),
-                    );
+                    let metadata = SecretMetadata::create_from_ref(secret_ref);
+
+                    result_map.insert(secret_ref.clone(), Secret::new(secret_value, metadata));
                 }
                 Err(err) if secret_ref.required => {
                     return Err(SecretVaultError::DataNotFoundError(

@@ -83,7 +83,7 @@ impl SecretsSource for AwsSecretManagerSource {
                         });
 
                     if let Some(secret_value) = maybe_secret_value {
-                        let metadata = SecretMetadata::new(secret_ref.key.clone());
+                        let metadata = SecretMetadata::create_from_ref(secret_ref);
                         result_map.insert(secret_ref.clone(), Secret::new(secret_value, metadata));
                     } else if secret_ref.required {
                         return Err(SecretVaultError::DataNotFoundError(

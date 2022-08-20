@@ -132,7 +132,7 @@ impl SecretsSource for TempSecretGenSource {
 
                     result_map.insert(
                         secret_ref.clone(),
-                        Secret::new(secret_value, SecretMetadata::new(secret_ref.key.clone())),
+                        Secret::new(secret_value, SecretMetadata::create_from_ref(secret_ref)),
                     );
                 }
                 None if secret_ref.required => {

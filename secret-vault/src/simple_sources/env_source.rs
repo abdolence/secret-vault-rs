@@ -50,10 +50,8 @@ impl SecretsSource for InsecureEnvSource {
             {
                 Some(env) => {
                     let secret_value = SecretValue::from(env);
-                    result_map.insert(
-                        secret_ref.clone(),
-                        Secret::new(secret_value, SecretMetadata::new(secret_ref.key.clone())),
-                    );
+                    let metadata = SecretMetadata::create_from_ref(secret_ref);
+                    result_map.insert(secret_ref.clone(), Secret::new(secret_value, metadata));
                 }
                 None if secret_ref.required => {
                     return Err(SecretVaultError::DataNotFoundError(
