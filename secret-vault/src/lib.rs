@@ -102,3 +102,5 @@ pub use vault_auto_refresher::*;
 
 mod multiple_sources;
 pub use multiple_sources::*;
+
+mod prost_chrono;

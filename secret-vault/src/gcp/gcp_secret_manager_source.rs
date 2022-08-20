@@ -10,7 +10,6 @@ use crate::*;
 use tracing::*;
 
 use async_trait::*;
-use chrono::{DateTime, Utc};
 use gcloud_sdk::google::cloud::secretmanager::v1::{AccessSecretVersionRequest, GetSecretRequest};
 
 #[derive(Debug, Clone, Eq, PartialEq, Builder)]
@@ -157,26 +156,15 @@ impl SecretsSource for GcpSecretManagerSource {
     }
 }
 
-pub fn chrono_time_from_prost(ts: prost_types::Timestamp) -> DateTime<Utc> {
-    DateTime::<Utc>::from_utc(
-        chrono::NaiveDateTime::from_timestamp(ts.seconds, ts.nanos as u32),
-        Utc,
-    )
-}
-
-pub fn chrono_duration_from_prost(duration: prost_types::Duration) -> chrono::Duration {
-    chrono::Duration::seconds(duration.seconds)
-}
-
 fn from_google_expiration(
     gcp_expiration: gcloud_sdk::google::cloud::secretmanager::v1::secret::Expiration,
 ) -> SecretExpiration {
     match gcp_expiration {
         gcloud_sdk::google::cloud::secretmanager::v1::secret::Expiration::ExpireTime(ts) => {
-            SecretExpiration::ExpireTime(chrono_time_from_prost(ts))
+            SecretExpiration::ExpireTime(crate::prost_chrono::chrono_time_from_prost(ts))
         }
         gcloud_sdk::google::cloud::secretmanager::v1::secret::Expiration::Ttl(ts) => {
-            SecretExpiration::Ttl(chrono_duration_from_prost(ts))
+            SecretExpiration::Ttl(crate::prost_chrono::chrono_duration_from_prost(ts))
         }
     }
 }

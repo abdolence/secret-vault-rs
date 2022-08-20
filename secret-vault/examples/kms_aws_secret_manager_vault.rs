@@ -19,15 +19,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let secret_ref = SecretVaultRef::new("test-secret-xRnpry".into()).with_required(false);
 
     // Building the vault
-    let vault = SecretVaultBuilder::with_source(
-        aws::AwsSecretManagerSource::new(&aws_account_id, None).await?,
-    )
-    .with_encryption(
-        aws::AwsKmsEnvelopeEncryption::new(&aws::AwsKmsKeyRef::new(aws_account_id, aws_key_id))
-            .await?,
-    )
-    .with_secret_refs(vec![&secret_ref])
-    .build()?;
+    let vault =
+        SecretVaultBuilder::with_source(aws::AwsSecretManagerSource::new(&aws_account_id).await?)
+            .with_encryption(
+                aws::AwsKmsEnvelopeEncryption::new(&aws::AwsKmsKeyRef::new(
+                    aws_account_id,
+                    aws_key_id,
+                ))
+                .await?,
+            )
+            .with_secret_refs(vec![&secret_ref])
+            .build()?;
 
     // Load secrets from the source
     vault.refresh().await?;

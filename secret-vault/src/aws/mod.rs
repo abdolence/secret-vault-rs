@@ -1,7 +1,7 @@
 #[cfg(feature = "aws-secretmanager")]
 mod aws_secret_manager_source;
 #[cfg(feature = "aws-secretmanager")]
-pub use aws_secret_manager_source::AwsSecretManagerSource;
+pub use aws_secret_manager_source::*;
 
 #[cfg(feature = "aws-kms-encryption")]
 mod aws_kms_encryption;

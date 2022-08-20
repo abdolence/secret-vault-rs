@@ -20,7 +20,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // Building the vault
     let vault = SecretVaultBuilder::with_source(
-        aws::AwsSecretManagerSource::new(&config_env_var("ACCOUNT_ID")?, None).await?,
+        aws::AwsSecretManagerSource::with_options(
+            aws::AwsSecretManagerSourceOptions::new(config_env_var("ACCOUNT_ID")?)
+                .with_read_metadata(true),
+        )
+        .await?,
     )
     .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
     .with_secret_refs(vec![&secret_ref1, &secret_ref2])

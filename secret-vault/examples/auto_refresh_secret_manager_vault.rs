@@ -22,7 +22,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Building the vault
     let vault = Arc::new(
         SecretVaultBuilder::with_source(
-            aws::AwsSecretManagerSource::new(&config_env_var("ACCOUNT_ID")?, None).await?,
+            aws::AwsSecretManagerSource::new(&config_env_var("ACCOUNT_ID")?).await?,
         )
         .with_secret_refs(vec![&secret1])
         .build()?,

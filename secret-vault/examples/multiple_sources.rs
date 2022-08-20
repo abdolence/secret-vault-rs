@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             .add_source(&secret_env_namespace, InsecureEnvSource::new())
             .add_source(
                 &secret_aws_namespace,
-                aws::AwsSecretManagerSource::new(&config_env_var("ACCOUNT_ID")?, None).await?,
+                aws::AwsSecretManagerSource::new(&config_env_var("ACCOUNT_ID")?).await?,
             ),
     )
     .without_encryption()

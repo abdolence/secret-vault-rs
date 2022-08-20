@@ -2,25 +2,37 @@ use crate::errors::*;
 use crate::*;
 use async_trait::*;
 use aws_sdk_secretsmanager::types::SdkError;
+use rsb_derive::*;
 use rvstruct::ValueStruct;
 use secret_vault_value::SecretValue;
 use std::collections::HashMap;
 use tracing::*;
 
+#[derive(Debug, Clone, Eq, PartialEq, Builder)]
+pub struct AwsSecretManagerSourceOptions {
+    pub account_id: String,
+    pub region: Option<aws_sdk_secretsmanager::Region>,
+
+    #[default = "false"]
+    pub read_metadata: bool,
+}
+
 #[derive(Debug, Clone)]
 pub struct AwsSecretManagerSource {
-    account_id: String,
     client: aws_sdk_secretsmanager::Client,
-    aws_region: aws_sdk_secretsmanager::Region,
+    options: AwsSecretManagerSourceOptions,
 }
 
 impl AwsSecretManagerSource {
-    pub async fn new(
-        account_id: &str,
-        region: Option<aws_sdk_secretsmanager::Region>,
-    ) -> SecretVaultResult<Self> {
+    pub async fn new(account_id: &str) -> SecretVaultResult<Self> {
+        Self::with_options(AwsSecretManagerSourceOptions::new(account_id.to_string())).await
+    }
+
+    pub async fn with_options(options: AwsSecretManagerSourceOptions) -> SecretVaultResult<Self> {
         let shared_config = aws_config::load_from_env().await;
-        let effective_region = region
+        let effective_region = options
+            .region
+            .clone()
             .or_else(|| shared_config.region().cloned())
             .ok_or_else(|| {
                 SecretVaultError::InvalidParametersError(SecretVaultInvalidParametersError::new(
@@ -33,9 +45,8 @@ impl AwsSecretManagerSource {
 
         let client = aws_sdk_secretsmanager::Client::new(&shared_config);
         Ok(AwsSecretManagerSource {
-            account_id: account_id.to_string(),
             client,
-            aws_region: effective_region,
+            options: options.with_region(effective_region),
         })
     }
 }
@@ -55,8 +66,8 @@ impl SecretsSource for AwsSecretManagerSource {
         for secret_ref in references {
             let aws_secret_arn = format!(
                 "arn:aws:secretsmanager:{}:{}:secret:{}",
-                self.aws_region,
-                self.account_id,
+                self.options.region.as_ref().unwrap(),
+                self.options.account_id,
                 secret_ref.key.secret_name.value()
             );
 
@@ -83,7 +94,35 @@ impl SecretsSource for AwsSecretManagerSource {
                         });
 
                     if let Some(secret_value) = maybe_secret_value {
-                        let metadata = SecretMetadata::create_from_ref(secret_ref);
+                        let mut metadata = SecretMetadata::create_from_ref(secret_ref);
+
+                        let maybe_aws_secret = if self.options.read_metadata {
+                            Some(
+                                self.client
+                                    .describe_secret()
+                                    .secret_id(aws_secret_arn.clone())
+                                    .send()
+                                    .await?,
+                            )
+                        } else {
+                            None
+                        };
+
+                        if let Some(aws_secret_desc) = maybe_aws_secret {
+                            for tag in aws_secret_desc.tags().unwrap_or(&[]) {
+                                if let Some(tag_key) = tag.key() {
+                                    metadata.add_label(
+                                        SecretMetadataLabel::new(tag_key.to_string())
+                                            .opt_value(tag.value().map(|s| s.to_string())),
+                                    );
+                                }
+                            }
+
+                            metadata.mopt_description(
+                                aws_secret_desc.description().map(|s| s.to_string()),
+                            );
+                        }
+
                         result_map.insert(secret_ref.clone(), Secret::new(secret_value, metadata));
                     } else if secret_ref.required {
                         return Err(SecretVaultError::DataNotFoundError(
