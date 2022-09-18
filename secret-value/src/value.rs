@@ -125,6 +125,12 @@ impl From<&mut String> for SecretValue {
     }
 }
 
+impl From<&Zeroizing<String>> for SecretValue {
+    fn from(str: &Zeroizing<String>) -> Self {
+        Self(str.as_bytes().to_vec())
+    }
+}
+
 impl From<Vec<u8>> for SecretValue {
     fn from(vec: Vec<u8>) -> Self {
         Self(vec)
@@ -137,6 +143,12 @@ impl From<&mut Vec<u8>> for SecretValue {
         vec.zeroize();
         vec.clear();
         result
+    }
+}
+
+impl From<&Zeroizing<Vec<u8>>> for SecretValue {
+    fn from(vec: &Zeroizing<Vec<u8>>) -> Self {
+        Self(vec.to_vec())
     }
 }
 

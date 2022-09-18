@@ -1,15 +1,15 @@
 [package]
 name = "secret-vault-value"
-version = "0.3.5"
+version = "0.3.6"
 authors = ["Abdulla Abdurakhmanov <me@abdolence.dev>"]
 edition = "2021"
 license = "Apache-2.0"
-description = "Library provides a simple implementation of a secure and serializable type to store secret/sensitive values for your apps"
+description = "Library provides a simple implementation of a secure and serializable type to store and control secret/sensitive values"
 homepage = "https://github.com/abdolence/secret-vault-rs"
 repository = "https://github.com/abdolence/secret-vault-rs"
 documentation = "https://docs.rs/secret-vault-value"
 categories = ["cryptography"]
-keywords = ["data-structures"]
+keywords = ["data-structures", "secret"]
 readme = "README.md"
 include = ["Cargo.toml", "src/**/*.rs", "README.md", "../LICENSE", "../SECURITY.md"]
 
