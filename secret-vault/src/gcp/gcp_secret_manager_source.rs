@@ -117,7 +117,7 @@ impl SecretsSource for GcpSecretManagerSource {
 
                         if let Some(gcp_secret) = maybe_gcp_secret {
                             if let Some(expiration) = gcp_secret.expiration {
-                                metadata.expiration(from_google_expiration(expiration));
+                                metadata.expiration(from_google_expiration(expiration)?);
                             }
 
                             for (k, v) in gcp_secret.labels {
@@ -158,13 +158,24 @@ impl SecretsSource for GcpSecretManagerSource {
 
 fn from_google_expiration(
     gcp_expiration: gcloud_sdk::google::cloud::secretmanager::v1::secret::Expiration,
-) -> SecretExpiration {
+) -> SecretVaultResult<SecretExpiration> {
     match gcp_expiration {
         gcloud_sdk::google::cloud::secretmanager::v1::secret::Expiration::ExpireTime(ts) => {
-            SecretExpiration::ExpireTime(crate::prost_chrono::chrono_time_from_prost(ts))
+            if let Some(dt) = crate::prost_chrono::chrono_time_from_prost(ts) {
+                Ok(SecretExpiration::ExpireTime(dt))
+            } else {
+                Err(SecretVaultError::InvalidParametersError(
+                    SecretVaultInvalidParametersError::new(
+                        SecretVaultInvalidParametersPublicDetails::new(
+                            "expiration".into(),
+                            "Secret expire time conversion error".into(),
+                        ),
+                    ),
+                ))
+            }
         }
-        gcloud_sdk::google::cloud::secretmanager::v1::secret::Expiration::Ttl(ts) => {
-            SecretExpiration::Ttl(crate::prost_chrono::chrono_duration_from_prost(ts))
-        }
+        gcloud_sdk::google::cloud::secretmanager::v1::secret::Expiration::Ttl(ts) => Ok(
+            SecretExpiration::Ttl(crate::prost_chrono::chrono_duration_from_prost(ts)),
+        ),
     }
 }
