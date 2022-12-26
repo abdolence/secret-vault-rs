@@ -5,7 +5,6 @@
 ![unsafe](https://img.shields.io/badge/unsafe-forbidden-success.svg)
 ![license](https://img.shields.io/github/license/abdolence/secret-vault-rs)
 
-
 # Secret Vault for Rust
 
 Library provides the following crates:
