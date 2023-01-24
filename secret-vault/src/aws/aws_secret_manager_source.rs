@@ -136,10 +136,9 @@ impl SecretsSource for AwsSecretManagerSource {
                         ));
                     }
                 }
-                Err(SdkError::ServiceError {
-                    err: get_secret_err,
-                    raw: _,
-                }) if get_secret_err.is_resource_not_found_exception() => {
+                Err(SdkError::ServiceError(svc_err))
+                    if svc_err.err().is_resource_not_found_exception() =>
+                {
                     if secret_ref.required {
                         return Err(SecretVaultError::DataNotFoundError(
                                 SecretVaultDataNotFoundError::new(
