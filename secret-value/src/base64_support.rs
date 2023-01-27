@@ -1,6 +1,6 @@
 use crate::SecretValue;
-use zeroize::{Zeroize, Zeroizing};
 use base64::prelude::*;
+use zeroize::{Zeroize, Zeroizing};
 
 impl SecretValue {
     pub fn as_sensitive_base64_str(&self) -> Zeroizing<String> {
