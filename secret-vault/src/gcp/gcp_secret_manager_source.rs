@@ -131,8 +131,7 @@ impl SecretsSource for GcpSecretManagerSource {
                             SecretVaultDataNotFoundError::new(
                                 SecretVaultErrorPublicGenericDetails::new("SECRET_PAYLOAD".into()),
                                 format!(
-                                    "Secret is required but payload is not found for {}",
-                                    gcp_secret_version_path
+                                    "Secret is required but payload is not found for {gcp_secret_version_path}"
                                 ),
                             ),
                         ));
@@ -140,12 +139,11 @@ impl SecretsSource for GcpSecretManagerSource {
                 }
                 Err(err) => match err {
                     SecretVaultError::DataNotFoundError(_) if !secret_ref.required => {
-                        debug!("Secret or secret version {} doesn't exist and since it is not required it is skipped",gcp_secret_version_path);
+                        debug!("Secret or secret version {gcp_secret_version_path} doesn't exist and since it is not required it is skipped");
                     }
                     _ => {
                         error!(
-                            "Unable to read secret or secret version {}: {}.",
-                            gcp_secret_version_path, err
+                            "Unable to read secret or secret version {gcp_secret_version_path}: {err}."
                         );
                         return Err(err);
                     }

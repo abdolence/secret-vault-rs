@@ -211,7 +211,7 @@ impl From<gcloud_sdk::error::Error> for SecretVaultError {
         SecretVaultError::SecretsSourceError(
             SecretsSourceError::new(
                 SecretVaultErrorPublicGenericDetails::new(format!("{:?}", e.kind())),
-                format!("GCloud system error: {}", e),
+                format!("GCloud system error: {e}"),
             )
             .with_root_cause(Box::new(e)),
         )
@@ -225,7 +225,7 @@ impl From<tonic::Status> for SecretVaultError {
             tonic::Code::NotFound => {
                 SecretVaultError::DataNotFoundError(SecretVaultDataNotFoundError::new(
                     SecretVaultErrorPublicGenericDetails::new(format!("{:?}", status.code())),
-                    format!("{}", status),
+                    format!("{status}"),
                 ))
             }
             tonic::Code::Aborted
@@ -234,12 +234,12 @@ impl From<tonic::Status> for SecretVaultError {
             | tonic::Code::ResourceExhausted => {
                 SecretVaultError::NetworkError(SecretVaultNetworkError::new(
                     SecretVaultErrorPublicGenericDetails::new(format!("{:?}", status.code())),
-                    format!("{}", status),
+                    format!("{status}"),
                 ))
             }
             _ => SecretVaultError::NetworkError(SecretVaultNetworkError::new(
                 SecretVaultErrorPublicGenericDetails::new(format!("{:?}", status.code())),
-                format!("{}", status),
+                format!("{status}"),
             )),
         }
     }
@@ -252,8 +252,8 @@ impl<E: Display + Error + Sync + Send + 'static> From<aws_sdk_secretsmanager::ty
     fn from(e: aws_sdk_secretsmanager::types::SdkError<E>) -> Self {
         SecretVaultError::SecretsSourceError(
             SecretsSourceError::new(
-                SecretVaultErrorPublicGenericDetails::new(format!("{}", e)),
-                format!("AWS error: {}", e),
+                SecretVaultErrorPublicGenericDetails::new(format!("{e}")),
+                format!("AWS error: {e}"),
             )
             .with_root_cause(Box::new(e)),
         )
@@ -268,8 +268,8 @@ impl<E: Display + Error + Sync + Send + 'static> From<aws_sdk_kms::types::SdkErr
     fn from(e: aws_sdk_kms::types::SdkError<E>) -> Self {
         SecretVaultError::SecretsSourceError(
             SecretsSourceError::new(
-                SecretVaultErrorPublicGenericDetails::new(format!("{}", e)),
-                format!("AWS KMS error: {}", e),
+                SecretVaultErrorPublicGenericDetails::new(format!("{e}")),
+                format!("AWS KMS error: {e}"),
             )
             .with_root_cause(Box::new(e)),
         )
@@ -280,8 +280,8 @@ impl<E: Display + Error + Sync + Send + 'static> From<aws_sdk_kms::types::SdkErr
 impl From<kms_aead::errors::KmsAeadError> for SecretVaultError {
     fn from(e: kms_aead::errors::KmsAeadError) -> Self {
         SecretVaultError::EncryptionError(SecretVaultEncryptionError::new(
-            SecretVaultErrorPublicGenericDetails::new(format!("{:?}", e)),
-            format!("KMS error: {}", e),
+            SecretVaultErrorPublicGenericDetails::new(format!("{e:?}")),
+            format!("KMS error: {e}"),
         ))
     }
 }

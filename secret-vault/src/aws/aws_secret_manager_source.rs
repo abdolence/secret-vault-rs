@@ -129,8 +129,7 @@ impl SecretsSource for AwsSecretManagerSource {
                             SecretVaultDataNotFoundError::new(
                                 SecretVaultErrorPublicGenericDetails::new("SECRET_PAYLOAD".into()),
                                 format!(
-                                    "Secret is required but payload is not found for {}",
-                                    aws_secret_arn
+                                    "Secret is required but payload is not found for {aws_secret_arn}"
                                 ),
                             ),
                         ));

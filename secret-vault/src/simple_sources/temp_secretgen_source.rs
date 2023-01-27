@@ -87,10 +87,9 @@ pub fn generate_secret_value(
         SecretVaultError::SecretsSourceError(
             SecretsSourceError::new(
                 SecretVaultErrorPublicGenericDetails::new(format!(
-                    "Unable to initialise random key: {:?}",
-                    e
+                    "Unable to initialise random key: {e:?}"
                 )),
-                format!("Unable to initialise random key: {}", e),
+                format!("Unable to initialise random key: {e}"),
             )
             .with_root_cause(Box::new(e)),
         )

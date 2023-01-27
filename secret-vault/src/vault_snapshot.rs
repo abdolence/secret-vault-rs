@@ -36,10 +36,7 @@ pub trait SecretVaultSnapshot {
             None => Err(SecretVaultError::DataNotFoundError(
                 SecretVaultDataNotFoundError::new(
                     SecretVaultErrorPublicGenericDetails::new("SECRET_NOT_FOUND".into()),
-                    format!(
-                        "Secret {:?} doesn't exist in vault but was required",
-                        secret_ref
-                    ),
+                    format!("Secret {secret_ref:?} doesn't exist in vault but was required"),
                 ),
             )),
         }

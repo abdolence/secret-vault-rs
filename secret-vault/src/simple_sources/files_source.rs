@@ -47,7 +47,7 @@ impl SecretsSource for FilesSource {
                     .root_path
                     .as_ref()
                     .and_then(|rp| rp.to_str())
-                    .map(|path| format!("{}/", path))
+                    .map(|path| format!("{path}/"))
                     .unwrap_or_else(|| "".to_string()),
                 secret_ref.key.secret_name.value(),
                 secret_ref
