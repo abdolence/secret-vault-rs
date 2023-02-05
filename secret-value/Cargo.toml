@@ -32,7 +32,7 @@ base64 = { version="0.21", optional = true }
 
 [dev-dependencies]
 cargo-husky = { version = "1.5", default-features = false, features = ["run-for-all", "prepush-hook", "run-cargo-fmt"] }
-proptest = "1.0"
+proptest = "1.1"
 tokio = { version = "1", features = ["full"] }
 
 [features]
