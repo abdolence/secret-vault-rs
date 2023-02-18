@@ -3,17 +3,33 @@ use crate::*;
 use async_trait::*;
 use secret_vault_value::SecretValue;
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone)]
 pub struct MockSecretsSource {
-    pub secrets: HashMap<SecretVaultRef, SecretValue>,
+    pub secrets: Arc<Mutex<HashMap<SecretVaultRef, SecretValue>>>,
 }
 
 impl MockSecretsSource {
     pub fn new(secrets: Vec<(SecretVaultRef, SecretValue)>) -> Self {
         Self {
-            secrets: secrets.into_iter().collect(),
+            secrets: Arc::new(Mutex::new(secrets.into_iter().collect())),
         }
+    }
+
+    pub fn add(&mut self, secret_ref: SecretVaultRef, secret_value: SecretValue) {
+        self.secrets
+            .lock()
+            .unwrap()
+            .insert(secret_ref, secret_value);
+    }
+
+    pub fn get(&self, secret_ref: &SecretVaultRef) -> Option<SecretValue> {
+        self.secrets.lock().unwrap().get(secret_ref).cloned()
+    }
+
+    pub fn keys(&self) -> Vec<SecretVaultRef> {
+        self.secrets.lock().unwrap().keys().cloned().collect()
     }
 }
 
@@ -28,9 +44,10 @@ impl SecretsSource for MockSecretsSource {
         references: &[SecretVaultRef],
     ) -> SecretVaultResult<HashMap<SecretVaultRef, Secret>> {
         let mut result_map: HashMap<SecretVaultRef, Secret> = HashMap::new();
+        let secrets = self.secrets.lock().unwrap();
 
         for secret_ref in references {
-            match self.secrets.get(secret_ref) {
+            match secrets.get(secret_ref) {
                 Some(secret_value) => {
                     result_map.insert(
                         secret_ref.clone(),
@@ -47,7 +64,7 @@ impl SecretsSource for MockSecretsSource {
                                 "MOCK_SECRET_NOT_FOUND".into(),
                             ),
                             format!(
-                                "Secret is required but not found in mock variables {:?}",
+                                "Secret is required but not found in mock variables {:?}.",
                                 secret_ref.key.secret_name
                             ),
                         ),
@@ -75,7 +92,9 @@ pub mod source_tests {
 
     pub fn generate_secret_ref() -> BoxedStrategy<SecretVaultRef> {
         ("[a-zA-Z0-9]+")
-            .prop_map(|(mock_secret_name)| SecretVaultRef::new(mock_secret_name.into()))
+            .prop_map(|(mock_secret_name)| {
+                SecretVaultRef::new(format!("gen-{mock_secret_name}").into())
+            })
             .boxed()
     }
 

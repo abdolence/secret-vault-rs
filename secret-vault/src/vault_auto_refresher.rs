@@ -128,10 +128,8 @@ mod tests {
             .current();
 
         let secret_refs: Vec<SecretVaultRef> = mock_secrets_store
-            .secrets
             .keys()
             .into_iter()
-            .cloned()
             .map(|secret_ref| secret_ref.with_auto_refresh(true))
             .collect();
 
@@ -161,7 +159,7 @@ mod tests {
                     .unwrap()
                     .map(|secret| secret.value)
                     .as_ref(),
-                mock_secrets_store.secrets.get(&secret_ref)
+                mock_secrets_store.get(&secret_ref).as_ref()
             )
         }
     }

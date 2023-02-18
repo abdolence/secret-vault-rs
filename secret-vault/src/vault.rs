@@ -44,8 +44,13 @@ where
         self
     }
 
-    pub fn add_secret_ref(mut self, secret_ref: &SecretVaultRef) -> Self {
+    pub fn add_secret_ref(&mut self, secret_ref: &SecretVaultRef) -> &mut Self {
         self.refs.push(secret_ref.clone());
+        self
+    }
+
+    pub fn remove_secret_ref(&mut self, key: &SecretVaultKey) -> &mut Self {
+        self.refs.retain(|secret_ref| secret_ref.key != *key);
         self
     }
 
@@ -67,6 +72,8 @@ where
         }
 
         info!("Secret vault contains: {} secrets", self.store.len().await);
+
+        self.compact().await?;
 
         Ok(self)
     }
@@ -103,6 +110,44 @@ where
         Ok(self)
     }
 
+    pub async fn refresh_only_not_present(&self) -> SecretVaultResult<&Self> {
+        let (existing_refs, missing_refs) = self.store.exists(&self.refs).await;
+
+        if !missing_refs.is_empty() {
+            trace!(
+                "Refreshing non cached secrets from the source. Existing: {}. Missing: {}",
+                existing_refs.len(),
+                missing_refs.len()
+            );
+
+            let missing_refs: Vec<SecretVaultRef> = missing_refs.into_iter().cloned().collect();
+
+            let mut secrets_map = self.source.get_secrets(&missing_refs).await?;
+
+            for (secret_ref, secret) in secrets_map.drain() {
+                self.store.insert(secret_ref, &secret).await?;
+            }
+
+            trace!(
+                "Secret vault now contains: {} secrets in total",
+                self.store.len().await
+            );
+        } else {
+            trace!(
+                "No secrets to refresh. All secrets are cached: {}.",
+                self.refs.len()
+            );
+        }
+
+        self.compact().await?;
+
+        Ok(self)
+    }
+
+    pub async fn compact(&self) -> SecretVaultResult<()> {
+        self.store.compact(&self.refs).await
+    }
+
     pub async fn store_len(&self) -> usize {
         self.store.len().await
     }
@@ -126,7 +171,7 @@ where
         let mut secrets: Vec<Secret> = Vec::with_capacity(refs_allowed_in_snapshot.len());
 
         for secret_ref in refs_allowed_in_snapshot {
-            if let Some(secret) = self.store.get_secret(&secret_ref).await? {
+            if let Some(secret) = self.store.get_secret(&secret_ref.key).await? {
                 secrets.push(secret);
             }
         }
@@ -145,7 +190,7 @@ where
         &self,
         secret_ref: &SecretVaultRef,
     ) -> SecretVaultResult<Option<Secret>> {
-        self.store.get_secret(secret_ref).await
+        self.store.get_secret(&secret_ref.key).await
     }
 }
 
@@ -153,9 +198,11 @@ where
 mod tests {
     use crate::source_tests::*;
     use crate::*;
+    use chrono::Utc;
     use proptest::prelude::*;
     use proptest::strategy::ValueTree;
     use proptest::test_runner::TestRunner;
+    use secret_vault_value::SecretValue;
 
     #[tokio::test]
     async fn refresh_vault_test() {
@@ -170,21 +217,65 @@ mod tests {
             .unwrap();
 
         vault
-            .register_secret_refs(mock_secrets_store.secrets.keys().into_iter().collect())
+            .register_secret_refs(mock_secrets_store.keys().iter().collect())
             .refresh()
             .await
             .unwrap();
 
-        for secret_ref in mock_secrets_store.secrets.keys() {
+        for secret_ref in mock_secrets_store.keys() {
             assert_eq!(
                 vault
-                    .get_secret_by_ref(secret_ref)
+                    .get_secret_by_ref(&secret_ref)
                     .await
                     .unwrap()
                     .map(|secret| secret.value)
                     .as_ref(),
-                mock_secrets_store.secrets.get(secret_ref)
+                mock_secrets_store.get(&secret_ref).as_ref()
             )
+        }
+    }
+
+    #[tokio::test]
+    async fn refresh_only_non_present() {
+        let mut runner = TestRunner::default();
+        let mut mock_secrets_store = generate_mock_secrets_source("default".into())
+            .new_tree(&mut runner)
+            .unwrap()
+            .current();
+
+        let mut vault = SecretVaultBuilder::with_source(mock_secrets_store.clone())
+            .build()
+            .unwrap()
+            .with_secret_refs(mock_secrets_store.keys().iter().collect());
+
+        vault.refresh().await.unwrap();
+
+        let cached_at = Utc::now();
+
+        let new_secret_ref =
+            SecretVaultRef::new("new_secret".into()).with_namespace("default".into());
+        vault.add_secret_ref(&new_secret_ref);
+        mock_secrets_store.add(
+            new_secret_ref.clone(),
+            SecretValue::new("new_secret_value".into()),
+        );
+
+        vault.refresh_only_not_present().await.unwrap();
+
+        for secret_ref in mock_secrets_store.keys() {
+            let ts = vault
+                .get_secret_by_ref(&secret_ref)
+                .await
+                .unwrap()
+                .map(|secret| secret.metadata.cached_at)
+                .as_ref()
+                .unwrap()
+                .timestamp();
+            if secret_ref.key != new_secret_ref.key {
+                assert!(ts <= cached_at.timestamp())
+            } else {
+                assert!(ts >= cached_at.timestamp())
+            }
         }
     }
 }
