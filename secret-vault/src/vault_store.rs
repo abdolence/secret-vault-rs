@@ -61,15 +61,15 @@ where
 
     pub async fn get_secret(
         &self,
-        secret_ref: &SecretVaultRef,
+        secret_vault_key: &SecretVaultKey,
     ) -> SecretVaultResult<Option<Secret>> {
         let secrets_read = self.secrets.read().await;
 
-        match secrets_read.get(&secret_ref.key) {
+        match secrets_read.get(secret_vault_key) {
             Some(stored_value) => {
                 let secret_value = self
                     .encrypter
-                    .decrypt_value(&secret_ref.key, &stored_value.data)
+                    .decrypt_value(secret_vault_key, &stored_value.data)
                     .await?;
                 Ok(Some(Secret::new(
                     secret_value,
@@ -78,6 +78,51 @@ where
             }
             None => Ok(None),
         }
+    }
+
+    pub async fn remove(&self, secret_vault_key: &SecretVaultKey) -> SecretVaultResult<()> {
+        let mut secrets_write = self.secrets.write().await;
+        secrets_write.remove(secret_vault_key);
+        Ok(())
+    }
+
+    pub async fn contains(&self, secret_refs: &[SecretVaultRef]) -> bool {
+        let secrets_read = self.secrets.read().await;
+        secret_refs
+            .iter()
+            .all(|secret_ref| secrets_read.contains_key(&secret_ref.key))
+    }
+
+    pub async fn compact(&self, secret_refs: &[SecretVaultRef]) -> SecretVaultResult<()> {
+        let mut secrets_write = self.secrets.write().await;
+        let to_remove: Vec<SecretVaultKey> = secrets_write
+            .keys()
+            .filter(|key| !secret_refs.iter().any(|secret_ref| secret_ref.key == **key))
+            .cloned()
+            .collect();
+
+        for key in to_remove {
+            secrets_write.remove(&key);
+        }
+
+        Ok(())
+    }
+
+    pub async fn exists<'a>(
+        &'a self,
+        secret_refs: &'a Vec<SecretVaultRef>,
+    ) -> (Vec<&'a SecretVaultRef>, Vec<&'a SecretVaultRef>) {
+        let secrets_read = self.secrets.read().await;
+        let mut missing = Vec::new();
+        let mut existing = Vec::new();
+        for secret_ref in secret_refs {
+            if secrets_read.contains_key(&secret_ref.key) {
+                existing.push(secret_ref);
+            } else {
+                missing.push(secret_ref);
+            }
+        }
+        (existing, missing)
     }
 
     pub async fn len(&self) -> usize {

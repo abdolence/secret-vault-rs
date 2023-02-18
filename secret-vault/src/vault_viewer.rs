@@ -83,6 +83,6 @@ where
         &self,
         secret_ref: &SecretVaultRef,
     ) -> SecretVaultResult<Option<Secret>> {
-        self.store.get_secret(secret_ref).await
+        self.store.get_secret(&secret_ref.key).await
     }
 }

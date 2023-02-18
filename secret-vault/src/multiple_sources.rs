@@ -109,7 +109,6 @@ mod tests {
             source: &MockSecretsSource,
         ) -> Vec<SecretVaultRef> {
             source
-                .secrets
                 .keys()
                 .into_iter()
                 .map(|reference| reference.clone().with_namespace(namespace.into()))
@@ -129,6 +128,13 @@ mod tests {
             .unwrap();
 
         for secret_ref in all_mock_secrets {
+            let test_value =
+                if secret_ref.key.namespace.as_ref().unwrap().value().as_str() == "mock1" {
+                    mock_secrets_store1.get(&secret_ref)
+                } else {
+                    mock_secrets_store2.get(&secret_ref)
+                };
+
             assert_eq!(
                 vault
                     .get_secret_by_ref(&secret_ref)
@@ -136,11 +142,7 @@ mod tests {
                     .unwrap()
                     .map(|secret| secret.value)
                     .as_ref(),
-                if secret_ref.key.namespace.as_ref().unwrap().value().as_str() == "mock1" {
-                    mock_secrets_store1.secrets.get(&secret_ref)
-                } else {
-                    mock_secrets_store2.secrets.get(&secret_ref)
-                }
+                test_value.as_ref()
             )
         }
     }
