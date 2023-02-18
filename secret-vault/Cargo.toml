@@ -67,6 +67,9 @@ aws-secretmanager = ["aws", "dep:aws-sdk-secretsmanager"]
 aws-kms-encryption = ["aws", "kms", "dep:aws-sdk-kms", "kms-aead/aws-kms-encryption"]
 ahash = ["dep:ahash"]
 
+[package.metadata.release]
+tag-prefix=""
+
 [package.metadata.docs.rs]
 all-features = true
 

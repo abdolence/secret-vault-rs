@@ -43,6 +43,9 @@ bytes = ["dep:bytes"]
 hex = ["dep:hex"]
 base64 = ["dep:base64"]
 
+[package.metadata.release]
+tag-prefix=""
+
 [package.metadata.docs.rs]
 all-features = true
 
