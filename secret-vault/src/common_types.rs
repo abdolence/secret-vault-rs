@@ -105,15 +105,24 @@ pub struct SecretMetadataLabel {
     pub value: Option<String>,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Builder)]
+pub struct SecretMetadataAnnotation {
+    pub name: String,
+    pub value: Option<String>,
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Builder)]
 pub struct SecretMetadata {
     #[default = "Utc::now()"]
     pub cached_at: DateTime<Utc>,
     pub key: SecretVaultKey,
     pub labels: Option<Vec<SecretMetadataLabel>>,
+    pub annotations: Option<Vec<SecretMetadataAnnotation>>,
     pub description: Option<String>,
     pub expiration: Option<SecretExpiration>,
     pub version: Option<SecretVersion>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
 }
 
 impl SecretMetadata {
@@ -130,6 +139,15 @@ impl SecretMetadata {
             labels.push(label);
         } else {
             self.labels = Some(vec![label]);
+        }
+        self
+    }
+
+    pub fn add_annotation(&mut self, annotation: SecretMetadataAnnotation) -> &Self {
+        if let Some(annotations) = &mut self.annotations {
+            annotations.push(annotation);
+        } else {
+            self.annotations = Some(vec![annotation]);
         }
         self
     }
