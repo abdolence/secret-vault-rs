@@ -9,6 +9,7 @@ use crate::secrets_source::SecretsSource;
 use crate::*;
 use tracing::*;
 
+use crate::prost_chrono::chrono_time_from_prost;
 use async_trait::*;
 use gcloud_sdk::google::cloud::secretmanager::v1::{AccessSecretVersionRequest, GetSecretRequest};
 
@@ -123,6 +124,14 @@ impl SecretsSource for GcpSecretManagerSource {
                             for (k, v) in gcp_secret.labels {
                                 metadata.add_label(SecretMetadataLabel::new(k).with_value(v));
                             }
+
+                            for (k, v) in gcp_secret.annotations {
+                                metadata
+                                    .add_annotation(SecretMetadataAnnotation::new(k).with_value(v));
+                            }
+
+                            metadata.created_at =
+                                gcp_secret.create_time.and_then(chrono_time_from_prost);
                         }
 
                         result_map.insert(secret_ref.clone(), Secret::new(payload.data, metadata));

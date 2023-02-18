@@ -2,6 +2,7 @@ use crate::errors::*;
 use crate::*;
 use async_trait::*;
 use aws_sdk_secretsmanager::types::SdkError;
+use aws_smithy_types_convert::date_time::DateTimeExt;
 use rsb_derive::*;
 use rvstruct::ValueStruct;
 use secret_vault_value::SecretValue;
@@ -118,9 +119,14 @@ impl SecretsSource for AwsSecretManagerSource {
                                 }
                             }
 
-                            metadata.mopt_description(
-                                aws_secret_desc.description().map(|s| s.to_string()),
-                            );
+                            metadata.description =
+                                aws_secret_desc.description().map(|s| s.to_string());
+                            metadata.created_at = aws_secret_desc
+                                .created_date()
+                                .and_then(|d| d.to_chrono_utc().ok());
+                            metadata.updated_at = aws_secret_desc
+                                .last_changed_date()
+                                .and_then(|d| d.to_chrono_utc().ok());
                         }
 
                         result_map.insert(secret_ref.clone(), Secret::new(secret_value, metadata));
