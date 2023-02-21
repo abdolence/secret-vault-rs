@@ -10,7 +10,7 @@
 Library provides the following crates:
 
 - General secret value type - a simple implementation of a secure and serializable (serde and proto) type
-  of any kind of secrets. Documentation located [here](secret-value/README.md).
+  of any kind of secrets. Documentation is [here](secret-value/README.md).
 - Secret vault - a library provides a memory-backed storage for the application secrets integrated with external source of secrets.
   Documentation is below.
 
