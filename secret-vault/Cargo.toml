@@ -38,7 +38,7 @@ gcloud-sdk = { version = "0.19", optional = true }
 prost-types = { version = "0.11", optional = true }
 tonic = { version = "0.8", optional = true }
 aws-config = { version = "0.54", optional = true }
-aws-smithy-types-convert = { version = "0.54", optional = true, features=["convert-chrono"] }
+aws-smithy-types-convert = { version = "0.55", optional = true, features=["convert-chrono"] }
 aws-sdk-secretsmanager = { version = "0.24", optional = true }
 aws-sdk-kms = { version = "0.24", optional = true }
 kms-aead = { version = "0.12", optional = true }
