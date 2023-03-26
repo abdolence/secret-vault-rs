@@ -15,7 +15,7 @@ pub struct SecretVaultRingAeadEncryption {
 
 impl SecretVaultRingAeadEncryption {
     pub fn new() -> SecretVaultResult<Self> {
-        Self::with_algorithm(&ring::aead::CHACHA20_POLY1305)
+        Self::with_algorithm(&ring::aead::AES_256_GCM)
     }
 
     pub fn with_algorithm(algo: &'static ring::aead::Algorithm) -> SecretVaultResult<Self> {
