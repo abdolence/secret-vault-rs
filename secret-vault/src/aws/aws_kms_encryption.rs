@@ -17,9 +17,12 @@ impl AwsKmsEnvelopeEncryption {
         let provider = kms_aead::providers::AwsKmsProvider::new(kms_key_ref)
             .await
             .map_err(SecretVaultError::from)?;
-        let envelope_aead_encryption = kms_aead::KmsAeadRingEnvelopeEncryption::new(provider)
-            .await
-            .map_err(SecretVaultError::from)?;
+        let envelope_aead_encryption = kms_aead::KmsAeadRingEnvelopeEncryption::with_algorithm(
+            provider,
+            &ring::aead::AES_256_GCM,
+        )
+        .await
+        .map_err(SecretVaultError::from)?;
 
         Ok(Self {
             envelope_aead_encryption,
