@@ -28,7 +28,7 @@ rvstruct = "0.3"
 rsb_derive = "0.5"
 async-trait = "0.1"
 chrono = { version = "0.4" }
-zeroize = { version = "1.5", features = ["std", "derive"] }
+zeroize = { version = "1.6", features = ["std", "derive"] }
 tokio = { version = "1", features = ["sync", "tracing", "macros"] }
 hex = "0.4"
 ring = { version = "0.16", features = ["default", "std"], optional = true }
