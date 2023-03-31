@@ -246,10 +246,10 @@ impl From<tonic::Status> for SecretVaultError {
 }
 
 #[cfg(feature = "aws-secretmanager")]
-impl<E: Display + Error + Sync + Send + 'static> From<aws_sdk_secretsmanager::types::SdkError<E>>
+impl<E: Display + Error + Sync + Send + 'static> From<aws_sdk_secretsmanager::error::SdkError<E>>
     for SecretVaultError
 {
-    fn from(e: aws_sdk_secretsmanager::types::SdkError<E>) -> Self {
+    fn from(e: aws_sdk_secretsmanager::error::SdkError<E>) -> Self {
         SecretVaultError::SecretsSourceError(
             SecretsSourceError::new(
                 SecretVaultErrorPublicGenericDetails::new(format!("{e}")),
@@ -262,10 +262,10 @@ impl<E: Display + Error + Sync + Send + 'static> From<aws_sdk_secretsmanager::ty
 
 #[cfg(not(feature = "aws-secretmanager"))]
 #[cfg(feature = "aws-kms-encryption")]
-impl<E: Display + Error + Sync + Send + 'static> From<aws_sdk_kms::types::SdkError<E>>
+impl<E: Display + Error + Sync + Send + 'static> From<aws_sdk_kms::error::SdkError<E>>
     for SecretVaultError
 {
-    fn from(e: aws_sdk_kms::types::SdkError<E>) -> Self {
+    fn from(e: aws_sdk_kms::error::SdkError<E>) -> Self {
         SecretVaultError::SecretsSourceError(
             SecretsSourceError::new(
                 SecretVaultErrorPublicGenericDetails::new(format!("{e}")),

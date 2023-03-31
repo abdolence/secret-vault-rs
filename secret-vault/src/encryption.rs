@@ -60,8 +60,22 @@ impl From<kms_aead::CipherText> for EncryptedSecretValue {
 }
 
 #[cfg(any(feature = "kms", feature = "ring-aead-encryption"))]
+impl From<kms_aead::CipherTextWithEncryptedKey> for EncryptedSecretValue {
+    fn from(kms_aead_value: kms_aead::CipherTextWithEncryptedKey) -> Self {
+        EncryptedSecretValue(kms_aead_value.value().to_owned())
+    }
+}
+
+#[cfg(any(feature = "kms", feature = "ring-aead-encryption"))]
 impl From<EncryptedSecretValue> for kms_aead::CipherText {
     fn from(encrypted_value: EncryptedSecretValue) -> Self {
         kms_aead::CipherText(encrypted_value.value().to_owned())
+    }
+}
+
+#[cfg(any(feature = "kms", feature = "ring-aead-encryption"))]
+impl From<EncryptedSecretValue> for kms_aead::CipherTextWithEncryptedKey {
+    fn from(encrypted_value: EncryptedSecretValue) -> Self {
+        kms_aead::CipherTextWithEncryptedKey(encrypted_value.value().to_owned())
     }
 }
