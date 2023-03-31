@@ -1,7 +1,7 @@
 use crate::errors::*;
 use crate::*;
 use async_trait::*;
-use aws_sdk_secretsmanager::types::SdkError;
+use aws_sdk_secretsmanager::error::SdkError;
 use aws_smithy_types_convert::date_time::DateTimeExt;
 use rsb_derive::*;
 use rvstruct::ValueStruct;
@@ -12,7 +12,7 @@ use tracing::*;
 #[derive(Debug, Clone, Eq, PartialEq, Builder)]
 pub struct AwsSecretManagerSourceOptions {
     pub account_id: String,
-    pub region: Option<aws_sdk_secretsmanager::Region>,
+    pub region: Option<aws_sdk_secretsmanager::config::Region>,
 
     #[default = "false"]
     pub read_metadata: bool,
