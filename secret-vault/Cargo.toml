@@ -36,7 +36,7 @@ region = { version = "3.0.0", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 gcloud-sdk = { version = "0.19", optional = true }
 prost-types = { version = "0.11", optional = true }
-tonic = { version = "0.8", optional = true }
+tonic = { version = "0.9", optional = true }
 aws-config = { version = "0.55", optional = true }
 aws-smithy-types-convert = { version = "0.55", optional = true, features=["convert-chrono"] }
 aws-sdk-secretsmanager = { version = "0.25", optional = true }
