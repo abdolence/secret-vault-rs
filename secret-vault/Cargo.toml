@@ -34,14 +34,13 @@ hex = "0.4"
 ring = { version = "0.16", features = ["default", "std"], optional = true }
 region = { version = "3.0.0", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
-gcloud-sdk = { version = "0.20", optional = true }
-prost-types = { version = "0.11", optional = true }
+gcloud-sdk = { version = "0.21", optional = true }
 tonic = { version = "0.9", optional = true }
 aws-config = { version = "0.56", optional = true }
 aws-smithy-types-convert = { version = "0.56", optional = true, features=["convert-chrono"] }
 aws-sdk-secretsmanager = { version = "0.31", optional = true }
 aws-sdk-kms = { version = "0.31", optional = true }
-kms-aead = { version = "0.16", optional = true }
+kms-aead = { version = "0.17", optional = true }
 ahash = { version = "0.8", optional = true }
 
 
@@ -62,12 +61,12 @@ default = []
 serde = ["dep:serde", "chrono/serde", "secret-vault-value/serde"]
 ring-aead-encryption = ["dep:ring", "kms-aead/ring-aead-encryption"]
 kms = ["kms-aead/default"]
-gcp = ["dep:tonic", "gcloud-sdk", "dep:prost-types"]
+gcp = ["gcloud-sdk"]
 gcp-secretmanager =  ["gcp","gcloud-sdk/google-cloud-secretmanager-v1", "ring-aead-encryption"]
 gcp-kms-encryption = ["gcp", "kms", "gcloud-sdk/google-cloud-kms-v1", "kms-aead/gcp-kms-encryption", "ring-aead-encryption"]
-aws = ["dep:aws-config", "dep:prost-types", "dep:aws-smithy-types-convert"]
+aws = ["dep:aws-config", "dep:aws-smithy-types-convert"]
 aws-secretmanager = ["aws", "dep:aws-sdk-secretsmanager"]
-aws-kms-encryption = ["aws", "kms", "dep:aws-sdk-kms", "kms-aead/aws-kms-encryption"]
+aws-kms-encryption = ["aws", "kms", "dep:aws-sdk-kms", "kms-aead/aws-kms-encryption", "ring-aead-encryption"]
 ahash = ["dep:ahash"]
 
 [package.metadata.release]

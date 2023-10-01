@@ -219,19 +219,19 @@ impl From<gcloud_sdk::error::Error> for SecretVaultError {
 }
 
 #[cfg(feature = "gcp")]
-impl From<tonic::Status> for SecretVaultError {
-    fn from(status: tonic::Status) -> Self {
+impl From<gcloud_sdk::tonic::Status> for SecretVaultError {
+    fn from(status: gcloud_sdk::tonic::Status) -> Self {
         match status.code() {
-            tonic::Code::NotFound => {
+            gcloud_sdk::tonic::Code::NotFound => {
                 SecretVaultError::DataNotFoundError(SecretVaultDataNotFoundError::new(
                     SecretVaultErrorPublicGenericDetails::new(format!("{:?}", status.code())),
                     format!("{status}"),
                 ))
             }
-            tonic::Code::Aborted
-            | tonic::Code::Cancelled
-            | tonic::Code::Unavailable
-            | tonic::Code::ResourceExhausted => {
+            gcloud_sdk::tonic::Code::Aborted
+            | gcloud_sdk::tonic::Code::Cancelled
+            | gcloud_sdk::tonic::Code::Unavailable
+            | gcloud_sdk::tonic::Code::ResourceExhausted => {
                 SecretVaultError::NetworkError(SecretVaultNetworkError::new(
                     SecretVaultErrorPublicGenericDetails::new(format!("{:?}", status.code())),
                     format!("{status}"),

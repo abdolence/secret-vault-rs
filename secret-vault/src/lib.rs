@@ -103,5 +103,5 @@ pub use vault_auto_refresher::*;
 mod multiple_sources;
 pub use multiple_sources::*;
 
-#[cfg(any(feature = "gcp", feature = "aws"))]
+#[cfg(any(feature = "gcp"))]
 mod prost_chrono;
