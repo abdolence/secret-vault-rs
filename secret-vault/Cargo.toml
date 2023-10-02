@@ -31,7 +31,7 @@ chrono = { version = "0.4" }
 zeroize = { version = "1.6", features = ["std", "derive"] }
 tokio = { version = "1", features = ["sync", "tracing", "macros"] }
 hex = "0.4"
-ring = { version = "0.16", features = ["default", "std"], optional = true }
+ring = { version = "0.17", features = ["default", "std"], optional = true }
 region = { version = "3.0.0", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 gcloud-sdk = { version = "0.21", optional = true }
