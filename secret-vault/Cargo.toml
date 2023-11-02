@@ -38,7 +38,7 @@ gcloud-sdk = { version = "0.21", optional = true }
 aws-config = { version = "0.56", optional = true }
 aws-smithy-types-convert = { version = "0.56", optional = true, features=["convert-chrono"] }
 aws-sdk-secretsmanager = { version = "0.31", optional = true }
-aws-sdk-kms = { version = "0.31", optional = true }
+aws-sdk-kms = { version = "0.35", optional = true }
 kms-aead = { version = "0.17", optional = true }
 ahash = { version = "0.8", optional = true }
 
