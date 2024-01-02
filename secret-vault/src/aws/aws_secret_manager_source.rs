@@ -110,7 +110,7 @@ impl SecretsSource for AwsSecretManagerSource {
                         };
 
                         if let Some(aws_secret_desc) = maybe_aws_secret {
-                            for tag in aws_secret_desc.tags().unwrap_or(&[]) {
+                            for tag in aws_secret_desc.tags() {
                                 if let Some(tag_key) = tag.key() {
                                     metadata.add_label(
                                         SecretMetadataLabel::new(tag_key.to_string())
