@@ -55,7 +55,7 @@
 //!
 //! ```
 
-#![allow(unused_parens)]
+#![allow(unused_parens, unused_imports)]
 #![forbid(unsafe_code)]
 
 mod value;
