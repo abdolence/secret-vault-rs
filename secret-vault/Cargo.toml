@@ -27,12 +27,11 @@ secret-vault-value = { version = "0.3", features= ["hex"] }
 rvstruct = "0.3"
 rsb_derive = "0.5"
 async-trait = "0.1"
-chrono = { version = "0.4" }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
 zeroize = { version = "1.7", features = ["std", "derive"] }
 tokio = { version = "1", features = ["sync", "tracing", "macros", "rt", "time"] }
 hex = "0.4"
 ring = { version = "0.17", features = ["default", "std"], optional = true }
-region = { version = "3.0.2", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 gcloud-sdk = { version = "0.24", optional = true }
 aws-config = { version = "1", optional = true }
