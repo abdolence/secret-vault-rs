@@ -30,7 +30,7 @@ async-trait = "0.1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
 zeroize = { version = "1.8", features = ["std", "derive"] }
 tokio = { version = "1", features = ["sync", "tracing", "macros", "rt", "time"] }
-hex = "0.4"
+hex = "0.4.3"
 ring = { version = "0.17", features = ["default", "std"], optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 gcloud-sdk = { version = "0.24", optional = true }
