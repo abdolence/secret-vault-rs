@@ -4,9 +4,8 @@ use prost::encoding::{skip_field, DecodeContext, WireType};
 use prost::DecodeError;
 
 impl prost::Message for SecretValue {
-    fn encode_raw<B>(&self, buf: &mut B)
+    fn encode_raw(&self, buf: &mut impl BufMut)
     where
-        B: BufMut,
         Self: Sized,
     {
         if self.ref_sensitive_value().is_empty() {
@@ -14,15 +13,14 @@ impl prost::Message for SecretValue {
         }
     }
 
-    fn merge_field<B>(
+    fn merge_field(
         &mut self,
         tag: u32,
         wire_type: WireType,
-        buf: &mut B,
+        buf: &mut impl Buf,
         ctx: DecodeContext,
     ) -> Result<(), DecodeError>
     where
-        B: Buf,
         Self: Sized,
     {
         if tag == 1 {
