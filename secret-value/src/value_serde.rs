@@ -27,6 +27,7 @@ impl Serialize for SecretValue {
 
 struct SecretValueVisitor;
 
+#[allow(clippy::needless_lifetimes)]
 impl<'de> Visitor<'de> for SecretValueVisitor {
     type Value = SecretValue;
 
