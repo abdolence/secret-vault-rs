@@ -38,19 +38,50 @@ Library provides the support for the secrets coming to your application from the
 Cargo.toml:
 ```toml
 [dependencies]
-secret-vault = { version = "1.8", features=["..."] }
-secret-vault-type = { version = "0.3" }
+secret-vault = { version = "1.15", features=["..."] }
 ```
 See security consideration below about versioning.
 
 ### Available optional features for Secret Vault:
-- `gcp-secretmanager` for Google Secret Manager support
-- `aws-secretmanager` for Amazon Secret Manager support
-- `ring-aead-encryption` for encryption support using Ring AEAD
-- `gcp-kms-encryption` for Google KMS envelope encryption support
-- `aws-kms-encryption` for Amazon KMS envelope encryption support
-- `serde` for serde serialization support
-- `ahash` for maps and snapshots based on [AHashMap](https://crates.io/crates/ahash)
+
+#### Cloud Provider Features
+**Google Cloud Platform (GCP)**
+- `gcp-secretmanager` - Google Secret Manager support
+- `gcp-kms` - Google Cloud KMS support
+- One of the following TLS implementations is required when using GCP features:
+  - `gcp-tls-roots` - System TLS roots (default)
+  - `gcp-tls-webpki` - WebPKI roots
+
+**Amazon Web Services (AWS)**
+- `aws-secretmanager` - AWS Secrets Manager support
+- `aws-kms-encryption` - AWS KMS envelope encryption support
+
+#### Encryption Features
+- `ring-aead-encryption` - Encryption support using Ring AEAD
+- `kms` - Base KMS support for envelope encryption
+
+#### Utility Features
+- `serde` - Serde serialization support
+- `ahash` - Uses [AHashMap](https://crates.io/crates/ahash) for maps and snapshots
+
+### Feature Flag Examples
+
+For GCP Secret Manager with system TLS roots:
+```toml
+secret-vault = { version = "1.15", features = ["gcp-secretmanager", "gcp-tls-roots"] }
+```
+
+For AWS Secrets Manager with KMS encryption:
+```toml
+secret-vault = { version = "1.15", features = ["aws-secretmanager", "aws-kms-encryption"] }
+```
+
+For GCP Secret Manager with WebPKI and serde support:
+```toml
+secret-vault = { version = "1.15", features = ["gcp-secretmanager", "gcp-tls-webpki", "serde"] }
+```
+
+Note: When using GCP features, you must choose either `gcp-tls-roots` or `gcp-tls-webpki`. These features are mutually exclusive and cannot be enabled simultaneously.
 
 ## Example for GCP with AEAD encryption:
 

@@ -33,7 +33,7 @@ tokio = { version = "1", features = ["sync", "tracing", "macros", "rt", "time"] 
 hex = "0.4"
 ring = { version = "0.17", features = ["default", "std"], optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
-gcloud-sdk = { version = "0.26.0", optional = true }
+gcloud-sdk = { version = "0.26.0", default-features = false, optional = true }
 aws-config = { version = "1", optional = true }
 aws-smithy-types-convert = { version = "0.60", optional = true, features=["convert-chrono"] }
 aws-sdk-secretsmanager = { version = "1", optional = true }
@@ -59,9 +59,13 @@ default = []
 serde = ["dep:serde", "chrono/serde", "secret-vault-value/serde"]
 ring-aead-encryption = ["dep:ring", "kms-aead/ring-aead-encryption"]
 kms = ["kms-aead/default"]
-gcp = ["gcloud-sdk"]
-gcp-secretmanager =  ["gcp","gcloud-sdk/google-cloud-secretmanager-v1", "ring-aead-encryption"]
-gcp-kms-encryption = ["gcp", "kms", "gcloud-sdk/google-cloud-kms-v1", "kms-aead/gcp-kms-encryption", "ring-aead-encryption"]
+gcp-base = ["gcloud-sdk"]
+# TLS variants - user can choose one
+gcp-tls-roots = ["gcp-base", "gcloud-sdk/tls-roots"]
+gcp-tls-webpki = ["gcp-base", "gcloud-sdk/tls-webpki-roots"]
+gcp-secretmanager = ["gcp-base", "gcloud-sdk/google-cloud-secretmanager-v1", "ring-aead-encryption"]
+gcp-kms = ["gcp-base", "kms", "gcloud-sdk/google-cloud-kms-v1", "kms-aead/gcp-kms-encryption", "ring-aead-encryption"]
+gcp = ["gcp-tls-roots"]  # Default to tls-roots for backward compatibility
 aws = ["dep:aws-config", "dep:aws-smithy-types-convert"]
 aws-secretmanager = ["aws", "dep:aws-sdk-secretsmanager"]
 aws-kms-encryption = ["aws", "kms", "dep:aws-sdk-kms", "kms-aead/aws-kms-encryption", "ring-aead-encryption"]
@@ -71,12 +75,24 @@ ahash = ["dep:ahash"]
 tag-prefix=""
 
 [package.metadata.docs.rs]
-all-features = true
+all-features = false
+features = [
+    "serde",
+    "ring-aead-encryption",
+    "kms",
+    "gcp-tls-roots",
+    "gcp-secretmanager",
+    "gcp-kms",
+    "aws",
+    "aws-secretmanager",
+    "aws-kms-encryption",
+    "ahash"
+]
 
 [[example]]
 name = "gcp_secret_manager_vault"
 path = "examples/gcp_secret_manager_vault.rs"
-required-features = ["gcp-secretmanager", "ring-aead-encryption"]
+required-features = ["gcp-secretmanager", "gcp-tls-roots", "ring-aead-encryption"]
 
 [[example]]
 name = "aws_secret_manager_vault"
@@ -86,7 +102,7 @@ required-features = ["aws-secretmanager", "ring-aead-encryption"]
 [[example]]
 name = "kms_gcp_secret_manager_vault"
 path = "examples/kms_gcp_secret_manager_vault.rs"
-required-features = ["gcp-secretmanager", "gcp-kms-encryption"]
+required-features = ["gcp-secretmanager", "gcp-tls-roots", "gcp-kms-encryption"]
 
 [[example]]
 name = "kms_aws_secret_manager_vault"
