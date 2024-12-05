@@ -33,7 +33,7 @@ tokio = { version = "1", features = ["sync", "tracing", "macros", "rt", "time"] 
 hex = "0.4"
 ring = { version = "0.17", features = ["default", "std"], optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
-gcloud-sdk = { version = "0.26.0", optional = true }
+gcloud-sdk = { version = "0.26.0", default-features = false, optional = true }
 aws-config = { version = "1", optional = true }
 aws-smithy-types-convert = { version = "0.60", optional = true, features=["convert-chrono"] }
 aws-sdk-secretsmanager = { version = "1", optional = true }
@@ -59,9 +59,12 @@ default = []
 serde = ["dep:serde", "chrono/serde", "secret-vault-value/serde"]
 ring-aead-encryption = ["dep:ring", "kms-aead/ring-aead-encryption"]
 kms = ["kms-aead/default"]
-gcp = ["gcloud-sdk"]
-gcp-secretmanager =  ["gcp","gcloud-sdk/google-cloud-secretmanager-v1", "ring-aead-encryption"]
-gcp-kms-encryption = ["gcp", "kms", "gcloud-sdk/google-cloud-kms-v1", "kms-aead/gcp-kms-encryption", "ring-aead-encryption"]
+gcp = ["gcloud-sdk", "gcloud-sdk/tls-roots"]
+gcp-webpki = ["gcloud-sdk", "gcloud-sdk/tls-webpki-roots"]
+gcp-secretmanager = ["gcp", "gcloud-sdk/google-cloud-secretmanager-v1", "ring-aead-encryption"]
+gcp-secretmanager-webpki = ["gcp-webpki", "gcloud-sdk/google-cloud-secretmanager-v1", "ring-aead-encryption"]
+gcp-kms = ["gcp", "kms", "gcloud-sdk/google-cloud-kms-v1", "kms-aead/gcp-kms-encryption", "ring-aead-encryption"]
+gcp-kms-webpki = ["gcp-webpki", "kms", "gcloud-sdk/google-cloud-kms-v1", "kms-aead/gcp-kms-encryption", "ring-aead-encryption"]
 aws = ["dep:aws-config", "dep:aws-smithy-types-convert"]
 aws-secretmanager = ["aws", "dep:aws-sdk-secretsmanager"]
 aws-kms-encryption = ["aws", "kms", "dep:aws-sdk-kms", "kms-aead/aws-kms-encryption", "ring-aead-encryption"]

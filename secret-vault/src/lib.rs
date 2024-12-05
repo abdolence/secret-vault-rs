@@ -74,7 +74,7 @@ pub use common_types::*;
 #[cfg(feature = "ring-aead-encryption")]
 pub mod ring_encryption;
 
-#[cfg(feature = "gcp")]
+#[cfg(any(feature = "gcp", feature = "gcp-webpki"))]
 pub mod gcp;
 
 #[cfg(feature = "aws")]
@@ -103,5 +103,5 @@ pub use vault_auto_refresher::*;
 mod multiple_sources;
 pub use multiple_sources::*;
 
-#[cfg(feature = "gcp")]
+#[cfg(any(feature = "gcp", feature = "gcp-webpki"))]
 mod prost_chrono;
