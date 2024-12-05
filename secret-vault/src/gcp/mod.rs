@@ -1,6 +1,6 @@
-#[cfg(feature = "gcp-secretmanager")]
+#[cfg(any(feature = "gcp-secretmanager", feature = "gcp-secretmanager-webpki"))]
 mod gcp_secret_manager_source;
-#[cfg(feature = "gcp-secretmanager")]
+#[cfg(any(feature = "gcp-secretmanager", feature = "gcp-secretmanager-webpki"))]
 pub use gcp_secret_manager_source::*;
 
 #[cfg(feature = "gcp-kms-encryption")]
