@@ -56,6 +56,18 @@
 #![allow(unused_parens, clippy::new_without_default, clippy::needless_update)]
 #![forbid(unsafe_code)]
 
+#[cfg(all(
+    feature = "gcp-base",
+    not(feature = "gcp-tls-roots"),
+    not(feature = "gcp-tls-webpki")
+))]
+compile_error!(
+    "You must enable either \"gcp-tls-roots\" or \"gcp-tls-webpki\" when using GCP features"
+);
+
+#[cfg(all(feature = "gcp-tls-roots", feature = "gcp-tls-webpki"))]
+compile_error!("You cannot enable both \"gcp-tls-roots\" and \"gcp-tls-webpki\" at the same time");
+
 mod encryption;
 pub use encryption::*;
 
@@ -74,7 +86,7 @@ pub use common_types::*;
 #[cfg(feature = "ring-aead-encryption")]
 pub mod ring_encryption;
 
-#[cfg(feature = "gcp")]
+#[cfg(feature = "gcp-base")]
 pub mod gcp;
 
 #[cfg(feature = "aws")]
@@ -103,5 +115,5 @@ pub use vault_auto_refresher::*;
 mod multiple_sources;
 pub use multiple_sources::*;
 
-#[cfg(feature = "gcp")]
+#[cfg(feature = "gcp-base")]
 mod prost_chrono;
