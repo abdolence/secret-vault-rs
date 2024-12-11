@@ -1,8 +1,8 @@
 name: tests & formatting
-on: 
+on:
   push:
   pull_request:
-    types: [opened]  
+    types: [opened]
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -13,4 +13,18 @@ jobs:
           profile: minimal
           toolchain: stable
           components: rustfmt, clippy
-      - run: cargo fmt -- --check && cargo clippy --all-features -- -Dwarnings && cargo test --all-features
+      - name: Run checks
+        run: |
+          # Format check
+          cargo fmt -- --check
+          
+          # Common features for both variants
+          FEATURES="serde,ring-aead-encryption,kms,gcp-secretmanager,gcp-kms,aws,aws-secretmanager,aws-kms-encryption,ahash"
+          
+          # Run checks with gcp-tls-roots
+          cargo clippy --features "$FEATURES,gcp-tls-roots" -- -Dwarnings
+          cargo test --features "$FEATURES,gcp-tls-roots"
+          
+          # Run checks with gcp-tls-webpki
+          cargo clippy --features "$FEATURES,gcp-tls-webpki" -- -Dwarnings
+          cargo test --features "$FEATURES,gcp-tls-webpki"

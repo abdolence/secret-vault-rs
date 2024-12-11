@@ -205,7 +205,7 @@ impl Display for SecretsSourceError {
 
 impl std::error::Error for SecretsSourceError {}
 
-#[cfg(feature = "gcp")]
+#[cfg(feature = "gcp-base")]
 impl From<gcloud_sdk::error::Error> for SecretVaultError {
     fn from(e: gcloud_sdk::error::Error) -> Self {
         SecretVaultError::SecretsSourceError(
@@ -218,7 +218,7 @@ impl From<gcloud_sdk::error::Error> for SecretVaultError {
     }
 }
 
-#[cfg(feature = "gcp")]
+#[cfg(feature = "gcp-base")]
 impl From<gcloud_sdk::tonic::Status> for SecretVaultError {
     fn from(status: gcloud_sdk::tonic::Status) -> Self {
         match status.code() {
