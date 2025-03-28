@@ -65,6 +65,7 @@ gcp-tls-roots = ["gcp-base", "gcloud-sdk/tls-roots"]
 gcp-tls-webpki = ["gcp-base", "gcloud-sdk/tls-webpki-roots"]
 gcp-secretmanager = ["gcp-base", "gcloud-sdk/google-cloud-secretmanager-v1", "ring-aead-encryption"]
 gcp-kms = ["gcp-base", "kms", "gcloud-sdk/google-cloud-kms-v1", "kms-aead/gcp-kms-encryption", "ring-aead-encryption"]
+
 gcp = ["gcp-tls-roots"]  # Default to tls-roots for backward compatibility
 aws = ["dep:aws-config", "dep:aws-smithy-types-convert"]
 aws-secretmanager = ["aws", "dep:aws-sdk-secretsmanager"]
@@ -102,7 +103,7 @@ required-features = ["aws-secretmanager", "ring-aead-encryption"]
 [[example]]
 name = "kms_gcp_secret_manager_vault"
 path = "examples/kms_gcp_secret_manager_vault.rs"
-required-features = ["gcp-secretmanager", "gcp-tls-roots", "gcp-kms-encryption"]
+required-features = ["gcp-secretmanager", "gcp-tls-roots", "gcp-kms"]
 
 [[example]]
 name = "kms_aws_secret_manager_vault"

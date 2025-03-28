@@ -68,17 +68,17 @@ See security consideration below about versioning.
 
 For GCP Secret Manager with system TLS roots:
 ```toml
-secret-vault = { version = "1.15", features = ["gcp-secretmanager", "gcp-tls-roots"] }
+secret-vault = { version = "1.16", features = ["gcp-secretmanager", "gcp-tls-roots"] }
 ```
 
 For AWS Secrets Manager with KMS encryption:
 ```toml
-secret-vault = { version = "1.15", features = ["aws-secretmanager", "aws-kms-encryption"] }
+secret-vault = { version = "1.16", features = ["aws-secretmanager", "aws-kms-encryption"] }
 ```
 
 For GCP Secret Manager with WebPKI and serde support:
 ```toml
-secret-vault = { version = "1.15", features = ["gcp-secretmanager", "gcp-tls-webpki", "serde"] }
+secret-vault = { version = "1.16", features = ["gcp-secretmanager", "gcp-tls-webpki", "serde"] }
 ```
 
 Note: When using GCP features, you must choose either `gcp-tls-roots` or `gcp-tls-webpki`. These features are mutually exclusive and cannot be enabled simultaneously.
