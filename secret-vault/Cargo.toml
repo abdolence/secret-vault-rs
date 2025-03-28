@@ -38,7 +38,7 @@ aws-config = { version = "1", optional = true }
 aws-smithy-types-convert = { version = "0.60", optional = true, features=["convert-chrono"] }
 aws-sdk-secretsmanager = { version = "1", optional = true }
 aws-sdk-kms = { version = "1", optional = true }
-kms-aead = { version = "0.20", optional = true }
+kms-aead = { version = "0.21", optional = true }
 ahash = { version = "0.8", optional = true }
 
 
