@@ -24,8 +24,8 @@ path = "src/lib.rs"
 zeroize = { version = "1.8", features = ["std", "derive"] }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", optional = true }
-prost = { version="0.13", optional = true}
-prost-types = { version="0.13", optional = true}
+prost = { version="0.14", optional = true}
+prost-types = { version="0.14", optional = true}
 bytes = { version="1", optional = true }
 hex = { version="0.4", optional = true }
 base64 = { version="0.22", optional = true }
