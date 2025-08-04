@@ -7,6 +7,7 @@ use proptest::test_runner::TestRunner;
 use secret_vault::ring_encryption::SecretVaultRingAeadEncryption;
 use secret_vault::*;
 use secret_vault_value::SecretValue;
+use std::hint::black_box;
 
 pub fn generate_secret_value() -> BoxedStrategy<SecretValue> {
     ("[a-zA-Z0-9]+")
@@ -50,11 +51,20 @@ fn criterion_benchmark(c: &mut Criterion) {
         .build()
         .unwrap();
 
-    let secret_ref = mock_secrets_store.secrets.keys().last().unwrap();
+    let mock_store_keys: Vec<SecretVaultRef> = {
+        let mock_store_secrets = mock_secrets_store.secrets.lock().unwrap();
+        mock_store_secrets
+            .keys()
+            .into_iter()
+            .map(|s| s.clone())
+            .collect()
+    };
+
+    let secret_ref = mock_store_keys.last().unwrap();
 
     let simple_vault_snapshot = rt.block_on(async {
         simple_vault
-            .register_secret_refs(mock_secrets_store.secrets.keys().into_iter().collect())
+            .register_secret_refs(mock_store_keys.iter().collect())
             .refresh()
             .await
             .unwrap();
@@ -69,7 +79,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let vault_with_encryption_viewer = rt.block_on(async {
         vault_with_encryption
-            .register_secret_refs(mock_secrets_store.secrets.keys().into_iter().collect())
+            .register_secret_refs(mock_store_keys.iter().collect())
             .refresh()
             .await
             .unwrap();
@@ -89,7 +99,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let vault_std_hash_snapshot = rt.block_on(async {
         vault_with_encryption
-            .register_secret_refs(mock_secrets_store.secrets.keys().into_iter().collect())
+            .register_secret_refs(mock_store_keys.iter().collect())
             .refresh()
             .await
             .unwrap();
@@ -101,7 +111,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
 
     c.bench_function("read-secrets-perf-snapshot", |b| {
-        b.iter(|| vault_std_hash_snapshot.get_secret_by_ref(black_box(secret_ref)))
+        b.iter(|| vault_std_hash_snapshot.get_secret_by_ref(black_box(&secret_ref)))
     });
 }
 
