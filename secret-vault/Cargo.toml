@@ -62,12 +62,18 @@ gcp-base = ["gcloud-sdk"]
 gcp-tls-roots = ["gcp-base", "gcloud-sdk/tls-roots"]
 gcp-tls-webpki = ["gcp-base", "gcloud-sdk/tls-webpki-roots"]
 gcp-secretmanager = ["gcp-base", "gcloud-sdk/google-cloud-secretmanager-v1", "ring-aead-encryption"]
-gcp-kms = ["gcp-base", "kms", "gcloud-sdk/google-cloud-kms-v1", "kms-aead/gcp-kms-encryption", "ring-aead-encryption"]
+
+gcp-kms = ["gcp-kms-tls-roots"]
+gcp-kms-tls-roots = ["gcp-tls-roots", "gcloud-sdk/google-cloud-kms-v1", "kms-aead/gcp-kms-encryption", "ring-aead-encryption"]
+gcp-kms-webpki = ["gcp-tls-webpki", "gcloud-sdk/google-cloud-kms-v1", "kms-aead/gcp-kms-encryption-webpki", "ring-aead-encryption"]
 
 gcp = ["gcp-tls-roots"]  # Default to tls-roots for backward compatibility
 aws = ["dep:aws-config", "dep:aws-smithy-types-convert"]
+
 aws-secretmanager = ["aws", "dep:aws-sdk-secretsmanager"]
-aws-kms-encryption = ["aws", "kms", "dep:aws-sdk-kms", "kms-aead/aws-kms-encryption", "ring-aead-encryption"]
+aws-kms = ["aws", "kms", "dep:aws-sdk-kms", "kms-aead/aws-kms-encryption", "ring-aead-encryption"]
+aws-kms-encryption = ["aws-kms"]
+
 ahash = ["dep:ahash"]
 
 [package.metadata.release]

@@ -38,17 +38,18 @@ Library provides the support for the secrets coming to your application from the
 Cargo.toml:
 ```toml
 [dependencies]
-secret-vault = { version = "1.15", features=["..."] }
+secret-vault = { version = "1.16", features=["..."] }
 ```
-See security consideration below about versioning.
+See the security consideration below about versioning.
 
 ### Available optional features for Secret Vault:
 
 #### Cloud Provider Features
 **Google Cloud Platform (GCP)**
 - `gcp-secretmanager` - Google Secret Manager support
-- `gcp-kms` - Google Cloud KMS support
 - One of the following TLS implementations is required when using GCP features:
+  - `gcp-kms-tls-roots` (also aliased to `gcp-kms`) - Google Cloud KMS support with TLS roots
+  - `gcp-kms-tls-webpki` - Google Cloud KMS support with WebPKI roots
   - `gcp-tls-roots` - System TLS roots (default)
   - `gcp-tls-webpki` - WebPKI roots
 

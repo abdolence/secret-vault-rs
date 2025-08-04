@@ -19,12 +19,12 @@ jobs:
           cargo fmt -- --check
           
           # Common features for both variants
-          FEATURES="serde,ring-aead-encryption,kms,gcp-secretmanager,gcp-kms,aws,aws-secretmanager,aws-kms-encryption,ahash"
+          FEATURES="serde,ring-aead-encryption,kms,gcp-secretmanager,aws,aws-secretmanager,aws-kms-encryption,ahash"
           
           # Run checks with gcp-tls-roots
-          cargo clippy --features "$FEATURES,gcp-tls-roots" -- -Dwarnings
-          cargo test --features "$FEATURES,gcp-tls-roots"
+          cargo clippy --features "$FEATURES,gcp-tls-roots,gcp-kms-tls-roots" -- -Dwarnings
+          cargo test --features "$FEATURES,gcp-tls-roots,gcp-kms-tls-roots"
           
           # Run checks with gcp-tls-webpki
-          cargo clippy --features "$FEATURES,gcp-tls-webpki" -- -Dwarnings
-          cargo test --features "$FEATURES,gcp-tls-webpki"
+          cargo clippy --features "$FEATURES,gcp-tls-webpki,gcp-kms-webpki" -- -Dwarnings
+          cargo test --features "$FEATURES,gcp-tls-webpki,gcp-kms-webpki"
