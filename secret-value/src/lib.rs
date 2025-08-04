@@ -7,7 +7,7 @@
 //! - Prevents leaking in logs and stack traces
 //! - Stored as a byte array and suitable for binary secrets;
 //! - Introduces additional functions with predicates to control the exposed border;
-//!    of exposed secret values and clean-ups: `exposed_in_*`;
+//!   of exposed secret values and clean-ups: `exposed_in_*`;
 //! - Supports deserialization of embedded JSON value in string using `expose_json_value_as`;
 //! - Securely encoding/decoding from hex/base64 formats;
 //!

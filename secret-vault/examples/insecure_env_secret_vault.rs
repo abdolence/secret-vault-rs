@@ -1,7 +1,7 @@
 use secret_vault::*;
 
 pub fn config_env_var(name: &str) -> Result<String, String> {
-    std::env::var(name).map_err(|e| format!("{}: {}", name, e))
+    std::env::var(name).map_err(|e| format!("{name}: {e}"))
 }
 
 #[tokio::main]
@@ -27,7 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Reading the secret values
     let secret_value: Option<Secret> = vault.get_secret_by_ref(&secret_ref).await?;
 
-    println!("Received secret: {:?}", secret_value);
+    println!("Received secret: {secret_value:?}");
 
     Ok(())
 }

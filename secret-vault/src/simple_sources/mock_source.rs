@@ -113,7 +113,7 @@ pub mod source_tests {
             }),
             1..100,
         )
-        .prop_map(|vec| MockSecretsSource::new(vec))
+        .prop_map(MockSecretsSource::new)
         .boxed()
     }
 }

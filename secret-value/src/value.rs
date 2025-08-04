@@ -192,9 +192,9 @@ mod test {
     proptest! {
         #[test]
         fn secret_is_not_leaking_in_fmt(mock_secret_value in generate_secret_value()) {
-            assert_eq!(format!("{}",mock_secret_value), "***");
-            assert_eq!(format!("{:?}",mock_secret_value), "***");
-            assert_eq!(format!("{:#?}",mock_secret_value), "***");
+            assert_eq!(format!("{mock_secret_value}"), "***");
+            assert_eq!(format!("{mock_secret_value:?}"), "***");
+            assert_eq!(format!("{mock_secret_value:#?}"), "***");
         }
 
         #[test]
@@ -278,9 +278,7 @@ mod test {
         let test_var_to_capture: String = "test-captured".to_string();
 
         let insecure_copy_str = mock_secret
-            .exposed_in_as_str_async(|str| async {
-                (format!("{}{}", test_var_to_capture, str), str)
-            })
+            .exposed_in_as_str_async(|str| async { (format!("{test_var_to_capture}{str}"), str) })
             .await;
 
         assert_eq!(
