@@ -64,7 +64,7 @@ let your_result_json: YourType = secret_value.expose_json_value_as::<YourType>()
 Cargo.toml:
 ```toml
 [dependencies]
-secret-vault-type = { version = "0.3.<x>", features=["..."] }
+secret-vault-type = { version = "1.0.<x>", features=["..."] }
 ```
 See security consideration below about versioning.
 
