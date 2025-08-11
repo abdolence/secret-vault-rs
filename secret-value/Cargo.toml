@@ -1,6 +1,6 @@
 [package]
 name = "secret-vault-value"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["Abdulla Abdurakhmanov <me@abdolence.dev>"]
 edition = "2021"
 license = "Apache-2.0"
@@ -52,4 +52,4 @@ all-features = true
 [[example]]
 name = "simple"
 path = "examples/simple.rs"
-required-features = ["hex", "base64", "serde", "proto"]
+required-features = ["hex", "base64", "serde", "proto","bytes"]
