@@ -24,7 +24,7 @@ bench = false
 [dependencies]
 tracing = "0.1"
 secret-vault-value = { version = "1.0", features= ["hex"] }
-tokio = { version = "1", features = ["sync", "tracing","time"], default-features = false }
+tokio = { version = "1", features = ["sync", "tracing","time", "rt"], default-features = false }
 rvstruct = "0.3"
 rsb_derive = "0.5"
 async-trait = "0.1"
