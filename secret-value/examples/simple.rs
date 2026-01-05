@@ -14,7 +14,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let secret_value5: SecretValue = bytes::BytesMut::from("test").into();
 
-    let secret_string: &str = secret_value4.sensitive_value_to_str()?;
+    let secret_string: &str = secret_value4.sensitive_value_to_str().expect("valid utf8");
     let secret_vec: &Vec<u8> = secret_value4.ref_sensitive_value();
 
     let secret_string: Zeroizing<String> = secret_value1.as_sensitive_hex_str();
@@ -27,7 +27,10 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         (some_result, secret_value) // Returning back secret_value to zeroize
     });
 
-    let your_result_json: YourType = secret_value4.expose_json_value_as::<YourType>()?;
+    let json_value: SecretValue = r#"{"_some_field":"some_value"}"#.into();
+    let your_result_json: YourType = json_value
+        .expose_json_value_as::<YourType>()
+        .expect("valid json");
 
     Ok(())
 }
