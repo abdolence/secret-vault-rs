@@ -33,12 +33,12 @@ zeroize = { version = "1.8", features = ["std", "derive"] }
 hex = "0.4"
 ring = { version = "0.17", features = ["default", "std"], optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
-gcloud-sdk = { version = "0.28", default-features = false, optional = true }
+gcloud-sdk = { version = "0.29", default-features = false, optional = true }
 aws-config = { version = "1", optional = true }
 aws-smithy-types-convert = { version = "0.60", optional = true, features=["convert-chrono"] }
 aws-sdk-secretsmanager = { version = "1", optional = true }
 aws-sdk-kms = { version = "1", optional = true }
-kms-aead = { version = "0.22", optional = true }
+kms-aead = { version = "0.23", optional = true }
 ahash = { version = "0.8", optional = true }
 
 
