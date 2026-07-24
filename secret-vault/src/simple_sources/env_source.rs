@@ -59,7 +59,7 @@ impl SecretsSource for InsecureEnvSource {
                             SecretVaultErrorPublicGenericDetails::new("ENV_NOT_FOUND".into()),
                             format!(
                                 "Secret is required but not found in environment variables {}",
-                                &env_secret_name
+                                env_secret_name
                             ),
                         ),
                     ));

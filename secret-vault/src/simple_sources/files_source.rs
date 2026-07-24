@@ -72,7 +72,7 @@ impl SecretsSource for FilesSource {
                             SecretVaultErrorPublicGenericDetails::new("SECRET_NOT_FOUND".into()),
                             format!(
                                 "Secret is required but corresponding file is not available `{}`: {}",
-                                &secret_file_name,
+                                secret_file_name,
                                 err
                             ),
                         ),
