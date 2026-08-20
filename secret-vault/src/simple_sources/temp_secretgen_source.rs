@@ -140,7 +140,7 @@ impl SecretsSource for TempSecretGenSource {
                             SecretVaultErrorPublicGenericDetails::new("SECRET_NOT_FOUND".into()),
                             format!(
                                 "Secret is required but not found in registered secrets {:?}",
-                                &secret_ref.key
+                                secret_ref.key
                             ),
                         ),
                     ))

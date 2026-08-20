@@ -74,7 +74,7 @@ impl SecretsSource for GcpSecretManagerSource {
                 "projects/{}/secrets/{}/versions/{}",
                 self.options.google_project_id,
                 secret_ref.key.secret_name.value(),
-                &gcp_secret_version
+                gcp_secret_version
             );
 
             trace!("Reading GCP secret: {}", gcp_secret_version_path);
