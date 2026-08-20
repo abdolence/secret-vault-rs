@@ -116,4 +116,4 @@ mod multiple_sources;
 pub use multiple_sources::*;
 
 #[cfg(feature = "gcp-base")]
-mod prost_chrono;
+mod prost_jiff;

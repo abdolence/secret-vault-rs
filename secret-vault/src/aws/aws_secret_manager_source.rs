@@ -2,7 +2,7 @@ use crate::errors::*;
 use crate::*;
 use async_trait::*;
 use aws_sdk_secretsmanager::error::SdkError;
-use aws_smithy_types_convert::date_time::DateTimeExt;
+use jiff::Timestamp;
 use rsb_derive::*;
 use rvstruct::ValueStruct;
 use secret_vault_value::SecretValue;
@@ -121,12 +121,13 @@ impl SecretsSource for AwsSecretManagerSource {
 
                             metadata.description =
                                 aws_secret_desc.description().map(|s| s.to_string());
-                            metadata.created_at = aws_secret_desc
-                                .created_date()
-                                .and_then(|d| d.to_chrono_utc().ok());
-                            metadata.updated_at = aws_secret_desc
-                                .last_changed_date()
-                                .and_then(|d| d.to_chrono_utc().ok());
+                            metadata.created_at = aws_secret_desc.created_date().and_then(|d| {
+                                Timestamp::new(d.secs(), d.subsec_nanos() as i32).ok()
+                            });
+                            metadata.updated_at =
+                                aws_secret_desc.last_changed_date().and_then(|d| {
+                                    Timestamp::new(d.secs(), d.subsec_nanos() as i32).ok()
+                                });
                         }
 
                         result_map.insert(secret_ref.clone(), Secret::new(secret_value, metadata));

@@ -9,7 +9,7 @@ use crate::secrets_source::SecretsSource;
 use crate::*;
 use tracing::*;
 
-use crate::prost_chrono::chrono_time_from_prost;
+use crate::prost_jiff::timestamp_from_prost;
 use async_trait::*;
 use gcloud_sdk::google::cloud::secretmanager::v1::{AccessSecretVersionRequest, GetSecretRequest};
 
@@ -74,7 +74,7 @@ impl SecretsSource for GcpSecretManagerSource {
                 "projects/{}/secrets/{}/versions/{}",
                 self.options.google_project_id,
                 secret_ref.key.secret_name.value(),
-                &gcp_secret_version
+                gcp_secret_version
             );
 
             trace!("Reading GCP secret: {}", gcp_secret_version_path);
@@ -131,7 +131,7 @@ impl SecretsSource for GcpSecretManagerSource {
                             }
 
                             metadata.created_at =
-                                gcp_secret.create_time.and_then(chrono_time_from_prost);
+                                gcp_secret.create_time.and_then(timestamp_from_prost);
                         }
 
                         result_map.insert(secret_ref.clone(), Secret::new(payload.data, metadata));
@@ -168,7 +168,7 @@ fn from_google_expiration(
 ) -> SecretVaultResult<SecretExpiration> {
     match gcp_expiration {
         gcloud_sdk::google::cloud::secretmanager::v1::secret::Expiration::ExpireTime(ts) => {
-            if let Some(dt) = crate::prost_chrono::chrono_time_from_prost(ts) {
+            if let Some(dt) = crate::prost_jiff::timestamp_from_prost(ts) {
                 Ok(SecretExpiration::ExpireTime(dt))
             } else {
                 Err(SecretVaultError::InvalidParametersError(
@@ -182,7 +182,7 @@ fn from_google_expiration(
             }
         }
         gcloud_sdk::google::cloud::secretmanager::v1::secret::Expiration::Ttl(ts) => Ok(
-            SecretExpiration::Ttl(crate::prost_chrono::chrono_duration_from_prost(ts)),
+            SecretExpiration::Ttl(crate::prost_jiff::duration_from_prost(ts)),
         ),
     }
 }

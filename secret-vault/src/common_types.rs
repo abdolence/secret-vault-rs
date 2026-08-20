@@ -1,4 +1,4 @@
-use chrono::prelude::*;
+use jiff::{SignedDuration, Timestamp};
 use rsb_derive::*;
 use rvstruct::*;
 use secret_vault_value::SecretValue;
@@ -113,16 +113,16 @@ pub struct SecretMetadataAnnotation {
 
 #[derive(Debug, Clone, Eq, PartialEq, Builder)]
 pub struct SecretMetadata {
-    #[default = "Utc::now()"]
-    pub cached_at: DateTime<Utc>,
+    #[default = "Timestamp::now()"]
+    pub cached_at: Timestamp,
     pub key: SecretVaultKey,
     pub labels: Option<Vec<SecretMetadataLabel>>,
     pub annotations: Option<Vec<SecretMetadataAnnotation>>,
     pub description: Option<String>,
     pub expiration: Option<SecretExpiration>,
     pub version: Option<SecretVersion>,
-    pub created_at: Option<DateTime<Utc>>,
-    pub updated_at: Option<DateTime<Utc>>,
+    pub created_at: Option<Timestamp>,
+    pub updated_at: Option<Timestamp>,
 }
 
 impl SecretMetadata {
@@ -161,6 +161,6 @@ pub struct Secret {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum SecretExpiration {
-    ExpireTime(chrono::DateTime<chrono::Utc>),
-    Ttl(chrono::Duration),
+    ExpireTime(Timestamp),
+    Ttl(SignedDuration),
 }
