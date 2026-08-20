@@ -28,14 +28,13 @@ tokio = { version = "1", features = ["sync", "tracing","time", "rt", "macros"], 
 rvstruct = "0.3"
 rsb_derive = "0.5"
 async-trait = "0.1"
-chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
+jiff = { version = "0.2", default-features = false, features = ["std", "serde"] }
 zeroize = { version = "1.8", features = ["std", "derive"] }
 hex = "0.4"
 ring = { version = "0.17", features = ["default", "std"], optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 gcloud-sdk = { version = "0.30", default-features = false, optional = true }
 aws-config = { version = "1", optional = true }
-aws-smithy-types-convert = { version = "0.61", optional = true, features=["convert-chrono"] }
 aws-sdk-secretsmanager = { version = "1", optional = true }
 aws-sdk-kms = { version = "1", optional = true }
 kms-aead = { version = "0.25", optional = true }
@@ -54,7 +53,7 @@ cargo-husky = { version = "1.5", default-features = false, features = ["run-for-
 
 [features]
 default = []
-serde = ["dep:serde", "chrono/serde", "secret-vault-value/serde"]
+serde = ["dep:serde", "secret-vault-value/serde"]
 ring-aead-encryption = ["dep:ring", "kms-aead/ring-aead-encryption"]
 kms = ["kms-aead/default"]
 gcp-base = ["gcloud-sdk"]
@@ -68,7 +67,7 @@ gcp-kms-tls-roots = ["gcp-tls-roots", "gcloud-sdk/google-cloud-kms-v1", "kms-aea
 gcp-kms-webpki = ["gcp-tls-webpki", "gcloud-sdk/google-cloud-kms-v1", "kms-aead/gcp-kms-encryption-webpki", "ring-aead-encryption"]
 
 gcp = ["gcp-tls-roots"]  # Default to tls-roots for backward compatibility
-aws = ["dep:aws-config", "dep:aws-smithy-types-convert"]
+aws = ["dep:aws-config"]
 
 aws-secretmanager = ["aws", "dep:aws-sdk-secretsmanager"]
 aws-kms = ["aws", "kms", "dep:aws-sdk-kms", "kms-aead/aws-kms-encryption", "ring-aead-encryption"]

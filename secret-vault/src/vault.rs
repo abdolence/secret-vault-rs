@@ -198,7 +198,7 @@ where
 mod tests {
     use crate::source_tests::*;
     use crate::*;
-    use chrono::Utc;
+    use jiff::Timestamp;
     use proptest::prelude::*;
     use proptest::strategy::ValueTree;
     use proptest::test_runner::TestRunner;
@@ -250,7 +250,7 @@ mod tests {
 
         vault.refresh().await.unwrap();
 
-        let cached_at = Utc::now();
+        let cached_at = Timestamp::now();
 
         let new_secret_ref =
             SecretVaultRef::new("new_secret".into()).with_namespace("default".into());
@@ -270,11 +270,11 @@ mod tests {
                 .map(|secret| secret.metadata.cached_at)
                 .as_ref()
                 .unwrap()
-                .timestamp();
+                .as_second();
             if secret_ref.key != new_secret_ref.key {
-                assert!(ts <= cached_at.timestamp())
+                assert!(ts <= cached_at.as_second())
             } else {
-                assert!(ts >= cached_at.timestamp())
+                assert!(ts >= cached_at.as_second())
             }
         }
     }
