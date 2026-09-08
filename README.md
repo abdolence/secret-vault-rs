@@ -38,7 +38,7 @@ Library provides the support for the secrets coming to your application from the
 Cargo.toml:
 ```toml
 [dependencies]
-secret-vault = { version = "2.0", features=["..."] }
+secret-vault = { version = "2.1", features=["..."] }
 ```
 See the security consideration below about versioning.
 
@@ -69,17 +69,17 @@ See the security consideration below about versioning.
 
 For GCP Secret Manager with system TLS roots:
 ```toml
-secret-vault = { version = "2.0", features = ["gcp-secretmanager", "gcp-tls-roots"] }
+secret-vault = { version = "2.1", features = ["gcp-secretmanager", "gcp-tls-roots"] }
 ```
 
 For AWS Secrets Manager with KMS encryption:
 ```toml
-secret-vault = { version = "2.0", features = ["aws-secretmanager", "aws-kms-encryption"] }
+secret-vault = { version = "2.1", features = ["aws-secretmanager", "aws-kms-encryption"] }
 ```
 
 For GCP Secret Manager with WebPKI and serde support:
 ```toml
-secret-vault = { version = "2.0", features = ["gcp-secretmanager", "gcp-tls-webpki", "serde"] }
+secret-vault = { version = "2.1", features = ["gcp-secretmanager", "gcp-tls-webpki", "serde"] }
 ```
 
 Note: When using GCP features, you must choose either `gcp-tls-roots` or `gcp-tls-webpki`. These features are mutually exclusive and cannot be enabled simultaneously.
