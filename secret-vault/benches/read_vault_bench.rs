@@ -30,7 +30,7 @@ pub fn generate_mock_secrets_source() -> BoxedStrategy<MockSecretsSource> {
         }),
         1..1000,
     )
-    .prop_map(|vec| MockSecretsSource::new(vec))
+    .prop_map(MockSecretsSource::new)
     .boxed()
 }
 
@@ -53,11 +53,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let mock_store_keys: Vec<SecretVaultRef> = {
         let mock_store_secrets = mock_secrets_store.secrets.lock().unwrap();
-        mock_store_secrets
-            .keys()
-            .into_iter()
-            .map(|s| s.clone())
-            .collect()
+        mock_store_secrets.keys().cloned().collect()
     };
 
     let secret_ref = mock_store_keys.last().unwrap();
@@ -111,7 +107,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
 
     c.bench_function("read-secrets-perf-snapshot", |b| {
-        b.iter(|| vault_std_hash_snapshot.get_secret_by_ref(black_box(&secret_ref)))
+        b.iter(|| vault_std_hash_snapshot.get_secret_by_ref(black_box(secret_ref)))
     });
 }
 
