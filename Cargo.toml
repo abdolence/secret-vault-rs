@@ -4,8 +4,3 @@ members = [
     "secret-value",
     "secret-vault"
 ]
-
-# Unreleased gcloud-sdk 0.33 and kms-aead 0.28; remove once both are published on crates.io.
-[patch.crates-io]
-gcloud-sdk = { git = "https://github.com/abdolence/gcloud-sdk-rs", branch = "feat/google-cloud-auth" }
-kms-aead = { git = "https://github.com/abdolence/kms-aead-rs", branch = "chore/gcloud-sdk-0.33" }
