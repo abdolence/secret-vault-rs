@@ -108,7 +108,7 @@ mod tests {
 
     #[tokio::test]
     async fn big_secret_encryption_test() {
-        for sz in vec![5000, 32768, 65535] {
+        for sz in [5000, 32768, 65535] {
             encryption_test_for(SecretValue::new("42".repeat(sz).as_bytes().to_vec())).await
         }
     }
