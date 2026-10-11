@@ -7,7 +7,6 @@ use azure_security_keyvault_secrets::models::{self, SecretClientGetSecretOptions
 use azure_security_keyvault_secrets::{ResourceExt, SecretClient, SecretClientOptions};
 use jiff::Timestamp;
 use rsb_derive::*;
-use rvstruct::ValueStruct;
 use secret_vault_value::SecretValue;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -189,7 +188,7 @@ impl<'a> TryFrom<&'a SecretVaultKey> for KeyVaultSecretId<'a> {
     type Error = SecretVaultError;
 
     fn try_from(key: &'a SecretVaultKey) -> Result<Self, Self::Error> {
-        let name: &str = key.secret_name.value();
+        let name = key.secret_name.value();
         if name.is_empty() || !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
             return Err(SecretVaultInvalidParametersError::create(
                 "secret_name",
@@ -197,7 +196,7 @@ impl<'a> TryFrom<&'a SecretVaultKey> for KeyVaultSecretId<'a> {
             ));
         }
 
-        let version: Option<&str> = key.secret_version.as_ref().map(|v| &**v.value());
+        let version: Option<&str> = key.secret_version.as_ref().map(|v| v.value());
         if let Some(version) = version {
             if version.is_empty() || !version.chars().all(|c| c.is_ascii_alphanumeric()) {
                 return Err(SecretVaultInvalidParametersError::create(

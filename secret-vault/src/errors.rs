@@ -131,6 +131,7 @@ pub struct SecretVaultInvalidParametersError {
     pub public: SecretVaultInvalidParametersPublicDetails,
 }
 
+#[cfg(feature = "azure-keyvault")]
 impl SecretVaultInvalidParametersError {
     pub(crate) fn create(field: &str, error: String) -> SecretVaultError {
         SecretVaultError::InvalidParametersError(SecretVaultInvalidParametersError::new(
