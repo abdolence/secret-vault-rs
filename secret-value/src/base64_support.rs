@@ -1,6 +1,6 @@
 use crate::SecretValue;
 use base64::prelude::*;
-use zeroize::{Zeroize, Zeroizing};
+use zeroize::Zeroizing;
 
 impl SecretValue {
     pub fn as_sensitive_base64_str(&self) -> Zeroizing<String> {
@@ -11,10 +11,9 @@ impl SecretValue {
         Self::from(&self.as_sensitive_base64_str())
     }
 
-    pub fn from_base64_str(mut base64_string: String) -> Result<Self, base64::DecodeError> {
-        let result = Self::new(BASE64_STANDARD.decode(&base64_string)?);
-        base64_string.zeroize();
-        Ok(result)
+    pub fn from_base64_str(base64_string: String) -> Result<Self, base64::DecodeError> {
+        let base64_string = Zeroizing::new(base64_string);
+        Ok(Self::new(BASE64_STANDARD.decode(base64_string.as_str())?))
     }
 }
 
