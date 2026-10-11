@@ -189,7 +189,8 @@ The `hashicorp-vault` feature reads secrets from the KV secrets engine v2 throug
 - the KV v2 custom metadata of the secret becomes secret labels when `read_metadata` is enabled.
 
 ```rust
-let secret_ref = SecretVaultRef::new("my-app/database".into());
+static DATABASE_SECRET_REF: SecretVaultRef =
+    SecretVaultRef::new(SecretName::from_static("my-app/database"));
 
 // The options read VAULT_ADDR, VAULT_TOKEN, VAULT_NAMESPACE, VAULT_CACERT and VAULT_CLIENT_TIMEOUT from the environment
 let vault = SecretVaultBuilder::with_source(hashicorp::HashiCorpVaultSource::with_options(
@@ -198,13 +199,13 @@ let vault = SecretVaultBuilder::with_source(hashicorp::HashiCorpVaultSource::wit
         .with_read_metadata(true),
 )?)
     .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
-    .with_secret_refs(vec![&secret_ref])
+    .with_secret_refs(vec![&DATABASE_SECRET_REF])
     .build()?;
 
 vault.refresh().await?;
 
 // Reading the fields of the secret with the `serde` feature enabled
-let secret: Secret = vault.require_secret_by_ref(&secret_ref).await?;
+let secret: Secret = vault.require_secret_by_ref(&DATABASE_SECRET_REF).await?;
 let database: DatabaseConfig = secret.value.expose_json_value_as()?;
 ```
 
