@@ -167,7 +167,7 @@ To run this example use with environment variables:
 ```
 
 The HTTP client of gcloud-sdk uses native-tls (OpenSSL on Linux) with `gcp-tls-roots`, and rustls with aws-lc-rs with `gcp-tls-webpki`.
-With `gcp-secretmanager-base` install a rustls `CryptoProvider` at startup before creating the source, for example `rustls::crypto::ring::default_provider().install_default()`.
+With `gcp-secretmanager-base` install a default `CryptoProvider` with `CryptoProvider::install_default` before creating the source, for example `rustls::crypto::ring::default_provider().install_default()`; without one rustls panics unless the build has exactly one provider.
 GCP KMS supports only aws-lc-rs, since kms-aead enables it.
 
 ## Example for Azure Key Vault
@@ -202,10 +202,10 @@ the expiration and timestamps of `SecretMetadata`.
 
 The TLS features select the TLS of the reqwest client the Azure SDK creates:
 - `azure-keyvault-tls-aws-lc-rs` - rustls with aws-lc-rs, certificates are verified by the platform verifier;
-- `azure-keyvault-tls-no-provider` - rustls with the default `CryptoProvider` of the process, so install one at startup, for example `rustls::crypto::ring::default_provider().install_default()`;
+- `azure-keyvault-tls-no-provider` - rustls with the default `CryptoProvider` of the process;
 - `azure-keyvault-native-tls` - native-tls: OpenSSL on Linux and the system TLS on macOS and Windows.
 
-With `azure-keyvault-tls-no-provider` and no installed `CryptoProvider`, creating the source fails with `InvalidParametersError`.
+With `azure-keyvault-tls-no-provider` install a default `CryptoProvider` with `CryptoProvider::install_default` before creating the source, for example `rustls::crypto::ring::default_provider().install_default()`; without one reqwest panics.
 GCP (through gcloud-sdk) and Azure share one reqwest TLS backend in an application, and reqwest uses native-tls whenever it is enabled anywhere in the build.
 Both backends verify certificates, but a pair of GCP and Azure features can select a different backend than the feature name says:
 - `gcp-tls-roots` with `azure-keyvault-tls-aws-lc-rs` or `azure-keyvault-tls-no-provider` - the Azure source uses native-tls;
@@ -268,8 +268,8 @@ The source uses rustls, and the TLS features select its root store and crypto pr
 - `hashicorp-vault-tls-aws-lc-rs` or `hashicorp-vault-tls-ring` - the crypto provider.
 
 The provider is used for the connections of the source only and is not installed as the process default.
-If your application uses rustls with `ring`, enable `hashicorp-vault-tls-ring`. With both providers in one build rustls cannot choose a default one, and the application has to install it at startup.
-That includes `hashicorp-vault-tls-ring` together with `gcp-secretmanager` or GCP KMS, which enable aws-lc-rs: without an installed provider the GCP source and the GCP KMS encryption fail with `InvalidParametersError`.
+If your application uses rustls with `ring`, enable `hashicorp-vault-tls-ring`.
+With `hashicorp-vault-tls-ring` and a feature that enables aws-lc-rs, such as `gcp-secretmanager` or GCP KMS, rustls has both providers and cannot choose one, so install a default `CryptoProvider` with `CryptoProvider::install_default` at startup; without one rustls panics in the GCP source and the GCP KMS encryption.
 When the root store has no certificates and no CA certificate file is set, for example `hashicorp-vault-tls-roots` in an image without system CA certificates, creating the source fails with `InvalidParametersError`.
 
 Be aware that an `http://` address sends the token and the secrets unencrypted. The source logs a warning when such an address points to a host other than `localhost` or a loopback IP address.

@@ -150,19 +150,6 @@ pub use common_types::*;
 #[cfg(feature = "ring-aead-encryption")]
 pub mod ring_encryption;
 
-#[cfg(any(
-    all(
-        any(
-            feature = "gcp-secretmanager-base",
-            feature = "gcp-kms-tls-roots",
-            feature = "gcp-kms-tls-webpki"
-        ),
-        feature = "hashicorp-vault-tls-ring"
-    ),
-    feature = "azure-keyvault-tls-no-provider"
-))]
-mod crypto_provider;
-
 #[cfg(feature = "gcp-base")]
 pub mod gcp;
 
