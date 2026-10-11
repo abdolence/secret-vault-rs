@@ -148,6 +148,14 @@ impl Display for SecretVaultInvalidParametersError {
 
 impl std::error::Error for SecretVaultInvalidParametersError {}
 
+impl SecretVaultInvalidParametersError {
+    pub fn create(field: &str, error: String) -> SecretVaultError {
+        SecretVaultError::InvalidParametersError(SecretVaultInvalidParametersError::new(
+            SecretVaultInvalidParametersPublicDetails::new(field.to_string(), error),
+        ))
+    }
+}
+
 #[derive(Debug, Eq, PartialEq, Clone, Builder)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SecretVaultInvalidJsonErrorPublicDetails {
@@ -213,6 +221,33 @@ impl Display for SecretsSourceError {
 }
 
 impl std::error::Error for SecretsSourceError {}
+
+impl SecretsSourceError {
+    pub fn create(code: &str, message: String) -> SecretVaultError {
+        SecretVaultError::SecretsSourceError(SecretsSourceError::new(
+            SecretVaultErrorPublicGenericDetails::new(code.to_string()),
+            message,
+        ))
+    }
+
+    /// For an error whose message and source chain carry no secret: the chain goes into the
+    /// message, since the top-level message alone rarely says what failed, and the error is
+    /// kept as the root cause.
+    #[cfg(feature = "hashicorp-vault")]
+    fn with_error_chain(code: &str, context: &str, e: impl Error + Send + Sync + 'static) -> Self {
+        let mut message = format!("{context}: {e}");
+        let mut source = e.source();
+        while let Some(cause) = source {
+            message.push_str(&format!(": {cause}"));
+            source = cause.source();
+        }
+        SecretsSourceError::new(
+            SecretVaultErrorPublicGenericDetails::new(code.into()),
+            message,
+        )
+        .with_root_cause(Box::new(e))
+    }
+}
 
 #[cfg(feature = "gcp-base")]
 impl From<gcloud_sdk::error::Error> for SecretVaultError {
@@ -344,50 +379,25 @@ impl From<kms_aead::errors::KmsAeadError> for SecretVaultError {
     }
 }
 
-/// Several `vaultrs` and `rustify` error variants carry the raw response body,
-/// which for a read is the secret itself, in their `Debug` output and source chain.
-/// The mapping keeps only messages known not to contain a payload, and never
-/// stores the original error as a root cause.
+/// Transport errors hold neither the request headers nor the response body.
 #[cfg(feature = "hashicorp-vault")]
-impl From<vaultrs::error::ClientError> for SecretVaultError {
-    fn from(e: vaultrs::error::ClientError) -> Self {
-        use rustify::errors::ClientError as RestClientError;
-        use vaultrs::error::ClientError;
+impl From<hyper_util::client::legacy::Error> for SecretVaultError {
+    fn from(e: hyper_util::client::legacy::Error) -> Self {
+        SecretVaultError::SecretsSourceError(SecretsSourceError::with_error_chain(
+            "VAULT_HTTP",
+            "Unable to send the request to Vault",
+            e,
+        ))
+    }
+}
 
-        match e {
-            ClientError::APIError { code: 404, errors } => {
-                SecretVaultError::DataNotFoundError(SecretVaultDataNotFoundError::new(
-                    SecretVaultErrorPublicGenericDetails::new("NOT_FOUND".into()),
-                    format!("Vault returned status 404: {errors:?}"),
-                ))
-            }
-            ClientError::APIError { code, errors } => {
-                SecretVaultError::SecretsSourceError(SecretsSourceError::new(
-                    SecretVaultErrorPublicGenericDetails::new(format!("VAULT_STATUS_{code}")),
-                    format!("Vault returned status {code}: {errors:?}"),
-                ))
-            }
-            ClientError::RestClientError {
-                source:
-                    RestClientError::RequestError {
-                        source,
-                        url,
-                        method,
-                    },
-            } => SecretVaultError::NetworkError(SecretVaultNetworkError::new(
-                SecretVaultErrorPublicGenericDetails::new("VAULT_REQUEST".into()),
-                format!("Unable to send {method} {url} to Vault: {source:#}"),
-            )),
-            ClientError::RestClientError {
-                source: RestClientError::ResponseError { source },
-            } => SecretVaultError::NetworkError(SecretVaultNetworkError::new(
-                SecretVaultErrorPublicGenericDetails::new("VAULT_RESPONSE".into()),
-                format!("Unable to receive the Vault response: {source:#}"),
-            )),
-            other => SecretVaultError::SecretsSourceError(SecretsSourceError::new(
-                SecretVaultErrorPublicGenericDetails::new("VAULT_CLIENT".into()),
-                format!("HashiCorp Vault client error: {other}"),
-            )),
-        }
+#[cfg(feature = "hashicorp-vault")]
+impl From<hyper::Error> for SecretVaultError {
+    fn from(e: hyper::Error) -> Self {
+        SecretVaultError::SecretsSourceError(SecretsSourceError::with_error_chain(
+            "VAULT_HTTP",
+            "Unable to receive the Vault response",
+            e,
+        ))
     }
 }

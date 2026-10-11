@@ -180,19 +180,19 @@ All examples available at [secret-vault/examples](secret-vault/examples) directo
 
 ## HashiCorp Vault
 
-The `hashicorp-vault` feature reads secrets from the KV secrets engine v2 using the [vaultrs](https://crates.io/crates/vaultrs) client:
+The `hashicorp-vault` feature reads secrets from the KV secrets engine v2 through the Vault HTTP API:
 - the secret name is the path of the secret inside the mount (`my-app/database`);
 - the secret version is the KV v2 version number, the latest version is read when it is not specified;
-- the secret value is the `data` object of the version as JSON;
+- the secret value is the `data` object of the version as JSON, the same way AWS Secrets Manager returns key/value secrets;
 - the mount path is `secret` by default and can be changed with `with_mount`;
 - the KV v2 custom metadata of the secret becomes secret labels when `read_metadata` is enabled.
 
 ```rust
 let secret_ref = SecretVaultRef::new("my-app/database".into());
 
-// The client reads VAULT_ADDR and VAULT_TOKEN from the environment
+// The options read VAULT_ADDR, VAULT_TOKEN, VAULT_NAMESPACE and VAULT_CACERT from the environment
 let vault = SecretVaultBuilder::with_source(hashicorp::HashiCorpVaultSource::with_options(
-    hashicorp::HashiCorpVaultSourceOptions::new()
+    hashicorp::HashiCorpVaultSourceOptions::from_env()?
         .with_mount("secret".into())
         .with_read_metadata(true),
 )?)
@@ -207,7 +207,15 @@ let secret: Secret = vault.require_secret_by_ref(&secret_ref).await?;
 let database: DatabaseConfig = secret.value.expose_json_value_as()?;
 ```
 
-Token authentication through `VAULT_TOKEN` is the default. For other authentication methods, log in with one of the `vaultrs::auth` modules (AppRole, Kubernetes, userpass and others) and pass the client to `HashiCorpVaultSource::with_client`. The `vaultrs` crate is re-exported as `secret_vault::hashicorp::vaultrs` to keep the versions in sync.
+The environment variables are the ones the Vault CLI uses:
+- `VAULT_ADDR` - the address of the Vault server, required;
+- `VAULT_TOKEN` - the token sent with every request;
+- `VAULT_NAMESPACE` - the Vault Enterprise namespace;
+- `VAULT_CACERT` - a PEM file with CA certificates to trust in addition to the system ones.
+
+To configure the source in code use `HashiCorpVaultSourceOptions::new(address)` with `with_token`, `with_namespace` and `with_ca_certificate`.
+
+Only token authentication is supported. For other authentication methods (AppRole, Kubernetes, cloud IAM, etc.) either log in with your own code and pass the token with `with_token`, or run Vault Agent or Vault Proxy with auto-auth and `use_auto_auth_token` and point `VAULT_ADDR` to it without a token. Be aware the source does not renew the token, so the secrets stop refreshing when it expires.
 
 To run the example:
 ```
