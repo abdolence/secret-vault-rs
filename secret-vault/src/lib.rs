@@ -1,6 +1,6 @@
 //! # Secret Vault for Rust
 //!
-//! Library provides the support for the secrets coming to your application from the following sources::
+//! Library provides the support for the secrets coming to your application from the following sources:
 //!
 //! - Google Cloud Secret Manager
 //! - Amazon Secrets Manager
