@@ -91,7 +91,7 @@ secret-vault = { version = "3.0", features = ["azure-keyvault"] }
 
 For HashiCorp Vault with AEAD encryption:
 ```toml
-secret-vault = { version = "2.2", features = ["hashicorp-vault", "ring-aead-encryption"] }
+secret-vault = { version = "3.0", features = ["hashicorp-vault", "ring-aead-encryption"] }
 ```
 
 For GCP Secret Manager with WebPKI and serde support:
@@ -184,13 +184,14 @@ The `hashicorp-vault` feature reads secrets from the KV secrets engine v2 throug
 - the secret name is the path of the secret inside the mount (`my-app/database`);
 - the secret version is the KV v2 version number, the latest version is read when it is not specified;
 - the secret value is the `data` object of the version as JSON, the same way AWS Secrets Manager returns key/value secrets;
+- the JSON text is the one Vault returns: keys are sorted and `<`, `>`, `&` are escaped as `\u003c`, `\u003e`, `\u0026`, so parse it with `expose_json_value_as` and do not compare the text;
 - the mount path is `secret` by default and can be changed with `with_mount`;
 - the KV v2 custom metadata of the secret becomes secret labels when `read_metadata` is enabled.
 
 ```rust
 let secret_ref = SecretVaultRef::new("my-app/database".into());
 
-// The options read VAULT_ADDR, VAULT_TOKEN, VAULT_NAMESPACE and VAULT_CACERT from the environment
+// The options read VAULT_ADDR, VAULT_TOKEN, VAULT_NAMESPACE, VAULT_CACERT and VAULT_CLIENT_TIMEOUT from the environment
 let vault = SecretVaultBuilder::with_source(hashicorp::HashiCorpVaultSource::with_options(
     hashicorp::HashiCorpVaultSourceOptions::from_env()?
         .with_mount("secret".into())
@@ -211,9 +212,14 @@ The environment variables are the ones the Vault CLI uses:
 - `VAULT_ADDR` - the address of the Vault server, required;
 - `VAULT_TOKEN` - the token sent with every request;
 - `VAULT_NAMESPACE` - the Vault Enterprise namespace;
-- `VAULT_CACERT` - a PEM file with CA certificates to trust in addition to the system ones.
+- `VAULT_CACERT` - a PEM file with CA certificates to trust in addition to the system ones;
+- `VAULT_CLIENT_TIMEOUT` - the time limit for one read, in seconds (`60`) or as a duration (`1m30s`), 60 seconds by default.
 
-To configure the source in code use `HashiCorpVaultSourceOptions::new(address)` with `with_token`, `with_namespace` and `with_ca_certificate`.
+To configure the source in code use `HashiCorpVaultSourceOptions::new(address)` with `with_token`, `with_namespace`, `with_ca_certificate` and `with_timeout`.
+
+A read that fails with 5xx or 429 from Vault (sealed, rate limited), a timeout or a connection error returns `SecretVaultError::NetworkError` and can be retried. Other failed reads return `SecretVaultError::SecretsSourceError`.
+
+The feature brings rustls with the aws-lc-rs crypto provider. If your application uses rustls with `ring`, install the default `CryptoProvider` yourself at startup.
 
 Only token authentication is supported. For other authentication methods (AppRole, Kubernetes, cloud IAM, etc.) either log in with your own code and pass the token with `with_token`, or run Vault Agent or Vault Proxy with auto-auth and `use_auto_auth_token` and point `VAULT_ADDR` to it without a token. Be aware the source does not renew the token, so the secrets stop refreshing when it expires.
 
