@@ -71,31 +71,45 @@ compile_error!(
 compile_error!("You cannot enable both \"gcp-tls-roots\" and \"gcp-tls-webpki\" at the same time");
 
 #[cfg(all(
+    feature = "gcp-base",
+    not(feature = "gcp-tls-aws-lc-rs"),
+    not(feature = "gcp-tls-no-provider")
+))]
+compile_error!(
+    "You must enable either \"gcp-tls-aws-lc-rs\" or \"gcp-tls-no-provider\" when using GCP features"
+);
+
+#[cfg(all(feature = "gcp-tls-aws-lc-rs", feature = "gcp-tls-no-provider"))]
+compile_error!(
+    "You cannot enable both \"gcp-tls-aws-lc-rs\" (enabled by \"gcp\" and the GCP KMS features) and \"gcp-tls-no-provider\" at the same time"
+);
+
+#[cfg(all(
     feature = "azure-keyvault-base",
-    not(feature = "azure-keyvault-rustls"),
-    not(feature = "azure-keyvault-rustls-no-provider"),
+    not(feature = "azure-keyvault-tls-aws-lc-rs"),
+    not(feature = "azure-keyvault-tls-no-provider"),
     not(feature = "azure-keyvault-native-tls")
 ))]
 compile_error!(
-    "You must enable one of \"azure-keyvault-rustls\" (or \"azure-keyvault\"), \"azure-keyvault-rustls-no-provider\" or \"azure-keyvault-native-tls\" when using Azure features"
+    "You must enable one of \"azure-keyvault-tls-aws-lc-rs\" (or \"azure-keyvault\"), \"azure-keyvault-tls-no-provider\" or \"azure-keyvault-native-tls\" when using Azure features"
 );
 
 #[cfg(any(
     all(
-        feature = "azure-keyvault-rustls",
-        feature = "azure-keyvault-rustls-no-provider"
+        feature = "azure-keyvault-tls-aws-lc-rs",
+        feature = "azure-keyvault-tls-no-provider"
     ),
     all(
-        feature = "azure-keyvault-rustls",
+        feature = "azure-keyvault-tls-aws-lc-rs",
         feature = "azure-keyvault-native-tls"
     ),
     all(
-        feature = "azure-keyvault-rustls-no-provider",
+        feature = "azure-keyvault-tls-no-provider",
         feature = "azure-keyvault-native-tls"
     )
 ))]
 compile_error!(
-    "You can enable only one of \"azure-keyvault-rustls\" (enabled by \"azure-keyvault\"), \"azure-keyvault-rustls-no-provider\" and \"azure-keyvault-native-tls\""
+    "You can enable only one of \"azure-keyvault-tls-aws-lc-rs\" (enabled by \"azure-keyvault\"), \"azure-keyvault-tls-no-provider\" and \"azure-keyvault-native-tls\""
 );
 
 #[cfg(all(

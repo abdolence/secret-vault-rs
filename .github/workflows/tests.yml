@@ -4,8 +4,25 @@ on:
   pull_request:
     types: [opened]
 jobs:
-  build:
+  # One job per TLS variant over the features of every source. AWS has no TLS features and
+  # GCP KMS only supports aws-lc-rs, so the ring variants leave GCP KMS out. In the ring variants
+  # GCP and Azure use the provider the application installs, which is how they run with ring.
+  tls-variant:
+    name: ${{ matrix.variant }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - variant: roots-aws-lc-rs
+            tls: gcp-tls-roots,gcp-tls-aws-lc-rs,gcp-kms-tls-roots,azure-keyvault-tls-aws-lc-rs,hashicorp-vault-tls-roots,hashicorp-vault-tls-aws-lc-rs
+          - variant: webpki-aws-lc-rs
+            tls: gcp-tls-webpki,gcp-tls-aws-lc-rs,gcp-kms-tls-webpki,azure-keyvault-tls-aws-lc-rs,hashicorp-vault-tls-webpki,hashicorp-vault-tls-aws-lc-rs
+          - variant: roots-ring
+            tls: gcp-tls-roots,gcp-tls-no-provider,azure-keyvault-tls-no-provider,hashicorp-vault-tls-roots,hashicorp-vault-tls-ring
+          - variant: webpki-ring
+            tls: gcp-tls-webpki,gcp-tls-no-provider,azure-keyvault-tls-no-provider,hashicorp-vault-tls-webpki,hashicorp-vault-tls-ring
+          - variant: native-tls
+            tls: gcp-tls-roots,gcp-tls-aws-lc-rs,gcp-kms-tls-roots,azure-keyvault-native-tls,hashicorp-vault-tls-roots,hashicorp-vault-tls-aws-lc-rs
     steps:
       - uses: actions/checkout@v7
       - uses: actions-rs/toolchain@v1
@@ -15,38 +32,8 @@ jobs:
           components: rustfmt, clippy
       - name: Run checks
         run: |
-          # Format check
           cargo fmt -- --check
-          
-          # Common features for both variants
-          FEATURES="serde,ring-aead-encryption,kms,gcp-secretmanager,aws,aws-secretmanager,aws-kms-encryption,azure-keyvault,hashicorp-vault,ahash"
-          
-          # Run checks with gcp-tls-roots
-          cargo clippy --features "$FEATURES,gcp-tls-roots,gcp-kms-tls-roots" -- -Dwarnings
-          cargo test --features "$FEATURES,gcp-tls-roots,gcp-kms-tls-roots"
-          
-          # Run checks with gcp-tls-webpki
-          cargo clippy --features "$FEATURES,gcp-tls-webpki,gcp-kms-webpki" -- -Dwarnings
-          cargo test --features "$FEATURES,gcp-tls-webpki,gcp-kms-webpki"
-  # TLS variants of the Azure and HashiCorp sources other than the defaults the build job checks
-  tls-variants:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        tls:
-          - azure-keyvault-rustls-no-provider
-          - azure-keyvault-native-tls
-          - hashicorp-vault-tls-webpki,hashicorp-vault-tls-aws-lc-rs
-          - hashicorp-vault-tls-roots,hashicorp-vault-tls-ring
-          - hashicorp-vault-tls-webpki,hashicorp-vault-tls-ring
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          components: clippy
-      - name: Run checks
-        run: |
-          cargo clippy -p secret-vault --no-default-features --features "ring-aead-encryption,${{ matrix.tls }}" --all-targets -- -Dwarnings
-          cargo test -p secret-vault --no-default-features --features "ring-aead-encryption,${{ matrix.tls }}"
+
+          FEATURES="serde,ring-aead-encryption,kms,gcp-secretmanager,aws,aws-secretmanager,aws-kms-encryption,ahash,${{ matrix.tls }}"
+          cargo clippy --workspace --all-targets --features "$FEATURES" -- -Dwarnings
+          cargo test --workspace --features "$FEATURES"

@@ -73,17 +73,21 @@ serde = ["dep:serde", "secret-vault-value/serde"]
 ring-aead-encryption = ["dep:ring", "kms-aead/ring-aead-encryption"]
 kms = ["kms-aead/default"]
 gcp-base = ["gcloud-sdk"]
-# TLS variants - user can choose one
+# TLS root store variants - user can choose one
 gcp-tls-roots = ["gcp-base", "gcloud-sdk/tls-roots"]
 gcp-tls-webpki = ["gcp-base", "gcloud-sdk/tls-webpki-roots"]
-# Features that build a client also enable the rustls crypto provider gcloud-sdk needs for credentials.
-gcp-secretmanager = ["gcp-base", "gcloud-sdk/google-cloud-secretmanager-v1", "gcloud-sdk/auth-default-crypto", "ring-aead-encryption"]
+# TLS crypto provider variants - user can choose one
+gcp-tls-aws-lc-rs = ["gcp-base", "gcloud-sdk/auth-default-crypto"]
+gcp-tls-no-provider = ["gcp-base"]
+gcp-secretmanager = ["gcp-base", "gcloud-sdk/google-cloud-secretmanager-v1", "ring-aead-encryption"]
 
+# kms-aead enables the aws-lc-rs provider of gcloud-sdk for GCP KMS.
 gcp-kms = ["gcp-kms-tls-roots"]
-gcp-kms-tls-roots = ["gcp-tls-roots", "gcloud-sdk/google-cloud-kms-v1", "gcloud-sdk/auth-default-crypto", "kms-aead/gcp-kms-encryption", "ring-aead-encryption"]
-gcp-kms-webpki = ["gcp-tls-webpki", "gcloud-sdk/google-cloud-kms-v1", "gcloud-sdk/auth-default-crypto", "kms-aead/gcp-kms-encryption-webpki", "ring-aead-encryption"]
+gcp-kms-tls-roots = ["gcp-tls-roots", "gcp-tls-aws-lc-rs", "gcloud-sdk/google-cloud-kms-v1", "kms-aead/gcp-kms-encryption", "ring-aead-encryption"]
+gcp-kms-tls-webpki = ["gcp-tls-webpki", "gcp-tls-aws-lc-rs", "gcloud-sdk/google-cloud-kms-v1", "kms-aead/gcp-kms-encryption-webpki", "ring-aead-encryption"]
+gcp-kms-webpki = ["gcp-kms-tls-webpki"]  # The 2.x name of gcp-kms-tls-webpki
 
-gcp = ["gcp-tls-roots"]  # Default to tls-roots for backward compatibility
+gcp = ["gcp-tls-roots", "gcp-tls-aws-lc-rs"]
 aws = ["dep:aws-config"]
 
 aws-secretmanager = ["aws", "dep:aws-sdk-secretsmanager"]
@@ -97,10 +101,10 @@ azure-keyvault-base = [
     "dep:serde_json",
 ]
 # TLS variants - user can choose one
-azure-keyvault-rustls = ["azure-keyvault-base", "azure_core/reqwest_rustls"]
-azure-keyvault-rustls-no-provider = ["azure-keyvault-base", "reqwest/rustls-no-provider"]
+azure-keyvault-tls-aws-lc-rs = ["azure-keyvault-base", "azure_core/reqwest_rustls"]
+azure-keyvault-tls-no-provider = ["azure-keyvault-base", "reqwest/rustls-no-provider"]
 azure-keyvault-native-tls = ["azure-keyvault-base", "reqwest/native-tls"]
-azure-keyvault = ["azure-keyvault-rustls"]
+azure-keyvault = ["azure-keyvault-tls-aws-lc-rs"]
 
 hashicorp-vault-base = [
     "dep:hyper",
@@ -145,7 +149,7 @@ features = [
 [[example]]
 name = "gcp_secret_manager_vault"
 path = "examples/gcp_secret_manager_vault.rs"
-required-features = ["gcp-secretmanager", "gcp-tls-roots", "ring-aead-encryption"]
+required-features = ["gcp-secretmanager", "ring-aead-encryption"]
 
 [[example]]
 name = "aws_secret_manager_vault"
@@ -160,7 +164,7 @@ required-features = ["hashicorp-vault-base", "ring-aead-encryption"]
 [[example]]
 name = "kms_gcp_secret_manager_vault"
 path = "examples/kms_gcp_secret_manager_vault.rs"
-required-features = ["gcp-secretmanager", "gcp-tls-roots", "gcp-kms"]
+required-features = ["gcp-secretmanager", "gcp-kms-tls-roots"]
 
 [[example]]
 name = "kms_aws_secret_manager_vault"
