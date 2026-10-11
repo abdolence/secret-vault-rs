@@ -85,8 +85,8 @@ pub struct HashiCorpVaultSourceOptions {
     /// Vault Enterprise namespace the mount belongs to.
     pub namespace: Option<String>,
 
-    /// PEM file with CA certificates to trust besides the system ones, for a server whose
-    /// certificate comes from a private CA.
+    /// PEM file with CA certificates to trust besides the roots of the selected TLS root store,
+    /// for a server whose certificate comes from a private CA.
     pub ca_certificate: Option<PathBuf>,
 
     /// Mount path of the KV secrets engine v2 the secrets are read from.
@@ -532,16 +532,21 @@ fn encoded_vault_path(field: &str, path: &str) -> SecretVaultResult<String> {
         .map(|segments| segments.join("/"))
 }
 
-/// The system CA certificates plus the ones in `ca_certificate`, with the aws-lc-rs provider
-/// the GCP and AWS clients of this crate use. Enabling a second rustls provider in the same build
-/// would stop `rustls::ClientConfig::builder()` from finding a default anywhere in the application.
+/// The roots of the selected root store plus the CA certificates in `ca_certificate`, with the
+/// selected crypto provider. The provider is passed to this config only and never installed as
+/// the process default, which stays the application's choice.
 fn tls_config(ca_certificate: Option<&Path>) -> SecretVaultResult<rustls::ClientConfig> {
     let mut roots = rustls::RootCertStore::empty();
-    let system_certificates = rustls_native_certs::load_native_certs();
-    for error in &system_certificates.errors {
-        warn!(%error, "Unable to load a system CA certificate");
+    #[cfg(feature = "hashicorp-vault-tls-roots")]
+    {
+        let system_certificates = rustls_native_certs::load_native_certs();
+        for error in &system_certificates.errors {
+            warn!(%error, "Unable to load a system CA certificate");
+        }
+        roots.add_parsable_certificates(system_certificates.certs);
     }
-    roots.add_parsable_certificates(system_certificates.certs);
+    #[cfg(feature = "hashicorp-vault-tls-webpki")]
+    roots.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
 
     if let Some(path) = ca_certificate {
         let certificates = CertificateDer::pem_file_iter(path)
@@ -567,13 +572,16 @@ fn tls_config(ca_certificate: Option<&Path>) -> SecretVaultResult<rustls::Client
         }
     }
 
-    let config = rustls::ClientConfig::builder_with_provider(Arc::new(
-        rustls::crypto::aws_lc_rs::default_provider(),
-    ))
-    .with_safe_default_protocol_versions()
-    .map_err(|e| SecretsSourceError::create("VAULT_TLS", e.to_string()))?
-    .with_root_certificates(roots)
-    .with_no_client_auth();
+    #[cfg(feature = "hashicorp-vault-tls-aws-lc-rs")]
+    let provider = rustls::crypto::aws_lc_rs::default_provider();
+    #[cfg(feature = "hashicorp-vault-tls-ring")]
+    let provider = rustls::crypto::ring::default_provider();
+
+    let config = rustls::ClientConfig::builder_with_provider(Arc::new(provider))
+        .with_safe_default_protocol_versions()
+        .map_err(|e| SecretsSourceError::create("VAULT_TLS", e.to_string()))?
+        .with_root_certificates(roots)
+        .with_no_client_auth();
     Ok(config)
 }
 

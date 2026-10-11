@@ -8,7 +8,7 @@
 //! VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=dev-root \
 //!     cargo test -p secret-vault --features hashicorp-vault --test hashicorp_vault_source -- --ignored
 //! ```
-#![cfg(feature = "hashicorp-vault")]
+#![cfg(feature = "hashicorp-vault-base")]
 
 use http_body_util::Full;
 use hyper::body::Bytes;

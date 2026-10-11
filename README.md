@@ -60,9 +60,20 @@ See the security consideration below about versioning.
 - `aws-kms-encryption` - AWS KMS envelope encryption support
 
 **Microsoft Azure**
-- `azure-keyvault` - Azure Key Vault secrets support (rustls TLS)
+- `azure-keyvault` - Azure Key Vault secrets support with the default TLS, same as `azure-keyvault-rustls`
+- One of the following TLS implementations is required when using Azure features:
+  - `azure-keyvault-rustls` - rustls with the aws-lc-rs crypto provider and the platform certificate verifier (default)
+  - `azure-keyvault-rustls-no-provider` - rustls with the crypto provider your application installs
+  - `azure-keyvault-native-tls` - native TLS of the platform (OpenSSL on Linux)
+
 **HashiCorp Vault**
-- `hashicorp-vault` - HashiCorp Vault KV secrets engine v2 support (rustls TLS)
+- `hashicorp-vault` - HashiCorp Vault KV secrets engine v2 support with the default TLS, same as `hashicorp-vault-tls-roots` and `hashicorp-vault-tls-aws-lc-rs`
+- One of the following TLS root stores is required when using HashiCorp Vault features:
+  - `hashicorp-vault-tls-roots` - System TLS roots (default)
+  - `hashicorp-vault-tls-webpki` - WebPKI roots
+- One of the following rustls crypto providers is required when using HashiCorp Vault features:
+  - `hashicorp-vault-tls-aws-lc-rs` - aws-lc-rs (default)
+  - `hashicorp-vault-tls-ring` - ring
 
 #### Encryption Features
 - `ring-aead-encryption` - Encryption support using Ring AEAD
@@ -89,9 +100,19 @@ For Azure Key Vault:
 secret-vault = { version = "3.0", features = ["azure-keyvault"] }
 ```
 
+For Azure Key Vault with native TLS:
+```toml
+secret-vault = { version = "3.0", features = ["azure-keyvault-native-tls"] }
+```
+
 For HashiCorp Vault with AEAD encryption:
 ```toml
 secret-vault = { version = "3.0", features = ["hashicorp-vault", "ring-aead-encryption"] }
+```
+
+For HashiCorp Vault with WebPKI roots and the ring crypto provider:
+```toml
+secret-vault = { version = "3.0", features = ["hashicorp-vault-tls-webpki", "hashicorp-vault-tls-ring"] }
 ```
 
 For GCP Secret Manager with WebPKI and serde support:
@@ -100,6 +121,8 @@ secret-vault = { version = "3.0", features = ["gcp-secretmanager", "gcp-tls-webp
 ```
 
 Note: When using GCP features, you must choose either `gcp-tls-roots` or `gcp-tls-webpki`. These features are mutually exclusive and cannot be enabled simultaneously.
+The same applies to the Azure TLS implementations and to each of the two HashiCorp Vault TLS groups.
+`azure-keyvault` and `hashicorp-vault` already select the defaults, so use the TLS features instead of them, not together with them.
 
 ## Example for GCP with AEAD encryption:
 
@@ -171,6 +194,15 @@ character in its name fails with `InvalidParametersError`, even when the secret 
 With `read_metadata` enabled, tags become labels and `expires`/`created`/`updated` become
 the expiration and timestamps of `SecretMetadata`.
 
+The TLS features select the TLS of the reqwest client the Azure SDK creates:
+- `azure-keyvault-rustls` - rustls with aws-lc-rs, certificates are verified by the platform verifier;
+- `azure-keyvault-rustls-no-provider` - rustls with the default `CryptoProvider` of the process, so install one at startup, for example `rustls::crypto::ring::default_provider().install_default()`;
+- `azure-keyvault-native-tls` - native-tls: OpenSSL on Linux and the system TLS on macOS and Windows.
+
+Be aware that creating the source panics in reqwest when `azure-keyvault-rustls-no-provider` is used without an installed `CryptoProvider`.
+reqwest uses native-tls whenever it is enabled anywhere in the build, and `gcp-tls-roots` enables it as well.
+`azure_identity` with its default features enables rustls in the Azure SDK, so depend on it with `default-features = false` to keep only the TLS selected here.
+
 To run the example:
 ```
 # VAULT_URL=https://<your-vault>.vault.azure.net cargo run --example azure_key_vault --features azure-keyvault,ring-aead-encryption
@@ -213,14 +245,20 @@ The environment variables are the ones the Vault CLI uses:
 - `VAULT_ADDR` - the address of the Vault server, required;
 - `VAULT_TOKEN` - the token sent with every request;
 - `VAULT_NAMESPACE` - the Vault Enterprise namespace;
-- `VAULT_CACERT` - a PEM file with CA certificates to trust in addition to the system ones;
+- `VAULT_CACERT` - a PEM file with CA certificates to trust in addition to the roots of the selected root store;
 - `VAULT_CLIENT_TIMEOUT` - the time limit for one read, in seconds (`60`) or as a duration (`1m30s`), 60 seconds by default.
 
 To configure the source in code use `HashiCorpVaultSourceOptions::new(address)` with `with_token`, `with_namespace`, `with_ca_certificate` and `with_timeout`.
 
 A read that fails with 5xx or 429 from Vault (sealed, rate limited), a timeout or a connection error returns `SecretVaultError::NetworkError` and can be retried. Other failed reads return `SecretVaultError::SecretsSourceError`.
 
-The feature brings rustls with the aws-lc-rs crypto provider. If your application uses rustls with `ring`, install the default `CryptoProvider` yourself at startup.
+The source uses rustls, and the TLS features select its root store and crypto provider:
+- `hashicorp-vault-tls-roots` - the system CA certificates;
+- `hashicorp-vault-tls-webpki` - the Mozilla CA certificates from [webpki-roots](https://crates.io/crates/webpki-roots), built into the binary;
+- `hashicorp-vault-tls-aws-lc-rs` or `hashicorp-vault-tls-ring` - the crypto provider.
+
+The provider is used for the connections of the source only and is not installed as the process default.
+If your application uses rustls with `ring`, enable `hashicorp-vault-tls-ring`. With both providers in one build rustls cannot choose a default one, and the application has to install it at startup.
 
 Only token authentication is supported. For other authentication methods (AppRole, Kubernetes, cloud IAM, etc.) either log in with your own code and pass the token with `with_token`, or run Vault Agent or Vault Proxy with auto-auth and `use_auto_auth_token` and point `VAULT_ADDR` to it without a token. Be aware the source does not renew the token, so the secrets stop refreshing when it expires.
 

@@ -58,6 +58,10 @@ impl Emulator {
     /// The emulator serves a self-signed certificate and names itself, not a Key Vault domain,
     /// as the authentication challenge resource.
     fn client_options() -> SecretClientOptions {
+        // With this feature the application installs the provider; an install that finds one
+        // already installed by another test changes nothing.
+        #[cfg(feature = "azure-keyvault-rustls-no-provider")]
+        let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
         let http_client = reqwest::Client::builder()
             .tls_danger_accept_invalid_certs(true)
             .build()

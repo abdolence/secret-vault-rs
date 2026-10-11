@@ -131,7 +131,7 @@ pub struct SecretVaultInvalidParametersError {
     pub public: SecretVaultInvalidParametersPublicDetails,
 }
 
-#[cfg(any(feature = "azure-keyvault", feature = "hashicorp-vault"))]
+#[cfg(any(feature = "azure-keyvault-base", feature = "hashicorp-vault-base"))]
 impl SecretVaultInvalidParametersError {
     pub(crate) fn create(field: &str, error: String) -> SecretVaultError {
         SecretVaultError::InvalidParametersError(SecretVaultInvalidParametersError::new(
@@ -168,7 +168,7 @@ impl Display for SecretVaultNetworkError {
 
 impl std::error::Error for SecretVaultNetworkError {}
 
-#[cfg(feature = "hashicorp-vault")]
+#[cfg(feature = "hashicorp-vault-base")]
 impl SecretVaultNetworkError {
     pub(crate) fn create(code: &str, message: String) -> SecretVaultError {
         SecretVaultError::NetworkError(SecretVaultNetworkError::new(
@@ -239,7 +239,7 @@ impl Display for SecretsSourceError {
 
 impl std::error::Error for SecretsSourceError {}
 
-#[cfg(feature = "hashicorp-vault")]
+#[cfg(feature = "hashicorp-vault-base")]
 impl SecretsSourceError {
     pub(crate) fn create(code: &str, message: String) -> SecretVaultError {
         SecretVaultError::SecretsSourceError(SecretsSourceError::new(
@@ -320,7 +320,7 @@ impl<E: Display + Error + Sync + Send + 'static, R: std::fmt::Debug + Sync + Sen
     }
 }
 
-#[cfg(feature = "azure-keyvault")]
+#[cfg(feature = "azure-keyvault-base")]
 impl From<azure_core::Error> for SecretVaultError {
     /// An HTTP response error keeps only its status and service error code: for a body that is
     /// not an Azure error envelope, the SDK copies the whole body into the error, and that body
@@ -380,7 +380,7 @@ impl From<kms_aead::errors::KmsAeadError> for SecretVaultError {
 }
 
 /// Transport errors hold neither the request headers nor the response body.
-#[cfg(feature = "hashicorp-vault")]
+#[cfg(feature = "hashicorp-vault-base")]
 impl From<hyper_util::client::legacy::Error> for SecretVaultError {
     fn from(e: hyper_util::client::legacy::Error) -> Self {
         SecretVaultError::NetworkError(SecretVaultNetworkError::with_error_chain(

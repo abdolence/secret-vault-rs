@@ -28,3 +28,25 @@ jobs:
           # Run checks with gcp-tls-webpki
           cargo clippy --features "$FEATURES,gcp-tls-webpki,gcp-kms-webpki" -- -Dwarnings
           cargo test --features "$FEATURES,gcp-tls-webpki,gcp-kms-webpki"
+  # TLS variants of the Azure and HashiCorp sources other than the defaults the build job checks
+  tls-variants:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tls:
+          - azure-keyvault-rustls-no-provider
+          - azure-keyvault-native-tls
+          - hashicorp-vault-tls-webpki,hashicorp-vault-tls-aws-lc-rs
+          - hashicorp-vault-tls-roots,hashicorp-vault-tls-ring
+          - hashicorp-vault-tls-webpki,hashicorp-vault-tls-ring
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: clippy
+      - name: Run checks
+        run: |
+          cargo clippy -p secret-vault --no-default-features --features "ring-aead-encryption,${{ matrix.tls }}" --all-targets -- -Dwarnings
+          cargo test -p secret-vault --no-default-features --features "ring-aead-encryption,${{ matrix.tls }}"
