@@ -38,7 +38,7 @@ Library provides the support for the secrets coming to your application from the
 Cargo.toml:
 ```toml
 [dependencies]
-secret-vault = { version = "2.2", features=["..."] }
+secret-vault = { version = "3.0", features=["..."] }
 ```
 See the security consideration below about versioning.
 
@@ -69,17 +69,17 @@ See the security consideration below about versioning.
 
 For GCP Secret Manager with system TLS roots:
 ```toml
-secret-vault = { version = "2.2", features = ["gcp-secretmanager", "gcp-tls-roots"] }
+secret-vault = { version = "3.0", features = ["gcp-secretmanager", "gcp-tls-roots"] }
 ```
 
 For AWS Secrets Manager with KMS encryption:
 ```toml
-secret-vault = { version = "2.2", features = ["aws-secretmanager", "aws-kms-encryption"] }
+secret-vault = { version = "3.0", features = ["aws-secretmanager", "aws-kms-encryption"] }
 ```
 
 For GCP Secret Manager with WebPKI and serde support:
 ```toml
-secret-vault = { version = "2.2", features = ["gcp-secretmanager", "gcp-tls-webpki", "serde"] }
+secret-vault = { version = "3.0", features = ["gcp-secretmanager", "gcp-tls-webpki", "serde"] }
 ```
 
 Note: When using GCP features, you must choose either `gcp-tls-roots` or `gcp-tls-webpki`. These features are mutually exclusive and cannot be enabled simultaneously.
@@ -129,7 +129,8 @@ All examples available at [secret-vault/examples](secret-vault/examples) directo
 ## Making `SecretVaultRef` available globally
 It is convenient to make those references globally available inside your apps since
 they do not contain any sensitive information.
-References are declared as plain `static` items, no `lazy_static` or `once_cell` required:
+References are declared as plain `static` items, no `lazy_static` or `once_cell` required
+(a reference with predefined labels or a name known only at runtime still needs `std::sync::LazyLock`):
 
 - `SecretName`, `SecretNamespace` and `SecretVersion` are created with `from_static`;
 - `SecretVaultRef::new`, `with_required`, `with_auto_refresh` and `with_allow_in_snapshots` are `const`;
@@ -285,8 +286,13 @@ Then you have two options for configuration/version management:
 so they can be created in `const` and `static` items. Changes visible to callers:
 
 - `value()` returns `&str` instead of `&String`, use `.to_string()` where a `String` is needed;
-- the types no longer implement `rvstruct::ValueStruct` and `AsRef<str>`, so `into_value()` is removed, use `value()` instead;
-- `SecretVaultKey::to_aad()` returns `Cow<'static, [u8]>` instead of `&String`;
+- `.value().as_str()` no longer compiles (`str::as_str` is unstable, error E0658), drop the `.as_str()`;
+- `into_value()` is removed, use `.value().to_owned()` or `.to_string()` instead;
+- `AsRef<str>` is removed, pass `.value()` where a function takes `impl AsRef<str>`;
+- `value()` is an inherent method, since the types no longer implement `rvstruct::ValueStruct`,
+  so remove `use rvstruct::ValueStruct` unless it is needed for `EncryptedSecretValue`;
+- `SecretVaultKey::to_aad()` returns `Cow<'static, [u8]>` instead of `&String`,
+  so custom `SecretVaultEncryption` implementations pass `&key.to_aad()` to kms-aead;
 - `SecretVaultRef::new`, `with_required`, `with_auto_refresh` and `with_allow_in_snapshots` are `const fn`.
 
 Creating the types with `new()`, `"name".into()`, `String::into()` and `parse()`, and formatting them with `Display`, work as before.
