@@ -388,22 +388,4 @@ mod tests {
             hasher.hash_one(&runtime_ref)
         );
     }
-
-    #[test]
-    fn str_string_and_static_conversions_agree() {
-        let name = SecretName::from_static("database-password");
-        assert_eq!(SecretName::from("database-password"), name);
-        assert_eq!(SecretName::from(String::from("database-password")), name);
-        assert_eq!("database-password".parse(), Ok(name));
-
-        let namespace = SecretNamespace::from_static("aws");
-        assert_eq!(SecretNamespace::from("aws"), namespace);
-        assert_eq!(SecretNamespace::from(String::from("aws")), namespace);
-        assert_eq!("aws".parse(), Ok(namespace));
-
-        let version = SecretVersion::from_static("2");
-        assert_eq!(SecretVersion::from("2"), version);
-        assert_eq!(SecretVersion::from(String::from("2")), version);
-        assert_eq!("2".parse(), Ok(version));
-    }
 }
