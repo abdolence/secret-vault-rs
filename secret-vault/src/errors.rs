@@ -132,7 +132,7 @@ pub struct SecretVaultInvalidParametersError {
 }
 
 impl SecretVaultInvalidParametersError {
-    pub fn create(field: &str, error: String) -> SecretVaultError {
+    pub(crate) fn create(field: &str, error: String) -> SecretVaultError {
         SecretVaultError::InvalidParametersError(SecretVaultInvalidParametersError::new(
             SecretVaultInvalidParametersPublicDetails::new(field.to_string(), error),
         ))
@@ -286,13 +286,23 @@ impl<E: Display + Error + Sync + Send + 'static, R: std::fmt::Debug + Sync + Sen
 
 #[cfg(feature = "azure-keyvault")]
 impl From<azure_core::Error> for SecretVaultError {
+    /// An HTTP response error keeps only its status and service error code: for a body that is
+    /// not an Azure error envelope, the SDK copies the whole body into the error, and that body
+    /// may be a secret payload.
     fn from(e: azure_core::Error) -> Self {
         let code = format!("{}", e.kind());
-        match e.http_status() {
-            Some(azure_core::http::StatusCode::NotFound) => {
-                SecretVaultError::DataNotFoundError(SecretVaultDataNotFoundError::new(
-                    SecretVaultErrorPublicGenericDetails::new(code),
-                    format!("Azure Key Vault: {e}"),
+        match e.kind() {
+            azure_core::error::ErrorKind::HttpResponse {
+                status: azure_core::http::StatusCode::NotFound,
+                ..
+            } => SecretVaultError::DataNotFoundError(SecretVaultDataNotFoundError::new(
+                SecretVaultErrorPublicGenericDetails::new(code.clone()),
+                format!("Azure Key Vault: {code}"),
+            )),
+            azure_core::error::ErrorKind::HttpResponse { .. } => {
+                SecretVaultError::SecretsSourceError(SecretsSourceError::new(
+                    SecretVaultErrorPublicGenericDetails::new(code.clone()),
+                    format!("Azure Key Vault error: {code}"),
                 ))
             }
             _ => SecretVaultError::SecretsSourceError(
