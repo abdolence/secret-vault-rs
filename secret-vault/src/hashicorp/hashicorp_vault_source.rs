@@ -18,7 +18,6 @@ use percent_encoding::{utf8_percent_encode, AsciiSet, NON_ALPHANUMERIC};
 use rsb_derive::Builder;
 use rustls::pki_types::pem::PemObject;
 use rustls::pki_types::CertificateDer;
-use rvstruct::ValueStruct;
 use secret_vault_value::SecretValue;
 use serde::Deserialize;
 use serde_json::value::RawValue;
@@ -201,13 +200,13 @@ impl HashiCorpVaultSource {
     /// `None` when the secret or the version does not exist, or the version is deleted or
     /// destroyed.
     async fn read_secret(&self, secret_ref: &SecretVaultRef) -> SecretVaultResult<Option<Secret>> {
-        let secret_path: &str = secret_ref.key.secret_name.value();
+        let secret_path = secret_ref.key.secret_name.value();
         let kv_version = secret_ref
             .key
             .secret_version
             .as_ref()
             .map(|version| {
-                let version: &str = version.value();
+                let version = version.value();
                 version.parse::<NonZeroU64>().map_err(|_| {
                     SecretVaultInvalidParametersError::create(
                         "secret_version",
@@ -375,7 +374,7 @@ impl SecretsSource for HashiCorpVaultSource {
         let mut result_map: HashMap<SecretVaultRef, Secret> = HashMap::new();
 
         for secret_ref in references {
-            let secret_path: &str = secret_ref.key.secret_name.value();
+            let secret_path = secret_ref.key.secret_name.value();
             match self.read_secret(secret_ref).await {
                 Ok(Some(secret)) => {
                     result_map.insert(secret_ref.clone(), secret);

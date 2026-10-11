@@ -131,7 +131,7 @@ pub struct SecretVaultInvalidParametersError {
     pub public: SecretVaultInvalidParametersPublicDetails,
 }
 
-#[cfg(feature = "azure-keyvault")]
+#[cfg(any(feature = "azure-keyvault", feature = "hashicorp-vault"))]
 impl SecretVaultInvalidParametersError {
     pub(crate) fn create(field: &str, error: String) -> SecretVaultError {
         SecretVaultError::InvalidParametersError(SecretVaultInvalidParametersError::new(
@@ -147,15 +147,6 @@ impl Display for SecretVaultInvalidParametersError {
 }
 
 impl std::error::Error for SecretVaultInvalidParametersError {}
-
-#[cfg(feature = "hashicorp-vault")]
-impl SecretVaultInvalidParametersError {
-    pub(crate) fn create(field: &str, error: String) -> SecretVaultError {
-        SecretVaultError::InvalidParametersError(SecretVaultInvalidParametersError::new(
-            SecretVaultInvalidParametersPublicDetails::new(field.to_string(), error),
-        ))
-    }
-}
 
 #[derive(Debug, Eq, PartialEq, Clone, Builder)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
