@@ -33,7 +33,14 @@ impl GcpSecretManagerSource {
         .await
     }
 
+    /// With `hashicorp-vault-tls-ring` in the build, rustls has both crypto providers compiled
+    /// in and cannot pick one, so this fails with
+    /// [`SecretVaultError::InvalidParametersError`] until the application installs a default
+    /// `CryptoProvider`.
     pub async fn with_options(options: GcpSecretManagerSourceOptions) -> SecretVaultResult<Self> {
+        #[cfg(feature = "hashicorp-vault-tls-ring")]
+        crate::crypto_provider::require_installed_crypto_provider()?;
+
         let client: GoogleApi<SecretManagerServiceClient<GoogleAuthMiddleware>> =
             GoogleApi::from_function(
                 SecretManagerServiceClient::new,

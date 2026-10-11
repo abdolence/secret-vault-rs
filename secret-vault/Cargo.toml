@@ -100,7 +100,7 @@ azure-keyvault-base = [
 ]
 # TLS variants - user can choose one
 azure-keyvault-tls-aws-lc-rs = ["azure-keyvault-base", "azure_core/reqwest_rustls"]
-azure-keyvault-tls-no-provider = ["azure-keyvault-base", "reqwest/rustls-no-provider"]
+azure-keyvault-tls-no-provider = ["azure-keyvault-base", "reqwest/rustls-no-provider", "dep:rustls"]
 azure-keyvault-native-tls = ["azure-keyvault-base", "reqwest/native-tls"]
 azure-keyvault = ["azure-keyvault-tls-aws-lc-rs"]
 

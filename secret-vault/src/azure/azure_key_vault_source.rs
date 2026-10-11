@@ -49,11 +49,21 @@ impl AzureKeyVaultSource {
     }
 
     /// Same as [`Self::new`], with the metadata switch and the Azure SDK client settings taken
-    /// from `options`. Fails only when `options.vault_url` is not a valid HTTP(S) URL.
+    /// from `options`. Fails when `options.vault_url` is not a valid HTTP(S) URL, and, with
+    /// `azure-keyvault-tls-no-provider` and no custom transport in `options`, when the
+    /// application has not installed a default rustls `CryptoProvider`.
     pub fn with_options(
         options: AzureKeyVaultSourceOptions,
         credential: Arc<dyn TokenCredential>,
     ) -> SecretVaultResult<Self> {
+        #[cfg(feature = "azure-keyvault-tls-no-provider")]
+        if options
+            .client_options
+            .as_ref()
+            .is_none_or(|client_options| client_options.client_options.transport.is_none())
+        {
+            crate::crypto_provider::require_installed_crypto_provider()?;
+        }
         let client = SecretClient::new(
             &options.vault_url,
             credential,

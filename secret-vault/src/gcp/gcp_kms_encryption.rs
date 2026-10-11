@@ -13,7 +13,13 @@ pub struct GcpKmsEnvelopeEncryption {
 }
 
 impl GcpKmsEnvelopeEncryption {
+    /// Fails with [`SecretVaultError::InvalidParametersError`] when `hashicorp-vault-tls-ring`
+    /// is in the build and the application has not installed a default `CryptoProvider`, for
+    /// the reason given on [`crate::gcp::GcpSecretManagerSource::with_options`].
     pub async fn new(kms_key_ref: &GcpKmsKeyRef) -> SecretVaultResult<Self> {
+        #[cfg(feature = "hashicorp-vault-tls-ring")]
+        crate::crypto_provider::require_installed_crypto_provider()?;
+
         let provider = kms_aead::providers::GcpKmsProvider::new(kms_key_ref)
             .await
             .map_err(SecretVaultError::from)?;
