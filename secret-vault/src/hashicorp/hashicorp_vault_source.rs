@@ -1,9 +1,11 @@
 use std::collections::{BTreeMap, HashMap};
+use std::num::NonZeroU64;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::Duration;
 
 use async_trait::async_trait;
-use http_body_util::{BodyExt, Empty};
+use http_body_util::{BodyExt, Empty, LengthLimitError, Limited};
 use hyper::body::Bytes;
 use hyper::header::{HeaderName, HeaderValue};
 use hyper::{Request, StatusCode, Uri};
@@ -29,6 +31,9 @@ const VAULT_TOKEN_HEADER: &str = "x-vault-token";
 const VAULT_NAMESPACE_HEADER: &str = "x-vault-namespace";
 /// Vault Agent and Vault Proxy refuse requests without it when `require_request_header` is set.
 const VAULT_REQUEST_HEADER: &str = "x-vault-request";
+/// Vault's default `max_request_size`. A KV v2 version cannot be written larger than that, so a
+/// longer response is not a secret read and is not buffered.
+const MAX_RESPONSE_SIZE: usize = 32 * 1024 * 1024;
 
 /// Characters a path segment keeps as they are: the RFC 3986 unreserved set.
 const PATH_SEGMENT: &AsciiSet = &NON_ALPHANUMERIC
@@ -93,11 +98,18 @@ pub struct HashiCorpVaultSourceOptions {
     /// version into `created_at`.
     #[default = "false"]
     pub read_metadata: bool,
+
+    /// Time limit for one read, from opening the connection to receiving the last byte of the
+    /// response. It keeps a server that accepts the connection and never answers from stalling
+    /// `refresh` and the auto-refresher.
+    #[default = "Duration::from_secs(60)"]
+    pub timeout: Duration,
 }
 
 impl HashiCorpVaultSourceOptions {
     /// Options from the variables the Vault CLI reads: `VAULT_ADDR` (required), `VAULT_TOKEN`,
-    /// `VAULT_NAMESPACE` and `VAULT_CACERT`. An empty variable counts as unset.
+    /// `VAULT_NAMESPACE`, `VAULT_CACERT` and `VAULT_CLIENT_TIMEOUT` (whole seconds such as `60`, or
+    /// a duration such as `1m30s`). An empty variable counts as unset.
     pub fn from_env() -> SecretVaultResult<Self> {
         let address = env_var("VAULT_ADDR")?.ok_or_else(|| {
             SecretVaultInvalidParametersError::create(
@@ -109,10 +121,14 @@ impl HashiCorpVaultSourceOptions {
             .map(|token| HashiCorpVaultToken::try_from(SecretValue::from(token)))
             .transpose()?;
 
-        Ok(Self::new(address)
+        let mut options = Self::new(address)
             .opt_token(token)
             .opt_namespace(env_var("VAULT_NAMESPACE")?)
-            .opt_ca_certificate(env_var("VAULT_CACERT")?.map(PathBuf::from)))
+            .opt_ca_certificate(env_var("VAULT_CACERT")?.map(PathBuf::from));
+        if let Some(timeout) = env_var("VAULT_CLIENT_TIMEOUT")? {
+            options.timeout = vault_duration("VAULT_CLIENT_TIMEOUT", &timeout)?;
+        }
+        Ok(options)
     }
 }
 
@@ -121,6 +137,7 @@ impl HashiCorpVaultSourceOptions {
 /// The secret name is the path of the secret inside the mount, and the secret version is the
 /// KV v2 version number, the latest version when it is not set. The secret value is the `data`
 /// object of the version: its key/value pairs as the JSON text Vault returns.
+#[derive(Debug, Clone)]
 pub struct HashiCorpVaultSource {
     http_client: Client<HttpsConnector<HttpConnector>, Empty<Bytes>>,
     /// `{address}/v1/{mount}/data/`, the mount percent-encoded.
@@ -129,6 +146,7 @@ pub struct HashiCorpVaultSource {
     namespace: Option<HeaderValue>,
     mount: String,
     read_metadata: bool,
+    timeout: Duration,
 }
 
 impl HashiCorpVaultSource {
@@ -137,9 +155,15 @@ impl HashiCorpVaultSource {
         Self::with_options(HashiCorpVaultSourceOptions::from_env()?)
     }
 
-    /// Fails on an invalid address, mount or namespace, or an unreadable CA certificate file.
-    /// It sends no request, so a wrong token or an unreachable server fail the first read.
+    /// Fails on an invalid address, mount, namespace or timeout, or an unreadable CA certificate
+    /// file. It sends no request, so a wrong token or an unreachable server fail the first read.
     pub fn with_options(options: HashiCorpVaultSourceOptions) -> SecretVaultResult<Self> {
+        if options.timeout.is_zero() {
+            return Err(SecretVaultInvalidParametersError::create(
+                "timeout",
+                "The Vault request timeout must be greater than zero".into(),
+            ));
+        }
         let data_endpoint = format!(
             "{}/v1/{}/data/",
             vault_api_base(&options.address)?,
@@ -170,6 +194,7 @@ impl HashiCorpVaultSource {
             namespace,
             mount: options.mount,
             read_metadata: options.read_metadata,
+            timeout: options.timeout,
         })
     }
 
@@ -183,7 +208,7 @@ impl HashiCorpVaultSource {
             .as_ref()
             .map(|version| {
                 let version: &str = version.value();
-                version.parse::<u64>().map_err(|_| {
+                version.parse::<NonZeroU64>().map_err(|_| {
                     SecretVaultInvalidParametersError::create(
                         "secret_version",
                         format!(
@@ -235,11 +260,7 @@ impl HashiCorpVaultSource {
             ?kv_version,
             "Reading HashiCorp Vault secret"
         );
-        let response = self.http_client.request(request).await?;
-        let status = response.status();
-        // The body buffer belongs to the HTTP stack and is freed without being zeroized; the
-        // only copy this crate keeps is the `SecretValue`.
-        let body = response.into_body().collect().await?.to_bytes();
+        let (status, body) = self.send(request).await?;
 
         if status.is_success() {
             let response = KvReadResponse::try_from(body.as_ref())?;
@@ -262,13 +283,56 @@ impl HashiCorpVaultSource {
             // The parse error is dropped because serde_json may quote the body in it.
             Err(_) => "the body is not a Vault error response".to_string(),
         };
-        Err(SecretsSourceError::create(
-            &format!("VAULT_STATUS_{}", status.as_u16()),
-            format!(
-                "Vault returned {status} for {}/{secret_path}: {errors}",
-                self.mount
-            ),
-        ))
+        let code = format!("VAULT_STATUS_{}", status.as_u16());
+        let message = format!(
+            "Vault returned {status} for {}/{secret_path}: {errors}",
+            self.mount
+        );
+        // A sealed or overloaded server answers 5xx or 429 and may serve the same read later;
+        // any other status will not change on a retry.
+        if status.is_server_error() || status == StatusCode::TOO_MANY_REQUESTS {
+            Err(SecretVaultNetworkError::create(&code, message))
+        } else {
+            Err(SecretsSourceError::create(&code, message))
+        }
+    }
+
+    /// The status and the whole body of the response, within the timeout.
+    async fn send(&self, request: Request<Empty<Bytes>>) -> SecretVaultResult<(StatusCode, Bytes)> {
+        let exchange = async {
+            let response = self.http_client.request(request).await?;
+            let status = response.status();
+            // The body buffer belongs to the HTTP stack and is freed without being zeroized;
+            // the only copy this crate keeps is the `SecretValue`.
+            let body = Limited::new(response.into_body(), MAX_RESPONSE_SIZE)
+                .collect()
+                .await
+                .map_err(|e| {
+                    if e.is::<LengthLimitError>() {
+                        SecretsSourceError::create(
+                            "VAULT_RESPONSE_TOO_LARGE",
+                            format!("The Vault response is larger than {MAX_RESPONSE_SIZE} bytes"),
+                        )
+                    } else {
+                        SecretVaultError::NetworkError(SecretVaultNetworkError::with_error_chain(
+                            "VAULT_HTTP",
+                            "Unable to receive the Vault response",
+                            e.as_ref(),
+                        ))
+                    }
+                })?
+                .to_bytes();
+            Ok((status, body))
+        };
+
+        tokio::time::timeout(self.timeout, exchange)
+            .await
+            .map_err(|_| {
+                SecretVaultNetworkError::create(
+                    "VAULT_TIMEOUT",
+                    format!("No complete Vault response within {:?}", self.timeout),
+                )
+            })?
     }
 
     fn metadata(
@@ -415,6 +479,24 @@ fn env_var(name: &str) -> SecretVaultResult<Option<String>> {
     }
 }
 
+/// A duration the way the Vault CLI reads one: whole seconds (`60`) or a number with units
+/// (`30s`, `1m30s`, `500ms`).
+fn vault_duration(name: &str, value: &str) -> SecretVaultResult<Duration> {
+    let invalid = || {
+        SecretVaultInvalidParametersError::create(
+            name,
+            format!("{name} must be whole seconds or a duration such as `1m30s`, got `{value}`"),
+        )
+    };
+    match value.parse::<u64>() {
+        Ok(seconds) => Ok(Duration::from_secs(seconds)),
+        Err(_) => value
+            .parse::<jiff::SignedDuration>()
+            .map_err(|_| invalid())
+            .and_then(|duration| Duration::try_from(duration).map_err(|_| invalid())),
+    }
+}
+
 /// `scheme://authority` of a Vault address, followed by its path when Vault is served under a
 /// path prefix.
 fn vault_api_base(address: &str) -> SecretVaultResult<String> {
@@ -499,8 +581,121 @@ fn tls_config(ca_certificate: Option<&Path>) -> SecretVaultResult<rustls::Client
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpListener;
 
     const SECRET_PAYLOAD: &str = "s3cr3t-payload-value";
+    const DATABASE_SECRET: &str = "my-app/database";
+
+    /// Ends a test whose read would otherwise hang, so a missing timeout fails the test.
+    const TEST_GUARD: Duration = Duration::from_secs(5);
+
+    fn local_source(listener: &TcpListener) -> HashiCorpVaultSource {
+        let address = format!("http://{}", listener.local_addr().unwrap());
+        HashiCorpVaultSource::with_options(
+            HashiCorpVaultSourceOptions::new(address).with_timeout(Duration::from_millis(200)),
+        )
+        .unwrap()
+    }
+
+    /// Answers every request on `listener` with `status` and a Vault error body.
+    fn answer_with_status(listener: TcpListener, status: StatusCode) {
+        tokio::spawn(async move {
+            loop {
+                let (mut connection, _) = listener.accept().await.unwrap();
+                let mut request = Vec::new();
+                let mut buffer = [0u8; 1024];
+                while !request.windows(4).any(|window| window == b"\r\n\r\n") {
+                    let read = connection.read(&mut buffer).await.unwrap();
+                    request.extend_from_slice(&buffer[..read]);
+                }
+                let body = r#"{"errors":["Vault is sealed"]}"#;
+                let response = format!(
+                    "HTTP/1.1 {status}\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+                connection.write_all(response.as_bytes()).await.unwrap();
+            }
+        });
+    }
+
+    async fn read_guarded(
+        source: &HashiCorpVaultSource,
+        secret_ref: SecretVaultRef,
+    ) -> SecretVaultResult<HashMap<SecretVaultRef, Secret>> {
+        tokio::time::timeout(TEST_GUARD, source.get_secrets(&[secret_ref]))
+            .await
+            .expect("the read must end before the test guard")
+    }
+
+    #[tokio::test]
+    async fn unanswered_read_times_out_as_network_error() {
+        // The listener is never accepted from: the kernel completes the connection and the
+        // request is written, but no response ever comes.
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let source = local_source(&listener);
+
+        let result = read_guarded(&source, SecretVaultRef::new(DATABASE_SECRET.into())).await;
+
+        assert!(matches!(result, Err(SecretVaultError::NetworkError(_))));
+    }
+
+    #[tokio::test]
+    async fn status_decides_whether_error_is_retryable() {
+        for (status, retryable) in [
+            (StatusCode::SERVICE_UNAVAILABLE, true),
+            (StatusCode::TOO_MANY_REQUESTS, true),
+            (StatusCode::FORBIDDEN, false),
+        ] {
+            let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let source = local_source(&listener);
+            answer_with_status(listener, status);
+
+            let result = read_guarded(&source, SecretVaultRef::new(DATABASE_SECRET.into())).await;
+
+            match result {
+                Err(SecretVaultError::NetworkError(_)) => assert!(retryable, "{status}"),
+                Err(SecretVaultError::SecretsSourceError(_)) => assert!(!retryable, "{status}"),
+                other => panic!("{status} gave {other:?}"),
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn version_zero_is_rejected() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let source = local_source(&listener);
+        let secret_ref =
+            SecretVaultRef::new(DATABASE_SECRET.into()).with_secret_version("0".into());
+
+        let result = read_guarded(&source, secret_ref).await;
+
+        assert!(matches!(
+            result,
+            Err(SecretVaultError::InvalidParametersError(_))
+        ));
+    }
+
+    #[test]
+    fn client_timeout_reads_like_the_vault_cli() {
+        for (value, expected) in [
+            ("60", Duration::from_secs(60)),
+            ("30s", Duration::from_secs(30)),
+            ("1m30s", Duration::from_secs(90)),
+            ("500ms", Duration::from_millis(500)),
+        ] {
+            assert_eq!(
+                vault_duration("VAULT_CLIENT_TIMEOUT", value).unwrap(),
+                expected
+            );
+        }
+        for value in ["-5s", "soon"] {
+            assert!(matches!(
+                vault_duration("VAULT_CLIENT_TIMEOUT", value),
+                Err(SecretVaultError::InvalidParametersError(_))
+            ));
+        }
+    }
 
     #[test]
     fn secret_is_absent_from_read_response_parse_error() {
@@ -520,12 +715,14 @@ mod tests {
     }
 
     #[test]
-    fn token_is_absent_from_options_debug() {
+    fn token_is_absent_from_debug() {
         let token = HashiCorpVaultToken::try_from(SecretValue::from(SECRET_PAYLOAD)).unwrap();
         let options =
             HashiCorpVaultSourceOptions::new("https://vault.example.com".into()).with_token(token);
+        let source = HashiCorpVaultSource::with_options(options.clone()).unwrap();
 
         assert!(!format!("{options:?}").contains(SECRET_PAYLOAD));
+        assert!(!format!("{source:?}").contains(SECRET_PAYLOAD));
     }
 
     #[test]

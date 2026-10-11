@@ -14,7 +14,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .with_secret_version("1".into())
         .with_required(false);
 
-    // Building the vault. The options read VAULT_ADDR, VAULT_TOKEN, VAULT_NAMESPACE and VAULT_CACERT.
+    // Building the vault. The options read VAULT_ADDR, VAULT_TOKEN, VAULT_NAMESPACE, VAULT_CACERT
+    // and VAULT_CLIENT_TIMEOUT.
     let vault = SecretVaultBuilder::with_source(hashicorp::HashiCorpVaultSource::with_options(
         hashicorp::HashiCorpVaultSourceOptions::from_env()?
             .with_mount("secret".into())

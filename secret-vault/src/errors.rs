@@ -148,8 +148,9 @@ impl Display for SecretVaultInvalidParametersError {
 
 impl std::error::Error for SecretVaultInvalidParametersError {}
 
+#[cfg(feature = "hashicorp-vault")]
 impl SecretVaultInvalidParametersError {
-    pub fn create(field: &str, error: String) -> SecretVaultError {
+    pub(crate) fn create(field: &str, error: String) -> SecretVaultError {
         SecretVaultError::InvalidParametersError(SecretVaultInvalidParametersError::new(
             SecretVaultInvalidParametersPublicDetails::new(field.to_string(), error),
         ))
@@ -175,6 +176,31 @@ impl Display for SecretVaultNetworkError {
 }
 
 impl std::error::Error for SecretVaultNetworkError {}
+
+#[cfg(feature = "hashicorp-vault")]
+impl SecretVaultNetworkError {
+    pub(crate) fn create(code: &str, message: String) -> SecretVaultError {
+        SecretVaultError::NetworkError(SecretVaultNetworkError::new(
+            SecretVaultErrorPublicGenericDetails::new(code.to_string()),
+            message,
+        ))
+    }
+
+    /// For an error whose message and source chain carry no secret. The chain goes into the
+    /// message, since the top-level message alone rarely says what failed.
+    pub(crate) fn with_error_chain(code: &str, context: &str, e: &(dyn Error + 'static)) -> Self {
+        let mut message = format!("{context}: {e}");
+        let mut source = e.source();
+        while let Some(cause) = source {
+            message.push_str(&format!(": {cause}"));
+            source = cause.source();
+        }
+        SecretVaultNetworkError::new(
+            SecretVaultErrorPublicGenericDetails::new(code.into()),
+            message,
+        )
+    }
+}
 
 #[derive(Debug, Eq, PartialEq, Clone, Builder)]
 pub struct SecretVaultEncryptionError {
@@ -222,30 +248,13 @@ impl Display for SecretsSourceError {
 
 impl std::error::Error for SecretsSourceError {}
 
+#[cfg(feature = "hashicorp-vault")]
 impl SecretsSourceError {
-    pub fn create(code: &str, message: String) -> SecretVaultError {
+    pub(crate) fn create(code: &str, message: String) -> SecretVaultError {
         SecretVaultError::SecretsSourceError(SecretsSourceError::new(
             SecretVaultErrorPublicGenericDetails::new(code.to_string()),
             message,
         ))
-    }
-
-    /// For an error whose message and source chain carry no secret: the chain goes into the
-    /// message, since the top-level message alone rarely says what failed, and the error is
-    /// kept as the root cause.
-    #[cfg(feature = "hashicorp-vault")]
-    fn with_error_chain(code: &str, context: &str, e: impl Error + Send + Sync + 'static) -> Self {
-        let mut message = format!("{context}: {e}");
-        let mut source = e.source();
-        while let Some(cause) = source {
-            message.push_str(&format!(": {cause}"));
-            source = cause.source();
-        }
-        SecretsSourceError::new(
-            SecretVaultErrorPublicGenericDetails::new(code.into()),
-            message,
-        )
-        .with_root_cause(Box::new(e))
     }
 }
 
@@ -383,21 +392,10 @@ impl From<kms_aead::errors::KmsAeadError> for SecretVaultError {
 #[cfg(feature = "hashicorp-vault")]
 impl From<hyper_util::client::legacy::Error> for SecretVaultError {
     fn from(e: hyper_util::client::legacy::Error) -> Self {
-        SecretVaultError::SecretsSourceError(SecretsSourceError::with_error_chain(
+        SecretVaultError::NetworkError(SecretVaultNetworkError::with_error_chain(
             "VAULT_HTTP",
             "Unable to send the request to Vault",
-            e,
-        ))
-    }
-}
-
-#[cfg(feature = "hashicorp-vault")]
-impl From<hyper::Error> for SecretVaultError {
-    fn from(e: hyper::Error) -> Self {
-        SecretVaultError::SecretsSourceError(SecretsSourceError::with_error_chain(
-            "VAULT_HTTP",
-            "Unable to receive the Vault response",
-            e,
+            &e,
         ))
     }
 }
