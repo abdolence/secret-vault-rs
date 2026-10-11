@@ -131,7 +131,7 @@ pub struct SecretVaultInvalidParametersError {
     pub public: SecretVaultInvalidParametersPublicDetails,
 }
 
-#[cfg(feature = "azure-keyvault")]
+#[cfg(any(feature = "azure-keyvault", feature = "hashicorp-vault"))]
 impl SecretVaultInvalidParametersError {
     pub(crate) fn create(field: &str, error: String) -> SecretVaultError {
         SecretVaultError::InvalidParametersError(SecretVaultInvalidParametersError::new(
@@ -167,6 +167,31 @@ impl Display for SecretVaultNetworkError {
 }
 
 impl std::error::Error for SecretVaultNetworkError {}
+
+#[cfg(feature = "hashicorp-vault")]
+impl SecretVaultNetworkError {
+    pub(crate) fn create(code: &str, message: String) -> SecretVaultError {
+        SecretVaultError::NetworkError(SecretVaultNetworkError::new(
+            SecretVaultErrorPublicGenericDetails::new(code.to_string()),
+            message,
+        ))
+    }
+
+    /// For an error whose message and source chain carry no secret. The chain goes into the
+    /// message, since the top-level message alone rarely says what failed.
+    pub(crate) fn with_error_chain(code: &str, context: &str, e: &(dyn Error + 'static)) -> Self {
+        let mut message = format!("{context}: {e}");
+        let mut source = e.source();
+        while let Some(cause) = source {
+            message.push_str(&format!(": {cause}"));
+            source = cause.source();
+        }
+        SecretVaultNetworkError::new(
+            SecretVaultErrorPublicGenericDetails::new(code.into()),
+            message,
+        )
+    }
+}
 
 #[derive(Debug, Eq, PartialEq, Clone, Builder)]
 pub struct SecretVaultEncryptionError {
@@ -213,6 +238,16 @@ impl Display for SecretsSourceError {
 }
 
 impl std::error::Error for SecretsSourceError {}
+
+#[cfg(feature = "hashicorp-vault")]
+impl SecretsSourceError {
+    pub(crate) fn create(code: &str, message: String) -> SecretVaultError {
+        SecretVaultError::SecretsSourceError(SecretsSourceError::new(
+            SecretVaultErrorPublicGenericDetails::new(code.to_string()),
+            message,
+        ))
+    }
+}
 
 #[cfg(feature = "gcp-base")]
 impl From<gcloud_sdk::error::Error> for SecretVaultError {
@@ -340,6 +375,18 @@ impl From<kms_aead::errors::KmsAeadError> for SecretVaultError {
         SecretVaultError::EncryptionError(SecretVaultEncryptionError::new(
             SecretVaultErrorPublicGenericDetails::new(format!("{e:?}")),
             format!("KMS error: {e}"),
+        ))
+    }
+}
+
+/// Transport errors hold neither the request headers nor the response body.
+#[cfg(feature = "hashicorp-vault")]
+impl From<hyper_util::client::legacy::Error> for SecretVaultError {
+    fn from(e: hyper_util::client::legacy::Error) -> Self {
+        SecretVaultError::NetworkError(SecretVaultNetworkError::with_error_chain(
+            "VAULT_HTTP",
+            "Unable to send the request to Vault",
+            &e,
         ))
     }
 }

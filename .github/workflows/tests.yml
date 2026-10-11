@@ -19,7 +19,7 @@ jobs:
           cargo fmt -- --check
           
           # Common features for both variants
-          FEATURES="serde,ring-aead-encryption,kms,gcp-secretmanager,aws,aws-secretmanager,aws-kms-encryption,azure-keyvault,ahash"
+          FEATURES="serde,ring-aead-encryption,kms,gcp-secretmanager,aws,aws-secretmanager,aws-kms-encryption,azure-keyvault,hashicorp-vault,ahash"
           
           # Run checks with gcp-tls-roots
           cargo clippy --features "$FEATURES,gcp-tls-roots,gcp-kms-tls-roots" -- -Dwarnings

@@ -41,7 +41,14 @@ kms-aead = { version = "0.28.1", optional = true }
 ahash = { version = "0.8", optional = true }
 azure_core = { version = "1.1", optional = true, default-features = false, features = ["reqwest", "reqwest_rustls", "tokio"] }
 azure_security_keyvault_secrets = { version = "1.0.1", optional = true, default-features = false }
-serde_json = { version = "1", optional = true }
+hyper = { version = "1", features = ["client", "http1"], optional = true }
+hyper-util = { version = "0.1", features = ["client-legacy", "http1", "tokio"], optional = true }
+hyper-rustls = { version = "0.27", default-features = false, features = ["http1"], optional = true }
+http-body-util = { version = "0.1", optional = true }
+rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs", "std", "tls12"], optional = true }
+rustls-native-certs = { version = "0.8", optional = true }
+percent-encoding = { version = "2", optional = true }
+serde_json = { version = "1", features = ["raw_value"], optional = true }
 
 
 [dev-dependencies]
@@ -50,6 +57,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tempfile = "3.10"
 tokio = { version = "1", features = ["full"] }
 rustls = "0.23"
+serde_json = "1"
 criterion = { version = "0.8", features = ["async", "async_futures", "cargo_bench_support", "html_reports","async_tokio"] }
 cargo-husky = { version = "1.5", default-features = false, features = ["run-for-all", "prepush-hook", "run-cargo-fmt"] }
 azure_identity = "1.0"
@@ -84,6 +92,17 @@ azure-keyvault = [
     "dep:azure_security_keyvault_secrets",
     "dep:serde_json",
 ]
+hashicorp-vault = [
+    "dep:hyper",
+    "dep:hyper-util",
+    "dep:hyper-rustls",
+    "dep:http-body-util",
+    "dep:rustls",
+    "dep:rustls-native-certs",
+    "dep:percent-encoding",
+    "dep:serde",
+    "dep:serde_json",
+]
 
 ahash = ["dep:ahash"]
 
@@ -103,6 +122,7 @@ features = [
     "aws-secretmanager",
     "aws-kms-encryption",
     "azure-keyvault",
+    "hashicorp-vault",
     "ahash"
 ]
 
@@ -115,6 +135,11 @@ required-features = ["gcp-secretmanager", "gcp-tls-roots", "ring-aead-encryption
 name = "aws_secret_manager_vault"
 path = "examples/aws_secret_manager_vault.rs"
 required-features = ["aws-secretmanager", "ring-aead-encryption"]
+
+[[example]]
+name = "hashicorp_vault"
+path = "examples/hashicorp_vault.rs"
+required-features = ["hashicorp-vault", "ring-aead-encryption"]
 
 [[example]]
 name = "kms_gcp_secret_manager_vault"
