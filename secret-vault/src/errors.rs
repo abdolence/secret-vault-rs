@@ -131,6 +131,14 @@ pub struct SecretVaultInvalidParametersError {
     pub public: SecretVaultInvalidParametersPublicDetails,
 }
 
+impl SecretVaultInvalidParametersError {
+    pub fn create(field: &str, error: String) -> SecretVaultError {
+        SecretVaultError::InvalidParametersError(SecretVaultInvalidParametersError::new(
+            SecretVaultInvalidParametersPublicDetails::new(field.to_string(), error),
+        ))
+    }
+}
+
 impl Display for SecretVaultInvalidParametersError {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(f, "Data not found error occurred: {:?}", self.public)
@@ -273,6 +281,28 @@ impl<E: Display + Error + Sync + Send + 'static, R: std::fmt::Debug + Sync + Sen
             )
             .with_root_cause(Box::new(e)),
         )
+    }
+}
+
+#[cfg(feature = "azure-keyvault")]
+impl From<azure_core::Error> for SecretVaultError {
+    fn from(e: azure_core::Error) -> Self {
+        let code = format!("{}", e.kind());
+        match e.http_status() {
+            Some(azure_core::http::StatusCode::NotFound) => {
+                SecretVaultError::DataNotFoundError(SecretVaultDataNotFoundError::new(
+                    SecretVaultErrorPublicGenericDetails::new(code),
+                    format!("Azure Key Vault: {e}"),
+                ))
+            }
+            _ => SecretVaultError::SecretsSourceError(
+                SecretsSourceError::new(
+                    SecretVaultErrorPublicGenericDetails::new(code),
+                    format!("Azure Key Vault error: {e}"),
+                )
+                .with_root_cause(Box::new(e)),
+            ),
+        }
     }
 }
 
