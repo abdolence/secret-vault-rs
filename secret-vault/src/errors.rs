@@ -343,3 +343,51 @@ impl From<kms_aead::errors::KmsAeadError> for SecretVaultError {
         ))
     }
 }
+
+/// Several `vaultrs` and `rustify` error variants carry the raw response body,
+/// which for a read is the secret itself, in their `Debug` output and source chain.
+/// The mapping keeps only messages known not to contain a payload, and never
+/// stores the original error as a root cause.
+#[cfg(feature = "hashicorp-vault")]
+impl From<vaultrs::error::ClientError> for SecretVaultError {
+    fn from(e: vaultrs::error::ClientError) -> Self {
+        use rustify::errors::ClientError as RestClientError;
+        use vaultrs::error::ClientError;
+
+        match e {
+            ClientError::APIError { code: 404, errors } => {
+                SecretVaultError::DataNotFoundError(SecretVaultDataNotFoundError::new(
+                    SecretVaultErrorPublicGenericDetails::new("NOT_FOUND".into()),
+                    format!("Vault returned status 404: {errors:?}"),
+                ))
+            }
+            ClientError::APIError { code, errors } => {
+                SecretVaultError::SecretsSourceError(SecretsSourceError::new(
+                    SecretVaultErrorPublicGenericDetails::new(format!("VAULT_STATUS_{code}")),
+                    format!("Vault returned status {code}: {errors:?}"),
+                ))
+            }
+            ClientError::RestClientError {
+                source:
+                    RestClientError::RequestError {
+                        source,
+                        url,
+                        method,
+                    },
+            } => SecretVaultError::NetworkError(SecretVaultNetworkError::new(
+                SecretVaultErrorPublicGenericDetails::new("VAULT_REQUEST".into()),
+                format!("Unable to send {method} {url} to Vault: {source:#}"),
+            )),
+            ClientError::RestClientError {
+                source: RestClientError::ResponseError { source },
+            } => SecretVaultError::NetworkError(SecretVaultNetworkError::new(
+                SecretVaultErrorPublicGenericDetails::new("VAULT_RESPONSE".into()),
+                format!("Unable to receive the Vault response: {source:#}"),
+            )),
+            other => SecretVaultError::SecretsSourceError(SecretsSourceError::new(
+                SecretVaultErrorPublicGenericDetails::new("VAULT_CLIENT".into()),
+                format!("HashiCorp Vault client error: {other}"),
+            )),
+        }
+    }
+}
