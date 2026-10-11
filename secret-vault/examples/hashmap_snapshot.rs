@@ -1,5 +1,10 @@
 use secret_vault::*;
 
+// Secret coming from an environment variable
+static SECRET_REF: SecretVaultRef = SecretVaultRef::new(SecretName::from_static("user"))
+    .with_required(false)
+    .with_allow_in_snapshots(true);
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let subscriber = tracing_subscriber::fmt()
@@ -7,15 +12,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    // Secret coming from an environment variable
-    let secret_ref = SecretVaultRef::new("user".into())
-        .with_required(false)
-        .with_allow_in_snapshots(true);
-
     // Building the vault with test env source
     let vault = SecretVaultBuilder::with_source(InsecureEnvSource::new())
         .without_encryption()
-        .with_secret_refs(vec![&secret_ref])
+        .with_secret_refs(vec![&SECRET_REF])
         .build()?;
 
     // Load secrets from the source
@@ -27,7 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .await?;
 
     // Reading the secret value
-    let secret_value: Secret = snapshot.require_secret_by_ref(&secret_ref)?;
+    let secret_value: Secret = snapshot.require_secret_by_ref(&SECRET_REF)?;
 
     println!("Received secret: {:?}", secret_value);
 

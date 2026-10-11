@@ -128,16 +128,30 @@ All examples available at [secret-vault/examples](secret-vault/examples) directo
 
 ## Making `SecretVaultRef` available globally
 It is convenient to make those references globally available inside your apps since
-they don't contain any sensitive information.
-To make it easy consider using crates such as `lazy_static` or `once_cell`:
+they do not contain any sensitive information.
+References are declared as plain `static` items, no `lazy_static` or `once_cell` required:
+
+- `SecretName`, `SecretNamespace` and `SecretVersion` are created with `from_static`;
+- `SecretVaultRef::new`, `with_required`, `with_auto_refresh` and `with_allow_in_snapshots` are `const`;
+- a reference with a version or a namespace is created from a key with `SecretVaultKey::from_parts` and `SecretVaultRef::from_key`, since `with_secret_version` and `with_namespace` are not `const`.
 
 ```rust
-use once_cell::sync::Lazy;
+use secret_vault::*;
 
-pub static MY_SECRET_REF: Lazy<SecretVaultRef> = Lazy::new(|| {
-   SecretVaultRef::new("my-secret".into())
-});
+pub static MY_SECRET_REF: SecretVaultRef =
+    SecretVaultRef::new(SecretName::from_static("my-secret")).with_required(false);
+
+pub static MY_VERSIONED_SECRET_REF: SecretVaultRef =
+    SecretVaultRef::from_key(SecretVaultKey::from_parts(
+        SecretName::from_static("my-versioned-secret"),
+        Some(SecretVersion::from_static("1")),
+        Some(SecretNamespace::from_static("aws")),
+    ))
+    .with_auto_refresh(true);
 ```
+
+Names, namespaces and versions created with `from_static` are equal to the ones created at runtime with `.into()`,
+so a static reference and a runtime one with the same key read the same secret from the vault.
 
 ## Multiple sources
 The library supports reading from multiple sources simultaneously
@@ -265,6 +279,17 @@ Then you have two options for configuration/version management:
   Recommended for most of the cases, since this is more auditable and declarative.
 - Updating automatically secrets and their versions using `SecretVaultAutoRefresher`
   (or your own implementation) without redeploys.
+
+## Migrating from 2.x
+`SecretName`, `SecretNamespace` and `SecretVersion` hold a `Cow<'static, str>` in 3.0,
+so they can be created in `const` and `static` items. Changes visible to callers:
+
+- `value()` returns `&str` instead of `&String`, use `.to_string()` where a `String` is needed;
+- the types no longer implement `rvstruct::ValueStruct` and `AsRef<str>`, so `into_value()` is removed, use `value()` instead;
+- `SecretVaultKey::to_aad()` returns `Cow<'static, [u8]>` instead of `&String`;
+- `SecretVaultRef::new`, `with_required`, `with_auto_refresh` and `with_allow_in_snapshots` are `const fn`.
+
+Creating the types with `new()`, `"name".into()`, `String::into()` and `parse()`, and formatting them with `Display`, work as before.
 
 
 ## Licence
