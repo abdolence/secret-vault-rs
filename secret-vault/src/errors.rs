@@ -289,7 +289,7 @@ impl<E: Display + Error + Sync + Send + 'static, R: std::fmt::Debug + Sync + Sen
 impl From<azure_core::Error> for SecretVaultError {
     /// An HTTP response error keeps only its status and service error code: for a body that is
     /// not an Azure error envelope, the SDK copies the whole body into the error, and that body
-    /// may be a secret payload.
+    /// may be a secret payload. A response parse error keeps no root cause for the same reason.
     fn from(e: azure_core::Error) -> Self {
         let code = format!("{}", e.kind());
         match e.kind() {
@@ -304,6 +304,23 @@ impl From<azure_core::Error> for SecretVaultError {
                 SecretVaultError::SecretsSourceError(SecretsSourceError::new(
                     SecretVaultErrorPublicGenericDetails::new(code.clone()),
                     format!("Azure Key Vault error: {code}"),
+                ))
+            }
+            azure_core::error::ErrorKind::DataConversion => {
+                // serde_json quotes the offending value in its messages, and in a secret response
+                // that value can be the secret itself, so only the category and position are kept.
+                let message = match e.downcast_ref::<serde_json::Error>() {
+                    Some(json_error) => format!(
+                        "Unable to parse the Azure Key Vault response: {:?} error at line {} column {}",
+                        json_error.classify(),
+                        json_error.line(),
+                        json_error.column()
+                    ),
+                    None => "Unable to parse the Azure Key Vault response".to_string(),
+                };
+                SecretVaultError::SecretsSourceError(SecretsSourceError::new(
+                    SecretVaultErrorPublicGenericDetails::new(code),
+                    message,
                 ))
             }
             _ => SecretVaultError::SecretsSourceError(

@@ -41,6 +41,7 @@ kms-aead = { version = "0.28.1", optional = true }
 ahash = { version = "0.8", optional = true }
 azure_core = { version = "1.1", optional = true, default-features = false, features = ["reqwest", "reqwest_rustls", "tokio"] }
 azure_security_keyvault_secrets = { version = "1.0.1", optional = true, default-features = false }
+serde_json = { version = "1", optional = true }
 
 
 [dev-dependencies]
@@ -78,7 +79,11 @@ aws-secretmanager = ["aws", "dep:aws-sdk-secretsmanager"]
 aws-kms = ["aws", "kms", "dep:aws-sdk-kms", "kms-aead/aws-kms-encryption", "ring-aead-encryption"]
 aws-kms-encryption = ["aws-kms"]
 
-azure-keyvault = ["dep:azure_core", "dep:azure_security_keyvault_secrets"]
+azure-keyvault = [
+    "dep:azure_core",
+    "dep:azure_security_keyvault_secrets",
+    "dep:serde_json",
+]
 
 ahash = ["dep:ahash"]
 

@@ -468,6 +468,23 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn unparseable_response_value_is_absent_from_errors() {
+        // serde_json quotes a string found where another type is expected.
+        let mistyped_body =
+            r#"{"value": "x", "attributes": {"enabled": "plaintext-that-must-not-leak"}}"#;
+        let source = source_over(CannedHttpClient::new(StatusCode::Ok, mistyped_body));
+
+        let err = source
+            .get_secrets(&[SecretVaultRef::new("db-password".into())])
+            .await
+            .unwrap_err();
+
+        assert!(matches!(err, SecretVaultError::SecretsSourceError(_)));
+        assert!(!err.to_string().contains(SECRET_PLAINTEXT));
+        assert!(!format!("{err:?}").contains(SECRET_PLAINTEXT));
+    }
+
+    #[tokio::test]
     async fn invalid_reference_fails_before_any_request() {
         let http_client = CannedHttpClient::new(StatusCode::Ok, DB_PASSWORD_RESPONSE);
         let source = source_over(http_client.clone());
