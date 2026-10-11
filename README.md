@@ -83,7 +83,7 @@ secret-vault = { version = "3.0", features = ["aws-secretmanager", "aws-kms-encr
 
 For Azure Key Vault:
 ```toml
-secret-vault = { version = "2.2", features = ["azure-keyvault"] }
+secret-vault = { version = "3.0", features = ["azure-keyvault"] }
 ```
 
 For GCP Secret Manager with WebPKI and serde support:
