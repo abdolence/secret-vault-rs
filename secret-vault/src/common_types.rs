@@ -1,16 +1,174 @@
 use jiff::{SignedDuration, Timestamp};
 use rsb_derive::*;
-use rvstruct::*;
 use secret_vault_value::SecretValue;
+use std::borrow::Cow;
+use std::convert::Infallible;
+use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, ValueStruct)]
-pub struct SecretName(String);
+/// The name a source knows a secret by: a secret ID in a cloud secret manager,
+/// an environment variable, a file name.
+///
+/// A name built with [`SecretName::from_static`] and one built from a `String`
+/// with the same text are equal and hash the same.
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub struct SecretName(Cow<'static, str>);
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, ValueStruct)]
-pub struct SecretNamespace(String);
+impl SecretName {
+    pub const fn new(value: String) -> Self {
+        Self(Cow::Owned(value))
+    }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, ValueStruct)]
-pub struct SecretVersion(String);
+    /// Builds a name in a `const` context, for a [`SecretVaultRef`] declared as a `static`.
+    pub const fn from_static(value: &'static str) -> Self {
+        Self(Cow::Borrowed(value))
+    }
+
+    pub fn value(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<String> for SecretName {
+    fn from(value: String) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<&String> for SecretName {
+    fn from(value: &String) -> Self {
+        Self::new(value.clone())
+    }
+}
+
+impl From<&str> for SecretName {
+    fn from(value: &str) -> Self {
+        Self::new(value.to_owned())
+    }
+}
+
+impl FromStr for SecretName {
+    type Err = Infallible;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Ok(value.into())
+    }
+}
+
+impl Display for SecretName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(self.value(), f)
+    }
+}
+
+/// Selects the source of a secret when the vault reads from
+/// [`MultipleSecretsSources`](crate::MultipleSecretsSources).
+///
+/// A namespace built with [`SecretNamespace::from_static`] and one built from a
+/// `String` with the same text are equal and hash the same.
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub struct SecretNamespace(Cow<'static, str>);
+
+impl SecretNamespace {
+    pub const fn new(value: String) -> Self {
+        Self(Cow::Owned(value))
+    }
+
+    /// Builds a namespace in a `const` context, for a [`SecretVaultRef`] declared as a `static`.
+    pub const fn from_static(value: &'static str) -> Self {
+        Self(Cow::Borrowed(value))
+    }
+
+    pub fn value(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<String> for SecretNamespace {
+    fn from(value: String) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<&String> for SecretNamespace {
+    fn from(value: &String) -> Self {
+        Self::new(value.clone())
+    }
+}
+
+impl From<&str> for SecretNamespace {
+    fn from(value: &str) -> Self {
+        Self::new(value.to_owned())
+    }
+}
+
+impl FromStr for SecretNamespace {
+    type Err = Infallible;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Ok(value.into())
+    }
+}
+
+impl Display for SecretNamespace {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(self.value(), f)
+    }
+}
+
+/// A version of a secret as its source names it, such as `AWSCURRENT` or `3`.
+///
+/// A version built with [`SecretVersion::from_static`] and one built from a
+/// `String` with the same text are equal and hash the same.
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub struct SecretVersion(Cow<'static, str>);
+
+impl SecretVersion {
+    pub const fn new(value: String) -> Self {
+        Self(Cow::Owned(value))
+    }
+
+    /// Builds a version in a `const` context, for a [`SecretVaultRef`] declared as a `static`.
+    pub const fn from_static(value: &'static str) -> Self {
+        Self(Cow::Borrowed(value))
+    }
+
+    pub fn value(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<String> for SecretVersion {
+    fn from(value: String) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<&String> for SecretVersion {
+    fn from(value: &String) -> Self {
+        Self::new(value.clone())
+    }
+}
+
+impl From<&str> for SecretVersion {
+    fn from(value: &str) -> Self {
+        Self::new(value.to_owned())
+    }
+}
+
+impl FromStr for SecretVersion {
+    type Err = Infallible;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Ok(value.into())
+    }
+}
+
+impl Display for SecretVersion {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(self.value(), f)
+    }
+}
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct SecretVaultRef {
@@ -23,9 +181,18 @@ pub struct SecretVaultRef {
 }
 
 impl SecretVaultRef {
-    pub fn new(secret_name: SecretName) -> Self {
+    pub const fn new(secret_name: SecretName) -> Self {
+        Self::from_key(SecretVaultKey::from_parts(secret_name, None, None))
+    }
+
+    /// A required reference to the secret under `key`, not refreshed automatically,
+    /// not allowed in snapshots and without predefined labels, as [`SecretVaultRef::new`] makes it.
+    ///
+    /// With [`SecretVaultKey::from_parts`] this declares a reference with a version or
+    /// a namespace as a `static`.
+    pub const fn from_key(key: SecretVaultKey) -> Self {
         Self {
-            key: SecretVaultKey::new(secret_name),
+            key,
             required: true,
             auto_refresh: false,
             allow_in_snapshots: false,
@@ -61,25 +228,21 @@ impl SecretVaultRef {
         }
     }
 
-    pub fn with_required(self, value: bool) -> Self {
-        Self {
-            required: value,
-            ..self
-        }
+    // The flags are assigned in place because struct update syntax (`..self`) is
+    // rejected in a `const fn` on a type that needs dropping.
+    pub const fn with_required(mut self, value: bool) -> Self {
+        self.required = value;
+        self
     }
 
-    pub fn with_auto_refresh(self, value: bool) -> Self {
-        Self {
-            auto_refresh: value,
-            ..self
-        }
+    pub const fn with_auto_refresh(mut self, value: bool) -> Self {
+        self.auto_refresh = value;
+        self
     }
 
-    pub fn with_allow_in_snapshots(self, value: bool) -> Self {
-        Self {
-            allow_in_snapshots: value,
-            ..self
-        }
+    pub const fn with_allow_in_snapshots(mut self, value: bool) -> Self {
+        self.allow_in_snapshots = value;
+        self
     }
 
     pub fn add_predefined_label(self, label: SecretMetadataLabel) -> Self {
@@ -97,6 +260,35 @@ pub struct SecretVaultKey {
     pub secret_name: SecretName,
     pub secret_version: Option<SecretVersion>,
     pub namespace: Option<SecretNamespace>,
+}
+
+impl SecretVaultKey {
+    /// Builds a key in a `const` context, for a [`SecretVaultRef`] declared as a `static`
+    /// with [`SecretVaultRef::from_key`].
+    pub const fn from_parts(
+        secret_name: SecretName,
+        secret_version: Option<SecretVersion>,
+        namespace: Option<SecretNamespace>,
+    ) -> Self {
+        // The `with_*` builders cannot be `const`: replacing an `Option` field drops
+        // its previous value, which a `const fn` may not do.
+        Self {
+            secret_name,
+            secret_version,
+            namespace,
+        }
+    }
+
+    /// The additional authenticated data for a value encrypted under this key: the
+    /// bytes of the secret name, the same whichever way the name was built.
+    pub fn to_aad(&self) -> Cow<'static, [u8]> {
+        // kms-aead takes the AAD as an owned `'static` type, so a `&[u8]` borrowed
+        // from `self` will not do; a name from a `static` still costs no allocation.
+        match &self.secret_name.0 {
+            Cow::Borrowed(name) => Cow::Borrowed(name.as_bytes()),
+            Cow::Owned(name) => Cow::Owned(name.as_bytes().to_vec()),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Builder)]
@@ -163,4 +355,55 @@ pub struct Secret {
 pub enum SecretExpiration {
     ExpireTime(Timestamp),
     Ttl(SignedDuration),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::hash::{BuildHasher, RandomState};
+
+    static DATABASE_PASSWORD: SecretVaultRef =
+        SecretVaultRef::from_key(SecretVaultKey::from_parts(
+            SecretName::from_static("database-password"),
+            Some(SecretVersion::from_static("2")),
+            Some(SecretNamespace::from_static("aws")),
+        ))
+        .with_required(false)
+        .with_auto_refresh(true)
+        .with_allow_in_snapshots(true);
+
+    #[test]
+    fn static_ref_equals_and_hashes_as_the_same_ref_built_at_runtime() {
+        let runtime_ref = SecretVaultRef::new(String::from("database-password").into())
+            .with_secret_version("2".into())
+            .with_namespace(String::from("aws").into())
+            .with_required(false)
+            .with_auto_refresh(true)
+            .with_allow_in_snapshots(true);
+
+        assert_eq!(DATABASE_PASSWORD, runtime_ref);
+        let hasher = RandomState::new();
+        assert_eq!(
+            hasher.hash_one(&DATABASE_PASSWORD),
+            hasher.hash_one(&runtime_ref)
+        );
+    }
+
+    #[test]
+    fn str_string_and_static_conversions_agree() {
+        let name = SecretName::from_static("database-password");
+        assert_eq!(SecretName::from("database-password"), name);
+        assert_eq!(SecretName::from(String::from("database-password")), name);
+        assert_eq!("database-password".parse(), Ok(name));
+
+        let namespace = SecretNamespace::from_static("aws");
+        assert_eq!(SecretNamespace::from("aws"), namespace);
+        assert_eq!(SecretNamespace::from(String::from("aws")), namespace);
+        assert_eq!("aws".parse(), Ok(namespace));
+
+        let version = SecretVersion::from_static("2");
+        assert_eq!(SecretVersion::from("2"), version);
+        assert_eq!(SecretVersion::from(String::from("2")), version);
+        assert_eq!("2".parse(), Ok(version));
+    }
 }

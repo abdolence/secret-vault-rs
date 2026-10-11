@@ -1,6 +1,5 @@
 use crate::*;
 use async_trait::*;
-use rvstruct::ValueStruct;
 use std::collections::HashMap;
 
 pub struct MultipleSecretsSources {
@@ -80,7 +79,6 @@ mod tests {
     use proptest::prelude::*;
     use proptest::strategy::ValueTree;
     use proptest::test_runner::TestRunner;
-    use rvstruct::ValueStruct;
 
     #[tokio::test]
     async fn multiple_sources_test() {
@@ -129,7 +127,7 @@ mod tests {
 
         for secret_ref in all_mock_secrets {
             let test_value =
-                if secret_ref.key.namespace.as_ref().unwrap().value().as_str() == "mock1" {
+                if secret_ref.key.namespace == Some(SecretNamespace::from_static("mock1")) {
                     mock_secrets_store1.get(&secret_ref)
                 } else {
                     mock_secrets_store2.get(&secret_ref)

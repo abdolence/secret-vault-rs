@@ -4,7 +4,6 @@ use async_trait::*;
 use aws_sdk_secretsmanager::error::SdkError;
 use jiff::Timestamp;
 use rsb_derive::*;
-use rvstruct::ValueStruct;
 use secret_vault_value::SecretValue;
 use std::collections::HashMap;
 use tracing::*;
