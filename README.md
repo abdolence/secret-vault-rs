@@ -205,9 +205,12 @@ The TLS features select the TLS of the reqwest client the Azure SDK creates:
 - `azure-keyvault-tls-no-provider` - rustls with the default `CryptoProvider` of the process, so install one at startup, for example `rustls::crypto::ring::default_provider().install_default()`;
 - `azure-keyvault-native-tls` - native-tls: OpenSSL on Linux and the system TLS on macOS and Windows.
 
-Be aware that creating the source panics in reqwest when `azure-keyvault-tls-no-provider` is used without an installed `CryptoProvider`.
+With `azure-keyvault-tls-no-provider` and no installed `CryptoProvider`, creating the source fails with `InvalidParametersError`.
 GCP (through gcloud-sdk) and Azure share one reqwest TLS backend in an application, and reqwest uses native-tls whenever it is enabled anywhere in the build.
-So with `gcp-tls-roots` enabled, the Azure source uses native-tls whatever Azure TLS feature is selected.
+Both backends verify certificates, but a pair of GCP and Azure features can select a different backend than the feature name says:
+- `gcp-tls-roots` with `azure-keyvault-tls-aws-lc-rs` or `azure-keyvault-tls-no-provider` - the Azure source uses native-tls;
+- `gcp-tls-webpki` with `azure-keyvault-native-tls` - the gcloud-sdk authentication HTTP clients use native-tls with the system CA certificates, while the gRPC connections to GCP keep rustls with WebPKI roots.
+
 `azure_identity` with its default features enables rustls in the Azure SDK, so depend on it with `default-features = false` to keep only the TLS selected here.
 
 To run the example:
@@ -252,7 +255,7 @@ The environment variables are the ones the Vault CLI uses:
 - `VAULT_ADDR` - the address of the Vault server, required;
 - `VAULT_TOKEN` - the token sent with every request;
 - `VAULT_NAMESPACE` - the Vault Enterprise namespace;
-- `VAULT_CACERT` - a PEM file with CA certificates to trust in addition to the roots of the selected root store;
+- `VAULT_CACERT` - a PEM file with CA certificates to trust in addition to the roots of the selected root store. Be aware the file adds to the root store, while the Vault CLI trusts only the certificates of this file when it is set;
 - `VAULT_CLIENT_TIMEOUT` - the time limit for one read, in seconds (`60`) or as a duration (`1m30s`), 60 seconds by default.
 
 To configure the source in code use `HashiCorpVaultSourceOptions::new(address)` with `with_token`, `with_namespace`, `with_ca_certificate` and `with_timeout`.
@@ -266,6 +269,10 @@ The source uses rustls, and the TLS features select its root store and crypto pr
 
 The provider is used for the connections of the source only and is not installed as the process default.
 If your application uses rustls with `ring`, enable `hashicorp-vault-tls-ring`. With both providers in one build rustls cannot choose a default one, and the application has to install it at startup.
+That includes `hashicorp-vault-tls-ring` together with `gcp-secretmanager` or GCP KMS, which enable aws-lc-rs: without an installed provider the GCP source and the GCP KMS encryption fail with `InvalidParametersError`.
+When the root store has no certificates and no CA certificate file is set, for example `hashicorp-vault-tls-roots` in an image without system CA certificates, creating the source fails with `InvalidParametersError`.
+
+Be aware that an `http://` address sends the token and the secrets unencrypted. The source logs a warning when such an address points to a host other than `localhost` or a loopback IP address.
 
 Only token authentication is supported. For other authentication methods (AppRole, Kubernetes, cloud IAM, etc.) either log in with your own code and pass the token with `with_token`, or run Vault Agent or Vault Proxy with auto-auth and `use_auto_auth_token` and point `VAULT_ADDR` to it without a token. Be aware the source does not renew the token, so the secrets stop refreshing when it expires.
 
