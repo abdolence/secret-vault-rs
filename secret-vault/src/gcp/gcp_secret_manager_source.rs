@@ -1,7 +1,6 @@
 use gcloud_sdk::google::cloud::secretmanager::v1::secret_manager_service_client::SecretManagerServiceClient;
 use gcloud_sdk::*;
 use rsb_derive::*;
-use rvstruct::ValueStruct;
 use std::collections::HashMap;
 
 use crate::errors::*;
@@ -67,8 +66,8 @@ impl SecretsSource for GcpSecretManagerSource {
                 .key
                 .secret_version
                 .as_ref()
-                .map(|v| v.value().clone())
-                .unwrap_or_else(|| "latest".to_string());
+                .map(|v| v.value())
+                .unwrap_or("latest");
 
             let gcp_secret_version_path = format!(
                 "projects/{}/secrets/{}/versions/{}",

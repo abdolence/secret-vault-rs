@@ -2,6 +2,15 @@ use secret_vault::*;
 use std::sync::Arc;
 use std::time::Duration;
 
+// Describing secrets and marking them non-required
+static SECRET_REF: SecretVaultRef = SecretVaultRef::from_key(SecretVaultKey::from_parts(
+    SecretName::from_static("test-secret-xRnpry"),
+    Some(SecretVersion::from_static("AWSCURRENT")),
+    None,
+))
+.with_required(false)
+.with_auto_refresh(true);
+
 pub fn config_env_var(name: &str) -> Result<String, String> {
     std::env::var(name).map_err(|e| format!("{}: {}", name, e))
 }
@@ -13,18 +22,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    // Describing secrets and marking them non-required
-    let secret1 = SecretVaultRef::new("test-secret-xRnpry".into())
-        .with_required(false)
-        .with_secret_version("AWSCURRENT".into())
-        .with_auto_refresh(true);
-
     // Building the vault
     let vault = Arc::new(
         SecretVaultBuilder::with_source(
             aws::AwsSecretManagerSource::new(&config_env_var("ACCOUNT_ID")?).await?,
         )
-        .with_secret_refs(vec![&secret1])
+        .with_secret_refs(vec![&SECRET_REF])
         .build()?,
     );
 

@@ -39,7 +39,7 @@ impl SecretVaultEncryption for GcpKmsEnvelopeEncryption {
     ) -> SecretVaultResult<EncryptedSecretValue> {
         let encrypted_value = self
             .envelope_aead_encryption
-            .encrypt_value(secret_vault_key.to_aad(), secret_value)
+            .encrypt_value(&secret_vault_key.to_aad(), secret_value)
             .await?;
 
         Ok(encrypted_value.into())
@@ -53,7 +53,7 @@ impl SecretVaultEncryption for GcpKmsEnvelopeEncryption {
         let secret_value = self
             .envelope_aead_encryption
             .decrypt_value(
-                secret_vault_key.to_aad(),
+                &secret_vault_key.to_aad(),
                 &encrypted_secret_value.clone().into(),
             )
             .await?;

@@ -2,7 +2,6 @@ use crate::errors::*;
 use crate::*;
 use async_trait::*;
 use rsb_derive::*;
-use rvstruct::*;
 use secret_vault_value::SecretValue;
 use std::collections::HashMap;
 use std::path::Path;

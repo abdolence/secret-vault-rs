@@ -38,7 +38,7 @@ impl SecretVaultEncryption for SecretVaultRingAeadEncryption {
     ) -> SecretVaultResult<EncryptedSecretValue> {
         let encrypted = self
             .ring_encryption
-            .encrypt_value(secret_vault_key.to_aad(), secret_value, &self.vault_secret)
+            .encrypt_value(&secret_vault_key.to_aad(), secret_value, &self.vault_secret)
             .await?;
         Ok(encrypted.into())
     }
@@ -51,7 +51,7 @@ impl SecretVaultEncryption for SecretVaultRingAeadEncryption {
         Ok(self
             .ring_encryption
             .decrypt_value(
-                secret_vault_key.to_aad(),
+                &secret_vault_key.to_aad(),
                 &encrypted_secret_value.clone().into(),
                 &self.vault_secret,
             )
@@ -111,6 +111,27 @@ mod tests {
         for sz in [5000, 32768, 65535] {
             encryption_test_for(SecretValue::new("42".repeat(sz).as_bytes().to_vec())).await
         }
+    }
+
+    #[tokio::test]
+    async fn value_encrypted_under_static_key_decrypts_under_equal_runtime_key() {
+        let static_key = SecretVaultKey::from_parts(SecretName::from_static("test"), None, None);
+        let runtime_key = SecretVaultKey::new(String::from("test").into());
+        let mock_secret_value = SecretValue::new("42".repeat(1024).as_bytes().to_vec());
+
+        let encryption = SecretVaultRingAeadEncryption::new().unwrap();
+        let encrypted_value = encryption
+            .encrypt_value(&static_key, &mock_secret_value)
+            .await
+            .unwrap();
+        let decrypted_value = encryption
+            .decrypt_value(&runtime_key, &encrypted_value)
+            .await
+            .unwrap();
+        assert_eq!(
+            decrypted_value.ref_sensitive_value(),
+            mock_secret_value.ref_sensitive_value()
+        );
     }
 
     #[tokio::test]

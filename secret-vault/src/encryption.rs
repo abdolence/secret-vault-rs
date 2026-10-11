@@ -6,13 +6,6 @@ use secret_vault_value::SecretValue;
 #[derive(Debug, Clone, Eq, PartialEq, ValueStruct)]
 pub struct EncryptedSecretValue(pub Vec<u8>);
 
-impl SecretVaultKey {
-    #[inline]
-    pub fn to_aad(&self) -> &String {
-        self.secret_name.value()
-    }
-}
-
 #[async_trait]
 pub trait SecretVaultEncryption {
     async fn encrypt_value(
