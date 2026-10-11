@@ -139,13 +139,21 @@ The source takes the vault URL and any credential from [azure_identity](https://
 managed identity, Azure CLI, client secret and so on.
 
 ```rust
+static SECRET_REF1: SecretVaultRef =
+    SecretVaultRef::new(SecretName::from_static("db-password"));
+static SECRET_REF2: SecretVaultRef = SecretVaultRef::from_key(SecretVaultKey::from_parts(
+    SecretName::from_static("api-key"),
+    Some(SecretVersion::from_static("4387e9f3d6e14c459867679a90fd0f79")),
+    None,
+));
+
 let credential = azure_identity::ManagedIdentityCredential::new(None)?;
 
 let vault = SecretVaultBuilder::with_source(
     azure::AzureKeyVaultSource::new("https://my-vault.vault.azure.net", credential)?,
 )
     .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
-    .with_secret_refs(vec![&secret1, &secret2])
+    .with_secret_refs(vec![&SECRET_REF1, &SECRET_REF2])
     .build()?;
 ```
 
