@@ -71,20 +71,6 @@ compile_error!(
 compile_error!("You cannot enable both \"gcp-tls-roots\" and \"gcp-tls-webpki\" at the same time");
 
 #[cfg(all(
-    feature = "gcp-base",
-    not(feature = "gcp-tls-aws-lc-rs"),
-    not(feature = "gcp-tls-no-provider")
-))]
-compile_error!(
-    "You must enable either \"gcp-tls-aws-lc-rs\" or \"gcp-tls-no-provider\" when using GCP features"
-);
-
-#[cfg(all(feature = "gcp-tls-aws-lc-rs", feature = "gcp-tls-no-provider"))]
-compile_error!(
-    "You cannot enable both \"gcp-tls-aws-lc-rs\" (enabled by \"gcp\" and the GCP KMS features) and \"gcp-tls-no-provider\" at the same time"
-);
-
-#[cfg(all(
     feature = "azure-keyvault-base",
     not(feature = "azure-keyvault-tls-aws-lc-rs"),
     not(feature = "azure-keyvault-tls-no-provider"),
@@ -198,5 +184,5 @@ pub use vault_auto_refresher::*;
 mod multiple_sources;
 pub use multiple_sources::*;
 
-#[cfg(feature = "gcp-base")]
+#[cfg(feature = "gcp-secretmanager-base")]
 mod prost_jiff;

@@ -48,16 +48,14 @@ See the security consideration below about versioning.
 
 #### Cloud Provider Features
 **Google Cloud Platform (GCP)**
-- `gcp` - GCP support with the default TLS, same as `gcp-tls-roots` and `gcp-tls-aws-lc-rs`
-- `gcp-secretmanager` - Google Secret Manager support
+- `gcp` - GCP support with the default TLS, same as `gcp-tls-roots`
+- `gcp-secretmanager` - Google Secret Manager support with the aws-lc-rs crypto provider of gcloud-sdk
+- `gcp-secretmanager-base` - Google Secret Manager support with the crypto provider your application installs
 - `gcp-kms-tls-roots` (also aliased to `gcp-kms`) - Google Cloud KMS support with TLS roots and aws-lc-rs
 - `gcp-kms-tls-webpki` (`gcp-kms-webpki` in 2.x, still works) - Google Cloud KMS support with WebPKI roots and aws-lc-rs
 - One of the following TLS root stores is required when using GCP features:
   - `gcp-tls-roots` - System TLS roots (default)
   - `gcp-tls-webpki` - WebPKI roots
-- One of the following rustls crypto providers is required when using GCP features:
-  - `gcp-tls-aws-lc-rs` - aws-lc-rs (default)
-  - `gcp-tls-no-provider` - the crypto provider your application installs, not available with GCP KMS
 
 **Amazon Web Services (AWS)**
 - `aws-secretmanager` - AWS Secrets Manager support
@@ -122,7 +120,7 @@ secret-vault = { version = "3.0", features = ["hashicorp-vault-tls-webpki", "has
 
 For GCP Secret Manager with WebPKI and serde support:
 ```toml
-secret-vault = { version = "3.0", features = ["gcp-secretmanager", "gcp-tls-webpki", "gcp-tls-aws-lc-rs", "serde"] }
+secret-vault = { version = "3.0", features = ["gcp-secretmanager", "gcp-tls-webpki", "serde"] }
 ```
 
 Note: Each group of TLS features above needs one feature when its source is used. The features of a group are mutually exclusive and cannot be enabled simultaneously.
@@ -168,8 +166,8 @@ To run this example use with environment variables:
 # PROJECT_ID=<your-google-project-id> cargo run --example gcloud_secret_manager_vault
 ```
 
-The HTTP client of gcloud-sdk uses native-tls (OpenSSL on Linux) with `gcp-tls-roots`, and rustls with aws-lc-rs with `gcp-tls-webpki` whatever the provider feature.
-With `gcp-tls-no-provider` install a rustls `CryptoProvider` at startup before creating the source, for example `rustls::crypto::ring::default_provider().install_default()`.
+The HTTP client of gcloud-sdk uses native-tls (OpenSSL on Linux) with `gcp-tls-roots`, and rustls with aws-lc-rs with `gcp-tls-webpki`.
+With `gcp-secretmanager-base` install a rustls `CryptoProvider` at startup before creating the source, for example `rustls::crypto::ring::default_provider().install_default()`.
 GCP KMS supports only aws-lc-rs, since kms-aead enables it.
 
 ## Example for Azure Key Vault
@@ -208,7 +206,8 @@ The TLS features select the TLS of the reqwest client the Azure SDK creates:
 - `azure-keyvault-native-tls` - native-tls: OpenSSL on Linux and the system TLS on macOS and Windows.
 
 Be aware that creating the source panics in reqwest when `azure-keyvault-tls-no-provider` is used without an installed `CryptoProvider`.
-reqwest uses native-tls whenever it is enabled anywhere in the build, and `gcp-tls-roots` enables it as well.
+GCP (through gcloud-sdk) and Azure share one reqwest TLS backend in an application, and reqwest uses native-tls whenever it is enabled anywhere in the build.
+So with `gcp-tls-roots` enabled, the Azure source uses native-tls whatever Azure TLS feature is selected.
 `azure_identity` with its default features enables rustls in the Azure SDK, so depend on it with `default-features = false` to keep only the TLS selected here.
 
 To run the example:
