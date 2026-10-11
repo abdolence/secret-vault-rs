@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, HashMap};
+use std::net::IpAddr;
 use std::num::NonZeroU64;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -33,6 +34,9 @@ const VAULT_REQUEST_HEADER: &str = "x-vault-request";
 /// Vault's default `max_request_size`. A KV v2 version cannot be written larger than that, so a
 /// longer response is not a secret read and is not buffered.
 const MAX_RESPONSE_SIZE: usize = 32 * 1024 * 1024;
+/// The longest Vault error text quoted into an error or a log line. A misbehaving proxy may echo
+/// the request or other data into `errors`, so only a short prefix of the first one is kept.
+const MAX_VAULT_ERROR_CHARS: usize = 256;
 
 /// Characters a path segment keeps as they are: the RFC 3986 unreserved set.
 const PATH_SEGMENT: &AsciiSet = &NON_ALPHANUMERIC
@@ -85,8 +89,10 @@ pub struct HashiCorpVaultSourceOptions {
     /// Vault Enterprise namespace the mount belongs to.
     pub namespace: Option<String>,
 
-    /// PEM file with CA certificates to trust besides the system ones, for a server whose
-    /// certificate comes from a private CA.
+    /// PEM file with CA certificates to trust besides the roots of the selected TLS root store,
+    /// for a server whose certificate comes from a private CA. The file adds to the root store
+    /// and does not replace it, unlike `VAULT_CACERT` in the Vault CLI, so a server with a
+    /// certificate from any public CA in the root store is trusted as well.
     pub ca_certificate: Option<PathBuf>,
 
     /// Mount path of the KV secrets engine v2 the secrets are read from.
@@ -163,9 +169,16 @@ impl HashiCorpVaultSource {
                 "The Vault request timeout must be greater than zero".into(),
             ));
         }
+        let address = vault_address(&options.address)?;
+        if is_plain_http_to_another_host(&address) {
+            warn!(
+                %address,
+                "The Vault address uses plain HTTP to another host, so the token and the secrets cross the network unencrypted"
+            );
+        }
         let data_endpoint = format!(
             "{}/v1/{}/data/",
-            vault_api_base(&options.address)?,
+            address.to_string().trim_end_matches('/'),
             encoded_vault_path("mount", options.mount.trim_matches('/'))?
         );
         let namespace = options
@@ -278,7 +291,7 @@ impl HashiCorpVaultSource {
             Ok(response) if status == StatusCode::NOT_FOUND && response.errors.is_empty() => {
                 return Ok(None);
             }
-            Ok(response) => format!("{:?}", response.errors),
+            Ok(response) => response.first_error_prefix(),
             // The parse error is dropped because serde_json may quote the body in it.
             Err(_) => "the body is not a Vault error response".to_string(),
         };
@@ -465,6 +478,20 @@ struct VaultErrorResponse {
     errors: Vec<String>,
 }
 
+impl VaultErrorResponse {
+    /// At most [`MAX_VAULT_ERROR_CHARS`] characters of the first error, quoted.
+    fn first_error_prefix(&self) -> String {
+        let first_error = self.errors.first().map(String::as_str).unwrap_or_default();
+        format!(
+            "{:?}",
+            first_error
+                .chars()
+                .take(MAX_VAULT_ERROR_CHARS)
+                .collect::<String>()
+        )
+    }
+}
+
 /// The value of an environment variable, `None` when it is unset or empty.
 fn env_var(name: &str) -> SecretVaultResult<Option<String>> {
     match std::env::var(name) {
@@ -496,25 +523,35 @@ fn vault_duration(name: &str, value: &str) -> SecretVaultResult<Duration> {
     }
 }
 
-/// `scheme://authority` of a Vault address, followed by its path when Vault is served under a
-/// path prefix.
-fn vault_api_base(address: &str) -> SecretVaultResult<String> {
-    let uri = address.parse::<Uri>().map_err(|e| {
+/// A Vault address: an `http` or `https` URI with a host and no query. Its text without the
+/// trailing `/` is the API base, which keeps the path of a Vault served under a path prefix.
+fn vault_address(address: &str) -> SecretVaultResult<Uri> {
+    let invalid = |reason: String| {
         SecretVaultInvalidParametersError::create(
             "address",
-            format!("`{address}` is not a valid Vault address: {e}"),
+            format!("`{address}` is not a valid Vault address: {reason}"),
         )
-    })?;
+    };
+    let uri = address.parse::<Uri>().map_err(|e| invalid(e.to_string()))?;
     match (uri.scheme_str(), uri.authority(), uri.query()) {
-        (Some(scheme @ ("http" | "https")), Some(authority), None) => Ok(format!(
-            "{scheme}://{authority}{}",
-            uri.path().trim_end_matches('/')
-        )),
-        _ => Err(SecretVaultInvalidParametersError::create(
-            "address",
-            format!("`{address}` is not a valid Vault address: expected http:// or https://, a host and no query"),
+        (Some("http" | "https"), Some(_), None) => Ok(uri),
+        _ => Err(invalid(
+            "expected http:// or https://, a host and no query".into(),
         )),
     }
+}
+
+/// Whether requests to `address` carry the token and the secrets in plain text off this host:
+/// an `http` address whose host is not `localhost` or a loopback IP address.
+fn is_plain_http_to_another_host(address: &Uri) -> bool {
+    let host = address.host().unwrap_or_default();
+    let is_loopback = host.eq_ignore_ascii_case("localhost")
+        || host
+            .trim_start_matches('[')
+            .trim_end_matches(']')
+            .parse::<IpAddr>()
+            .is_ok_and(|ip| ip.is_loopback());
+    address.scheme_str() == Some("http") && !is_loopback
 }
 
 /// Percent-encodes each `/`-separated segment of a path inside Vault, so a name can neither add
@@ -532,17 +569,46 @@ fn encoded_vault_path(field: &str, path: &str) -> SecretVaultResult<String> {
         .map(|segments| segments.join("/"))
 }
 
-/// The system CA certificates plus the ones in `ca_certificate`, with the aws-lc-rs provider
-/// the GCP and AWS clients of this crate use. Enabling a second rustls provider in the same build
-/// would stop `rustls::ClientConfig::builder()` from finding a default anywhere in the application.
+/// The roots of the selected root store plus the CA certificates in `ca_certificate`, with the
+/// selected crypto provider. The provider is passed to this config only and never installed as
+/// the process default, which stays the application's choice.
 fn tls_config(ca_certificate: Option<&Path>) -> SecretVaultResult<rustls::ClientConfig> {
-    let mut roots = rustls::RootCertStore::empty();
-    let system_certificates = rustls_native_certs::load_native_certs();
-    for error in &system_certificates.errors {
-        warn!(%error, "Unable to load a system CA certificate");
-    }
-    roots.add_parsable_certificates(system_certificates.certs);
+    let roots = trusted_roots(selected_root_store(), ca_certificate)?;
 
+    #[cfg(feature = "hashicorp-vault-tls-aws-lc-rs")]
+    let provider = rustls::crypto::aws_lc_rs::default_provider();
+    #[cfg(feature = "hashicorp-vault-tls-ring")]
+    let provider = rustls::crypto::ring::default_provider();
+
+    let config = rustls::ClientConfig::builder_with_provider(Arc::new(provider))
+        .with_safe_default_protocol_versions()
+        .map_err(|e| SecretsSourceError::create("VAULT_TLS", e.to_string()))?
+        .with_root_certificates(roots)
+        .with_no_client_auth();
+    Ok(config)
+}
+
+fn selected_root_store() -> rustls::RootCertStore {
+    let mut roots = rustls::RootCertStore::empty();
+    #[cfg(feature = "hashicorp-vault-tls-roots")]
+    {
+        let system_certificates = rustls_native_certs::load_native_certs();
+        for error in &system_certificates.errors {
+            warn!(%error, "Unable to load a system CA certificate");
+        }
+        roots.add_parsable_certificates(system_certificates.certs);
+    }
+    #[cfg(feature = "hashicorp-vault-tls-webpki")]
+    roots.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+    roots
+}
+
+/// `roots` plus the CA certificates in `ca_certificate`, which add to the roots and never
+/// replace them.
+fn trusted_roots(
+    mut roots: rustls::RootCertStore,
+    ca_certificate: Option<&Path>,
+) -> SecretVaultResult<rustls::RootCertStore> {
     if let Some(path) = ca_certificate {
         let certificates = CertificateDer::pem_file_iter(path)
             .and_then(|certificates| certificates.collect::<Result<Vec<_>, _>>())
@@ -566,15 +632,16 @@ fn tls_config(ca_certificate: Option<&Path>) -> SecretVaultResult<rustls::Client
             ));
         }
     }
-
-    let config = rustls::ClientConfig::builder_with_provider(Arc::new(
-        rustls::crypto::aws_lc_rs::default_provider(),
-    ))
-    .with_safe_default_protocol_versions()
-    .map_err(|e| SecretsSourceError::create("VAULT_TLS", e.to_string()))?
-    .with_root_certificates(roots)
-    .with_no_client_auth();
-    Ok(config)
+    // With system roots on a host that has none installed, such as a distroless image, every
+    // request would fail later with an unknown issuer.
+    if roots.is_empty() {
+        return Err(SecretVaultInvalidParametersError::create(
+            "ca_certificate",
+            "No CA certificates to trust: the root store has none and no CA certificate file is set"
+                .into(),
+        ));
+    }
+    Ok(roots)
 }
 
 #[cfg(test)]
@@ -597,8 +664,8 @@ mod tests {
         .unwrap()
     }
 
-    /// Answers every request on `listener` with `status` and a Vault error body.
-    fn answer_with_status(listener: TcpListener, status: StatusCode) {
+    /// Answers every request on `listener` with `status` and `body`.
+    fn answer_with(listener: TcpListener, status: StatusCode, body: String) {
         tokio::spawn(async move {
             loop {
                 let (mut connection, _) = listener.accept().await.unwrap();
@@ -608,7 +675,6 @@ mod tests {
                     let read = connection.read(&mut buffer).await.unwrap();
                     request.extend_from_slice(&buffer[..read]);
                 }
-                let body = r#"{"errors":["Vault is sealed"]}"#;
                 let response = format!(
                     "HTTP/1.1 {status}\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
                     body.len()
@@ -648,7 +714,11 @@ mod tests {
         ] {
             let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
             let source = local_source(&listener);
-            answer_with_status(listener, status);
+            answer_with(
+                listener,
+                status,
+                r#"{"errors":["Vault is sealed"]}"#.to_string(),
+            );
 
             let result = read_guarded(&source, SecretVaultRef::new(DATABASE_SECRET.into())).await;
 
@@ -657,6 +727,59 @@ mod tests {
                 Err(SecretVaultError::SecretsSourceError(_)) => assert!(!retryable, "{status}"),
                 other => panic!("{status} gave {other:?}"),
             }
+        }
+    }
+
+    #[tokio::test]
+    async fn vault_errors_are_cut_to_first_error_prefix() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let source = local_source(&listener);
+        // A proxy echoing the request could fill `errors` with anything; multi-byte characters
+        // put the cut inside no character only if it is made on a char boundary.
+        let echoed = format!("{}{SECRET_PAYLOAD}", "é".repeat(MAX_VAULT_ERROR_CHARS));
+        let body = serde_json::json!({ "errors": [echoed, SECRET_PAYLOAD] }).to_string();
+        answer_with(listener, StatusCode::BAD_REQUEST, body);
+
+        let Err(error) = read_guarded(&source, SecretVaultRef::new(DATABASE_SECRET.into())).await
+        else {
+            panic!("a 400 is an error");
+        };
+
+        assert!(matches!(error, SecretVaultError::SecretsSourceError(_)));
+        let message = format!("{error}");
+        assert!(!message.contains(SECRET_PAYLOAD));
+        assert!(!format!("{error:?}").contains(SECRET_PAYLOAD));
+        assert!(message.chars().count() < 2 * MAX_VAULT_ERROR_CHARS);
+    }
+
+    #[test]
+    fn root_store_without_certificates_is_rejected() {
+        let Err(SecretVaultError::InvalidParametersError(error)) =
+            trusted_roots(rustls::RootCertStore::empty(), None)
+        else {
+            panic!("a root store without certificates trusts no Vault server");
+        };
+
+        assert_eq!(error.public.field, "ca_certificate");
+    }
+
+    #[test]
+    fn only_plain_http_to_another_host_is_flagged() {
+        for (address, flagged) in [
+            ("http://vault.example.com:8200", true),
+            ("http://10.0.0.5:8200", true),
+            ("http://127.0.0.1:8200", false),
+            ("http://127.1.2.3:8200", false),
+            ("http://[::1]:8200", false),
+            ("http://LocalHost:8200", false),
+            ("https://vault.example.com:8200", false),
+        ] {
+            let address = vault_address(address).unwrap();
+            assert_eq!(
+                is_plain_http_to_another_host(&address),
+                flagged,
+                "{address}"
+            );
         }
     }
 

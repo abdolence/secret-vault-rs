@@ -4,8 +4,27 @@ on:
   pull_request:
     types: [opened]
 jobs:
-  build:
+  # One job per TLS variant over the features of every source. The AWS SDK has no TLS features
+  # and brings aws-lc-rs into every job. GCP and Azure share one reqwest, which uses native-tls
+  # whenever gcp-tls-roots compiles it in, so the roots jobs select native-tls for Azure.
+  # gcp-tls-webpki brings aws-lc-rs through reqwest/rustls. The ring jobs leave out GCP KMS, which
+  # only supports aws-lc-rs, and use gcp-secretmanager-base, so GCP and the webpki Azure client
+  # run on the provider the application installs, which is ring in the tests.
+  tls-variant:
+    name: ${{ matrix.variant }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: roots-aws-lc-rs
+            tls: gcp-secretmanager,gcp-tls-roots,gcp-kms-tls-roots,azure-keyvault-native-tls,hashicorp-vault-tls-roots,hashicorp-vault-tls-aws-lc-rs
+          - variant: webpki-aws-lc-rs
+            tls: gcp-secretmanager,gcp-tls-webpki,gcp-kms-tls-webpki,azure-keyvault-tls-aws-lc-rs,hashicorp-vault-tls-webpki,hashicorp-vault-tls-aws-lc-rs
+          - variant: roots-ring
+            tls: gcp-secretmanager-base,gcp-tls-roots,azure-keyvault-native-tls,hashicorp-vault-tls-roots,hashicorp-vault-tls-ring
+          - variant: webpki-ring
+            tls: gcp-secretmanager-base,gcp-tls-webpki,azure-keyvault-tls-no-provider,hashicorp-vault-tls-webpki,hashicorp-vault-tls-ring
     steps:
       - uses: actions/checkout@v7
       - uses: actions-rs/toolchain@v1
@@ -15,16 +34,15 @@ jobs:
           components: rustfmt, clippy
       - name: Run checks
         run: |
-          # Format check
           cargo fmt -- --check
-          
-          # Common features for both variants
-          FEATURES="serde,ring-aead-encryption,kms,gcp-secretmanager,aws,aws-secretmanager,aws-kms-encryption,azure-keyvault,hashicorp-vault,ahash"
-          
-          # Run checks with gcp-tls-roots
-          cargo clippy --features "$FEATURES,gcp-tls-roots,gcp-kms-tls-roots" -- -Dwarnings
-          cargo test --features "$FEATURES,gcp-tls-roots,gcp-kms-tls-roots"
-          
-          # Run checks with gcp-tls-webpki
-          cargo clippy --features "$FEATURES,gcp-tls-webpki,gcp-kms-webpki" -- -Dwarnings
-          cargo test --features "$FEATURES,gcp-tls-webpki,gcp-kms-webpki"
+
+          FEATURES="serde,ring-aead-encryption,kms,aws,aws-secretmanager,aws-kms-encryption,ahash,${{ matrix.tls }}"
+
+          # The Azure TLS features select the TLS backend of secret-vault's direct reqwest, which
+          # only reaches azure_core while both resolve to the same reqwest.
+          if cargo tree --workspace -e normal --features "$FEATURES" -d --depth 0 | grep -q '^reqwest '; then
+            echo "azure_core and secret-vault resolve to different reqwest versions"
+            exit 1
+          fi
+          cargo clippy --workspace --all-targets --features "$FEATURES" -- -Dwarnings
+          cargo test --workspace --features "$FEATURES"

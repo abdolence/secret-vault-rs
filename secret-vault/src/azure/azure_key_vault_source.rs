@@ -281,6 +281,10 @@ mod tests {
     }
 
     fn source(read_metadata: bool) -> AzureKeyVaultSource {
+        // With this feature the application installs the provider; an install that finds one
+        // already installed by another test changes nothing.
+        #[cfg(feature = "azure-keyvault-tls-no-provider")]
+        let _ = rustls::crypto::ring::default_provider().install_default();
         AzureKeyVaultSource::with_options(
             AzureKeyVaultSourceOptions::new("https://test-vault.vault.azure.net".into())
                 .with_read_metadata(read_metadata),

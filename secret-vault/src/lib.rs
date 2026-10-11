@@ -70,6 +70,68 @@ compile_error!(
 #[cfg(all(feature = "gcp-tls-roots", feature = "gcp-tls-webpki"))]
 compile_error!("You cannot enable both \"gcp-tls-roots\" and \"gcp-tls-webpki\" at the same time");
 
+#[cfg(all(
+    feature = "azure-keyvault-base",
+    not(feature = "azure-keyvault-tls-aws-lc-rs"),
+    not(feature = "azure-keyvault-tls-no-provider"),
+    not(feature = "azure-keyvault-native-tls")
+))]
+compile_error!(
+    "You must enable one of \"azure-keyvault-tls-aws-lc-rs\" (or \"azure-keyvault\"), \"azure-keyvault-tls-no-provider\" or \"azure-keyvault-native-tls\" when using Azure features"
+);
+
+#[cfg(any(
+    all(
+        feature = "azure-keyvault-tls-aws-lc-rs",
+        feature = "azure-keyvault-tls-no-provider"
+    ),
+    all(
+        feature = "azure-keyvault-tls-aws-lc-rs",
+        feature = "azure-keyvault-native-tls"
+    ),
+    all(
+        feature = "azure-keyvault-tls-no-provider",
+        feature = "azure-keyvault-native-tls"
+    )
+))]
+compile_error!(
+    "You can enable only one of \"azure-keyvault-tls-aws-lc-rs\" (enabled by \"azure-keyvault\"), \"azure-keyvault-tls-no-provider\" and \"azure-keyvault-native-tls\""
+);
+
+#[cfg(all(
+    feature = "hashicorp-vault-base",
+    not(feature = "hashicorp-vault-tls-roots"),
+    not(feature = "hashicorp-vault-tls-webpki")
+))]
+compile_error!(
+    "You must enable either \"hashicorp-vault-tls-roots\" or \"hashicorp-vault-tls-webpki\" when using HashiCorp Vault features"
+);
+
+#[cfg(all(
+    feature = "hashicorp-vault-tls-roots",
+    feature = "hashicorp-vault-tls-webpki"
+))]
+compile_error!(
+    "You cannot enable both \"hashicorp-vault-tls-roots\" (enabled by \"hashicorp-vault\") and \"hashicorp-vault-tls-webpki\" at the same time"
+);
+
+#[cfg(all(
+    feature = "hashicorp-vault-base",
+    not(feature = "hashicorp-vault-tls-aws-lc-rs"),
+    not(feature = "hashicorp-vault-tls-ring")
+))]
+compile_error!(
+    "You must enable either \"hashicorp-vault-tls-aws-lc-rs\" or \"hashicorp-vault-tls-ring\" when using HashiCorp Vault features"
+);
+
+#[cfg(all(
+    feature = "hashicorp-vault-tls-aws-lc-rs",
+    feature = "hashicorp-vault-tls-ring"
+))]
+compile_error!(
+    "You cannot enable both \"hashicorp-vault-tls-aws-lc-rs\" (enabled by \"hashicorp-vault\") and \"hashicorp-vault-tls-ring\" at the same time"
+);
+
 mod encryption;
 pub use encryption::*;
 
@@ -94,9 +156,9 @@ pub mod gcp;
 #[cfg(feature = "aws")]
 pub mod aws;
 
-#[cfg(feature = "azure-keyvault")]
+#[cfg(feature = "azure-keyvault-base")]
 pub mod azure;
-#[cfg(feature = "hashicorp-vault")]
+#[cfg(feature = "hashicorp-vault-base")]
 pub mod hashicorp;
 
 pub type SecretVaultResult<T> = std::result::Result<T, errors::SecretVaultError>;
@@ -122,5 +184,5 @@ pub use vault_auto_refresher::*;
 mod multiple_sources;
 pub use multiple_sources::*;
 
-#[cfg(feature = "gcp-base")]
+#[cfg(feature = "gcp-secretmanager-base")]
 mod prost_jiff;

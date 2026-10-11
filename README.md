@@ -48,21 +48,35 @@ See the security consideration below about versioning.
 
 #### Cloud Provider Features
 **Google Cloud Platform (GCP)**
-- `gcp-secretmanager` - Google Secret Manager support
-- One of the following TLS implementations is required when using GCP features:
-  - `gcp-kms-tls-roots` (also aliased to `gcp-kms`) - Google Cloud KMS support with TLS roots
-  - `gcp-kms-tls-webpki` - Google Cloud KMS support with WebPKI roots
+- `gcp` - GCP support with the default TLS, same as `gcp-tls-roots`
+- `gcp-secretmanager` - Google Secret Manager support with the aws-lc-rs crypto provider of gcloud-sdk
+- `gcp-secretmanager-base` - Google Secret Manager support with the crypto provider your application installs
+- `gcp-kms-tls-roots` (also aliased to `gcp-kms`) - Google Cloud KMS support with TLS roots and aws-lc-rs
+- `gcp-kms-tls-webpki` (`gcp-kms-webpki` in 2.x, still works) - Google Cloud KMS support with WebPKI roots and aws-lc-rs
+- One of the following TLS root stores is required when using GCP features:
   - `gcp-tls-roots` - System TLS roots (default)
   - `gcp-tls-webpki` - WebPKI roots
 
 **Amazon Web Services (AWS)**
 - `aws-secretmanager` - AWS Secrets Manager support
 - `aws-kms-encryption` - AWS KMS envelope encryption support
+- The AWS SDK always uses rustls with aws-lc-rs and the system TLS roots, so there are no TLS features for AWS
 
 **Microsoft Azure**
-- `azure-keyvault` - Azure Key Vault secrets support (rustls TLS)
+- `azure-keyvault` - Azure Key Vault secrets support with the default TLS, same as `azure-keyvault-tls-aws-lc-rs`
+- One of the following TLS implementations is required when using Azure features:
+  - `azure-keyvault-tls-aws-lc-rs` - rustls with the aws-lc-rs crypto provider and the platform certificate verifier (default)
+  - `azure-keyvault-tls-no-provider` - rustls with the crypto provider your application installs
+  - `azure-keyvault-native-tls` - native TLS of the platform (OpenSSL on Linux)
+
 **HashiCorp Vault**
-- `hashicorp-vault` - HashiCorp Vault KV secrets engine v2 support (rustls TLS)
+- `hashicorp-vault` - HashiCorp Vault KV secrets engine v2 support with the default TLS, same as `hashicorp-vault-tls-roots` and `hashicorp-vault-tls-aws-lc-rs`
+- One of the following TLS root stores is required when using HashiCorp Vault features:
+  - `hashicorp-vault-tls-roots` - System TLS roots (default)
+  - `hashicorp-vault-tls-webpki` - WebPKI roots
+- One of the following rustls crypto providers is required when using HashiCorp Vault features:
+  - `hashicorp-vault-tls-aws-lc-rs` - aws-lc-rs (default)
+  - `hashicorp-vault-tls-ring` - ring
 
 #### Encryption Features
 - `ring-aead-encryption` - Encryption support using Ring AEAD
@@ -74,9 +88,9 @@ See the security consideration below about versioning.
 
 ### Feature Flag Examples
 
-For GCP Secret Manager with system TLS roots:
+For GCP Secret Manager with the default TLS:
 ```toml
-secret-vault = { version = "3.0", features = ["gcp-secretmanager", "gcp-tls-roots"] }
+secret-vault = { version = "3.0", features = ["gcp-secretmanager", "gcp"] }
 ```
 
 For AWS Secrets Manager with KMS encryption:
@@ -89,9 +103,19 @@ For Azure Key Vault:
 secret-vault = { version = "3.0", features = ["azure-keyvault"] }
 ```
 
+For Azure Key Vault with native TLS:
+```toml
+secret-vault = { version = "3.0", features = ["azure-keyvault-native-tls"] }
+```
+
 For HashiCorp Vault with AEAD encryption:
 ```toml
 secret-vault = { version = "3.0", features = ["hashicorp-vault", "ring-aead-encryption"] }
+```
+
+For HashiCorp Vault with WebPKI roots and the ring crypto provider:
+```toml
+secret-vault = { version = "3.0", features = ["hashicorp-vault-tls-webpki", "hashicorp-vault-tls-ring"] }
 ```
 
 For GCP Secret Manager with WebPKI and serde support:
@@ -99,7 +123,8 @@ For GCP Secret Manager with WebPKI and serde support:
 secret-vault = { version = "3.0", features = ["gcp-secretmanager", "gcp-tls-webpki", "serde"] }
 ```
 
-Note: When using GCP features, you must choose either `gcp-tls-roots` or `gcp-tls-webpki`. These features are mutually exclusive and cannot be enabled simultaneously.
+Note: Each group of TLS features above needs one feature when its source is used. The features of a group are mutually exclusive and cannot be enabled simultaneously.
+`gcp`, `azure-keyvault` and `hashicorp-vault` already select the defaults, so use the TLS features instead of them, not together with them.
 
 ## Example for GCP with AEAD encryption:
 
@@ -141,6 +166,10 @@ To run this example use with environment variables:
 # PROJECT_ID=<your-google-project-id> cargo run --example gcloud_secret_manager_vault
 ```
 
+The HTTP client of gcloud-sdk uses native-tls (OpenSSL on Linux) with `gcp-tls-roots`, and rustls with aws-lc-rs with `gcp-tls-webpki`.
+With `gcp-secretmanager-base` install a default `CryptoProvider` with `CryptoProvider::install_default` before creating the source, for example `rustls::crypto::ring::default_provider().install_default()`; without one rustls panics unless the build has exactly one provider.
+GCP KMS supports only aws-lc-rs, since kms-aead enables it.
+
 ## Example for Azure Key Vault
 
 The source takes the vault URL and any credential from [azure_identity](https://crates.io/crates/azure_identity):
@@ -170,6 +199,19 @@ Key Vault secret names allow only `0-9`, `a-z`, `A-Z` and `-`, so a `SecretVault
 character in its name fails with `InvalidParametersError`, even when the secret is not required.
 With `read_metadata` enabled, tags become labels and `expires`/`created`/`updated` become
 the expiration and timestamps of `SecretMetadata`.
+
+The TLS features select the TLS of the reqwest client the Azure SDK creates:
+- `azure-keyvault-tls-aws-lc-rs` - rustls with aws-lc-rs, certificates are verified by the platform verifier;
+- `azure-keyvault-tls-no-provider` - rustls with the default `CryptoProvider` of the process;
+- `azure-keyvault-native-tls` - native-tls: OpenSSL on Linux and the system TLS on macOS and Windows.
+
+With `azure-keyvault-tls-no-provider` install a default `CryptoProvider` with `CryptoProvider::install_default` before creating the source, for example `rustls::crypto::ring::default_provider().install_default()`; without one reqwest panics.
+GCP (through gcloud-sdk) and Azure share one reqwest TLS backend in an application, and reqwest uses native-tls whenever it is enabled anywhere in the build.
+Both backends verify certificates, but a pair of GCP and Azure features can select a different backend than the feature name says:
+- `gcp-tls-roots` with `azure-keyvault-tls-aws-lc-rs` or `azure-keyvault-tls-no-provider` - the Azure source uses native-tls;
+- `gcp-tls-webpki` with `azure-keyvault-native-tls` - the gcloud-sdk authentication HTTP clients use native-tls with the system CA certificates, while the gRPC connections to GCP keep rustls with WebPKI roots.
+
+`azure_identity` with its default features enables rustls in the Azure SDK, so depend on it with `default-features = false` to keep only the TLS selected here.
 
 To run the example:
 ```
@@ -213,14 +255,24 @@ The environment variables are the ones the Vault CLI uses:
 - `VAULT_ADDR` - the address of the Vault server, required;
 - `VAULT_TOKEN` - the token sent with every request;
 - `VAULT_NAMESPACE` - the Vault Enterprise namespace;
-- `VAULT_CACERT` - a PEM file with CA certificates to trust in addition to the system ones;
+- `VAULT_CACERT` - a PEM file with CA certificates to trust in addition to the roots of the selected root store. Be aware the file adds to the root store, while the Vault CLI trusts only the certificates of this file when it is set;
 - `VAULT_CLIENT_TIMEOUT` - the time limit for one read, in seconds (`60`) or as a duration (`1m30s`), 60 seconds by default.
 
 To configure the source in code use `HashiCorpVaultSourceOptions::new(address)` with `with_token`, `with_namespace`, `with_ca_certificate` and `with_timeout`.
 
 A read that fails with 5xx or 429 from Vault (sealed, rate limited), a timeout or a connection error returns `SecretVaultError::NetworkError` and can be retried. Other failed reads return `SecretVaultError::SecretsSourceError`.
 
-The feature brings rustls with the aws-lc-rs crypto provider. If your application uses rustls with `ring`, install the default `CryptoProvider` yourself at startup.
+The source uses rustls, and the TLS features select its root store and crypto provider:
+- `hashicorp-vault-tls-roots` - the system CA certificates;
+- `hashicorp-vault-tls-webpki` - the Mozilla CA certificates from [webpki-roots](https://crates.io/crates/webpki-roots), built into the binary;
+- `hashicorp-vault-tls-aws-lc-rs` or `hashicorp-vault-tls-ring` - the crypto provider.
+
+The provider is used for the connections of the source only and is not installed as the process default.
+If your application uses rustls with `ring`, enable `hashicorp-vault-tls-ring`.
+With `hashicorp-vault-tls-ring` and a feature that enables aws-lc-rs, such as `gcp-secretmanager` or GCP KMS, rustls has both providers and cannot choose one, so install a default `CryptoProvider` with `CryptoProvider::install_default` at startup; without one rustls panics in the GCP source and the GCP KMS encryption.
+When the root store has no certificates and no CA certificate file is set, for example `hashicorp-vault-tls-roots` in an image without system CA certificates, creating the source fails with `InvalidParametersError`.
+
+Be aware that an `http://` address sends the token and the secrets unencrypted. The source logs a warning when such an address points to a host other than `localhost` or a loopback IP address.
 
 Only token authentication is supported. For other authentication methods (AppRole, Kubernetes, cloud IAM, etc.) either log in with your own code and pass the token with `with_token`, or run Vault Agent or Vault Proxy with auto-auth and `use_auto_auth_token` and point `VAULT_ADDR` to it without a token. Be aware the source does not renew the token, so the secrets stop refreshing when it expires.
 

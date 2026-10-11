@@ -14,3 +14,7 @@ so they can be created in `const` and `static` items. Changes visible to callers
 - `SecretVaultRef::new`, `with_required`, `with_auto_refresh` and `with_allow_in_snapshots` are `const fn`.
 
 Creating the types with `new()`, `"name".into()`, `String::into()` and `parse()`, and formatting them with `Display`, work as before.
+
+## GCP KMS features
+
+`gcp-kms-webpki` is renamed to `gcp-kms-tls-webpki`, the old name still works.
