@@ -4,6 +4,32 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use zeroize::Zeroize;
 
 impl SecretValue {
+    /// Parses the secret as JSON into `T`.
+    ///
+    /// The `Zeroize` bound lets the caller wipe the result, but the result is
+    /// not zeroized automatically: call `zeroize()` on it, or wrap it in
+    /// [`zeroize::Zeroizing`], once it is no longer needed.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`serde_json::Error`] if the secret is not valid JSON for `T`.
+    ///
+    /// ```
+    /// use secret_vault_value::SecretValue;
+    /// use serde::Deserialize;
+    /// use zeroize::{Zeroize, Zeroizing};
+    ///
+    /// #[derive(Deserialize, Zeroize)]
+    /// struct Credentials {
+    ///     user: String,
+    ///     password: String,
+    /// }
+    ///
+    /// let secret_value = SecretValue::from(r#"{"user":"admin","password":"my-password"}"#);
+    /// let credentials = Zeroizing::new(secret_value.expose_json_value_as::<Credentials>()?);
+    /// assert_eq!(credentials.user, "admin");
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     pub fn expose_json_value_as<T>(&self) -> serde_json::Result<T>
     where
         for<'de> T: Deserialize<'de> + Zeroize,
@@ -12,6 +38,9 @@ impl SecretValue {
     }
 }
 
+/// Serializes the secret as a string.
+///
+/// Fails if the bytes are not valid UTF-8.
 impl Serialize for SecretValue {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -64,6 +93,7 @@ impl<'de> Visitor<'de> for SecretValueVisitor {
     }
 }
 
+/// Deserializes the secret from a string or from bytes.
 impl<'de> Deserialize<'de> for SecretValue {
     fn deserialize<D>(deserializer: D) -> Result<SecretValue, D::Error>
     where

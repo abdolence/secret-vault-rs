@@ -3,12 +3,25 @@ use prost::bytes::{Buf, BufMut};
 use prost::encoding::{skip_field, DecodeContext, WireType};
 use prost::DecodeError;
 
+/// Encodes the secret as a protobuf message whose field 1 is `bytes`, so it
+/// decodes from a message such as `message Secret { bytes value = 1; }`.
+/// Following proto3, an empty value encodes to zero bytes.
+///
+/// ```
+/// use prost::Message;
+/// use secret_vault_value::SecretValue;
+///
+/// let secret_value = SecretValue::from("my-password");
+/// let decoded = SecretValue::decode(secret_value.encode_to_vec().as_slice())?;
+/// assert_eq!(decoded, secret_value);
+/// # Ok::<(), prost::DecodeError>(())
+/// ```
 impl prost::Message for SecretValue {
     fn encode_raw(&self, buf: &mut impl BufMut)
     where
         Self: Sized,
     {
-        if self.ref_sensitive_value().is_empty() {
+        if !self.ref_sensitive_value().is_empty() {
             prost::encoding::bytes::encode(1, self.ref_sensitive_value(), buf)
         }
     }
@@ -40,5 +53,18 @@ impl prost::Message for SecretValue {
 
     fn clear(&mut self) {
         self.ref_sensitive_value_mut().clear()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use prost::Message;
+
+    #[test]
+    fn non_empty_value_survives_encode_and_decode() {
+        let secret_value = SecretValue::from("test-secret");
+        let decoded = SecretValue::decode(secret_value.encode_to_vec().as_slice()).unwrap();
+        assert_eq!(decoded, secret_value);
     }
 }

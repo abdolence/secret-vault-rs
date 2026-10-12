@@ -3,6 +3,7 @@ use zeroize::*;
 
 use bytes::BytesMut;
 
+/// Copies the bytes and zeroizes the source buffer.
 impl From<BytesMut> for SecretValue {
     fn from(mut bytes: BytesMut) -> SecretValue {
         let result = SecretValue::new(bytes.to_vec());

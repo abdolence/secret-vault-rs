@@ -5,58 +5,40 @@
 ![license](https://img.shields.io/github/license/abdolence/secret-vault-rs)
 
 ## Secret value type
-A simple implementation of a secure and serializable (serde and proto) type
-of any kind of secrets:
- - Automatically cleaning up its value after destruction in memory using [zeroize](https://docs.rs/zeroize/latest/zeroize/);
- - Prevents leaking in logs and stack traces;
- - Stored as a byte array and suitable for binary secrets;
- - Introduces additional functions with predicates to control the exposed border;
-   of exposed secret values and clean-ups: `exposed_in_*`.
- - Securely encoding/decoding from hex/base64 formats;
+A secure and serializable type for any kind of secret:
+ - Zeroizes its bytes in memory when dropped, using [zeroize](https://docs.rs/zeroize/latest/zeroize/);
+ - Prints `***` in `Debug` and `Display`, so it does not leak into logs and panic messages;
+ - Stores bytes, so it fits binary secrets too;
+ - Lends copies to closures with the `exposed_in_*` methods and zeroizes them afterwards;
+ - Parses JSON embedded in a secret with `expose_json_value_as`;
+ - Encodes and decodes hex and base64.
 
-### Working with the type:
+### Working with the type
 
 ```rust
-use secret_vault_value::*;
+use secret_vault_value::SecretValue;
 
-// Creating from string
-let secret_value: SecretValue = "test".into();
+let secret_value: SecretValue = "my-password".into();
+assert_eq!(format!("{secret_value:?}"), "***");
 
-// Creating from vec
-let secret_value: SecretValue = vec![4,2].into();
+// Borrowing, no copies
+let password: &str = secret_value.as_sensitive_str();
+let bytes: &[u8] = secret_value.as_sensitive_bytes();
 
-// Creating from BytesMut
-let secret_value: SecretValue = bytes::BytesMut::from("test").into();
+// The copy passed to the closure is zeroized when the closure is done
+let length = secret_value.exposed_in_as_zstr(|password| password.len());
 
-// Reading as string
-let secret_value: &str = secret_value4.as_sensitive_str();
-
-// Reading as bytes
-let secret_value: &[u8] = secret_value.as_sensitive_bytes();
-
-// Reading as hex string
-let secret_value: Zeroizing<String> = secret_value.as_sensitive_hex_str();
-
-// Reading as base64 string
-let secret_value: Zeroizing<String> = secret_value.as_sensitive_base64_str();
-
-// Controlling the exposed value with closures/lambdas
-let your_result = secret_value.exposed_in_as_zstr(|secret_value|{
-    todo!()
-});
-
-// Controlling the exposed value with async closures/lambdas
-let your_result = secret_value.exposed_in_as_zstr_async(|secret_value| async {
-    todo!()
-}).await;
-
-// Deserialize embedded string value from JSON and expose it as zeroizable structure:
-#[derive(Deserialize, Zeroize)]
-struct YourType {
-    _some_field: String
+// Async closures work the same way
+async fn password_length(secret_value: &SecretValue) -> usize {
+    secret_value
+        .exposed_in_as_zstr_async(|password| async move { password.len() })
+        .await
 }
+```
 
-let your_result_json: YourType = secret_value.expose_json_value_as::<YourType>().unwrap();
+Full example with hex, base64, JSON, `BytesMut` and protobuf available [here](https://github.com/abdolence/secret-vault-rs/blob/master/secret-value/examples/simple.rs):
+```sh
+cargo run -p secret-vault-value --example simple --all-features
 ```
 
 ## Quick start
@@ -64,16 +46,16 @@ let your_result_json: YourType = secret_value.expose_json_value_as::<YourType>()
 Cargo.toml:
 ```toml
 [dependencies]
-secret-vault-type = { version = "1.0.<x>", features=["..."] }
+secret-vault-value = { version = "1.0", features = ["..."] }
 ```
 See security consideration below about versioning.
 
 ### Available optional features for secret value type:
-- `serde` for serde serialization support
-- `prost` for protobuf serialization support
-- `bytes` for bytes conversion support
-- `hex` for hex conversion support
-- `base64` for base64 conversion support
+- `serde` for serde serialization support, it also brings `serde_json` for `expose_json_value_as`;
+- `proto` for protobuf serialization support;
+- `bytes` for `BytesMut` conversion support;
+- `hex` for hex conversion support;
+- `base64` for base64 conversion support.
 
 ## Security considerations and risks
 
