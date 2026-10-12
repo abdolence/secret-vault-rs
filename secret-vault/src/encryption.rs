@@ -2,9 +2,21 @@ use crate::{SecretVaultKey, SecretVaultResult};
 use async_trait::async_trait;
 use rvstruct::*;
 use secret_vault_value::SecretValue;
+use std::fmt;
 
-#[derive(Debug, Clone, Eq, PartialEq, ValueStruct)]
+/// A secret as the vault stores it: ciphertext, or the plaintext itself under
+/// [`SecretVaultNoEncryption`]. `Debug` prints `***` in place of the bytes.
+///
+/// The vault wipes the bytes it stores when it replaces or drops them, but this type does not
+/// wipe itself: bytes moved or cloned out of it are the caller's to zeroize.
+#[derive(Clone, Eq, PartialEq, ValueStruct)]
 pub struct EncryptedSecretValue(pub Vec<u8>);
+
+impl fmt::Debug for EncryptedSecretValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("EncryptedSecretValue(***)")
+    }
+}
 
 #[async_trait]
 pub trait SecretVaultEncryption {
@@ -70,5 +82,20 @@ impl From<EncryptedSecretValue> for kms_aead::CipherText {
 impl From<EncryptedSecretValue> for kms_aead::CipherTextWithEncryptedKey {
     fn from(encrypted_value: EncryptedSecretValue) -> Self {
         kms_aead::CipherTextWithEncryptedKey(encrypted_value.value().to_owned())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn debug_hides_stored_bytes() {
+        let stored = EncryptedSecretValue(b"plaintext-secret".to_vec());
+
+        let printed = format!("{stored:?}");
+
+        assert!(!printed.contains("plaintext-secret"));
+        assert!(!printed.contains(&format!("{:?}", stored.0)));
     }
 }
