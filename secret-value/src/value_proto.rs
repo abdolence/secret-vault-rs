@@ -8,7 +8,7 @@ impl prost::Message for SecretValue {
     where
         Self: Sized,
     {
-        if self.ref_sensitive_value().is_empty() {
+        if !self.ref_sensitive_value().is_empty() {
             prost::encoding::bytes::encode(1, self.ref_sensitive_value(), buf)
         }
     }
@@ -40,5 +40,18 @@ impl prost::Message for SecretValue {
 
     fn clear(&mut self) {
         self.ref_sensitive_value_mut().clear()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use prost::Message;
+
+    #[test]
+    fn non_empty_value_survives_encode_and_decode() {
+        let secret_value = SecretValue::from("test-secret");
+        let decoded = SecretValue::decode(secret_value.encode_to_vec().as_slice()).unwrap();
+        assert_eq!(decoded, secret_value);
     }
 }
