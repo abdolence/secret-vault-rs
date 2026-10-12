@@ -1,13 +1,16 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::future::Future;
+use std::hash::{Hash, Hasher};
 use std::str::Utf8Error;
+use subtle::ConstantTimeEq;
 use zeroize::*;
 
 /// A secret held as bytes and zeroized when it is dropped.
 ///
 /// `Debug` and `Display` print `***`, so the value does not end up in logs or
 /// panic messages. `Clone` makes a second buffer, and each copy is zeroized on
-/// its own drop.
+/// its own drop. `==` takes time that depends on the lengths only, not on the
+/// bytes.
 ///
 /// The value is read in two ways:
 /// - borrowing it with `as_sensitive_*` and `ref_sensitive_value`, which make
@@ -23,7 +26,7 @@ use zeroize::*;
 /// assert_eq!(secret_value.to_string(), "***");
 /// assert_eq!(secret_value.as_sensitive_str(), "my-password");
 /// ```
-#[derive(Zeroize, ZeroizeOnDrop, Eq, PartialEq, Default, Hash)]
+#[derive(Zeroize, ZeroizeOnDrop, Default)]
 pub struct SecretValue(Vec<u8>);
 
 impl SecretValue {
@@ -368,6 +371,20 @@ impl Clone for SecretValue {
     }
 }
 
+impl PartialEq for SecretValue {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.ct_eq(&other.0).into()
+    }
+}
+
+impl Eq for SecretValue {}
+
+impl Hash for SecretValue {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state)
+    }
+}
+
 impl Display for SecretValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "***")
@@ -406,6 +423,12 @@ mod test {
             let mock_secret1 = SecretValue::new(mock_secret_str.as_bytes().to_vec());
             let mock_secret2 = SecretValue::new(mock_secret_str.as_bytes().to_vec());
             assert_eq!(mock_secret1, mock_secret2);
+        }
+
+        #[test]
+        fn secret_equality_follows_bytes(first in "[ab]{0,3}", second in "[ab]{0,3}") {
+            let are_equal = SecretValue::from(first.as_str()) == SecretValue::from(second.as_str());
+            assert_eq!(are_equal, first == second);
         }
 
         #[test]
