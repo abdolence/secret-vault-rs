@@ -3,11 +3,13 @@ use zeroize::*;
 
 use bytes::BytesMut;
 
-/// Copies the bytes and zeroizes the source buffer.
+/// Copies the bytes and zeroizes the source buffer, including its spare
+/// capacity, which may still hold bytes written before a `truncate` or `clear`.
 impl From<BytesMut> for SecretValue {
     fn from(mut bytes: BytesMut) -> SecretValue {
         let result = SecretValue::new(bytes.to_vec());
         bytes.zeroize();
+        bytes.spare_capacity_mut().zeroize();
         bytes.truncate(0);
         result
     }
