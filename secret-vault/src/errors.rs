@@ -142,7 +142,7 @@ impl SecretVaultInvalidParametersError {
 
 impl Display for SecretVaultInvalidParametersError {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "Data not found error occurred: {:?}", self.public)
+        write!(f, "Invalid parameters error occurred: {:?}", self.public)
     }
 }
 

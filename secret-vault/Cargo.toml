@@ -4,12 +4,12 @@ version = "2.2.1"
 authors = ["Abdulla Abdurakhmanov <me@abdolence.dev>"]
 edition = "2021"
 license = "Apache-2.0"
-description = "Library provides a secure vault to store securely application secrets in memory from Google/AWS/Azure/K8S and environment variables"
+description = "Library provides a secure vault to store securely application secrets in memory from Google, AWS, Azure Key Vault, HashiCorp Vault, K8S and environment variables"
 homepage = "https://github.com/abdolence/secret-vault-rs"
 repository = "https://github.com/abdolence/secret-vault-rs"
 documentation = "https://docs.rs/secret-vault"
 categories = ["cryptography","api-bindings"]
-keywords = ["secret", "google", "aws"]
+keywords = ["secret", "google", "aws", "azure", "hashicorp-vault"]
 readme = "../README.md"
 include = ["Cargo.toml", "src/**/*.rs", "../README.md", "../LICENSE", "../SECURITY.md"]
 
