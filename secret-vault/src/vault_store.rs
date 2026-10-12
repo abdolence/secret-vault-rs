@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use zeroize::Zeroize;
 
 use crate::common_types::*;
 use crate::encryption::*;
@@ -15,6 +16,14 @@ type SecretVaultMap = ahash::AHashMap<SecretVaultKey, SecretVaultStoreValue>;
 pub struct SecretVaultStoreValue {
     pub data: EncryptedSecretValue,
     pub metadata: SecretMetadata,
+}
+
+/// `data` holds the plaintext under `SecretVaultNoEncryption`, so every entry the map replaces,
+/// removes or drops with the store is wiped here.
+impl Drop for SecretVaultStoreValue {
+    fn drop(&mut self) {
+        self.data.0.zeroize();
+    }
 }
 
 #[derive(Debug)]
@@ -42,19 +51,17 @@ where
         secret_ref: SecretVaultRef,
         secret: &Secret,
     ) -> SecretVaultResult<()> {
-        let encrypted_secret_value = self
-            .encrypter
-            .encrypt_value(&secret_ref.key, &secret.value)
-            .await?;
+        // Wrapped before the lock is awaited, so a refresh cancelled while waiting still wipes it.
+        let store_value = SecretVaultStoreValue {
+            data: self
+                .encrypter
+                .encrypt_value(&secret_ref.key, &secret.value)
+                .await?,
+            metadata: secret.metadata.clone(),
+        };
 
         let mut secrets_write = self.secrets.write().await;
-        secrets_write.insert(
-            secret_ref.key,
-            SecretVaultStoreValue {
-                data: encrypted_secret_value,
-                metadata: secret.metadata.clone(),
-            },
-        );
+        secrets_write.insert(secret_ref.key, store_value);
 
         Ok(())
     }
