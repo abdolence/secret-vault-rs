@@ -52,7 +52,7 @@ impl prost::Message for SecretValue {
     }
 
     fn clear(&mut self) {
-        self.ref_sensitive_value_mut().clear()
+        self.secure_clear()
     }
 }
 
