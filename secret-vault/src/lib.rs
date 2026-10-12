@@ -52,8 +52,6 @@
 //!
 //! ## Complete examples, more detail docs and security considerations and benchmarks:
 //! Available on [github](https://github.com/abdolence/secret-vault-rs)
-//!
-//! ```
 
 #![allow(unused_parens, clippy::new_without_default, clippy::needless_update)]
 #![forbid(unsafe_code)]
