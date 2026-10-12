@@ -75,7 +75,7 @@ impl<'de> Visitor<'de> for SecretValueVisitor {
     where
         E: de::Error,
     {
-        Ok(SecretValue::new(value.as_bytes().to_vec()))
+        Ok(SecretValue::new(value.into_bytes()))
     }
 
     fn visit_bytes<E>(self, value: &[u8]) -> Result<Self::Value, E>
