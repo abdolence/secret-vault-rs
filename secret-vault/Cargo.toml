@@ -37,7 +37,7 @@ gcloud-sdk = { version = "0.33", default-features = false, optional = true }
 aws-config = { version = "1", optional = true }
 aws-sdk-secretsmanager = { version = "1", optional = true, default-features = false, features = ["default-https-client", "rt-tokio"] }
 aws-sdk-kms = { version = "1", optional = true, default-features = false, features = ["default-https-client", "rt-tokio"] }
-kms-aead = { version = "0.28.1", optional = true }
+kms-aead = { version = "0.29", optional = true }
 ahash = { version = "0.8", optional = true }
 azure_core = { version = "1.1", optional = true, default-features = false, features = ["reqwest", "tokio"] }
 azure_security_keyvault_secrets = { version = "1.0.1", optional = true, default-features = false }
@@ -65,6 +65,7 @@ serde_json = "1"
 criterion = { version = "0.8", features = ["async", "async_futures", "cargo_bench_support", "html_reports","async_tokio"] }
 cargo-husky = { version = "1.5", default-features = false, features = ["run-for-all", "prepush-hook", "run-cargo-fmt"] }
 azure_identity = { version = "1.0", default-features = false }
+azure_security_keyvault_keys = { version = "1.0.1", default-features = false }
 
 
 [features]
@@ -80,10 +81,11 @@ gcp-tls-webpki = ["gcp-base", "gcloud-sdk/tls-webpki-roots"]
 gcp-secretmanager-base = ["gcp-base", "gcloud-sdk/google-cloud-secretmanager-v1", "ring-aead-encryption"]
 gcp-secretmanager = ["gcp-secretmanager-base", "gcloud-sdk/auth-default-crypto"]
 
-gcp-kms = ["gcp-kms-tls-roots"]
-gcp-kms-tls-roots = ["gcp-tls-roots", "gcloud-sdk/google-cloud-kms-v1", "gcloud-sdk/auth-default-crypto", "kms-aead/gcp-kms-encryption", "ring-aead-encryption"]
-gcp-kms-tls-webpki = ["gcp-tls-webpki", "gcloud-sdk/google-cloud-kms-v1", "gcloud-sdk/auth-default-crypto", "kms-aead/gcp-kms-encryption-webpki", "ring-aead-encryption"]
-gcp-kms-webpki = ["gcp-kms-tls-webpki"]  # The 2.x name of gcp-kms-tls-webpki
+# The KMS envelope encryption without a rustls crypto provider, for applications that install their own
+gcp-kms-base = ["gcp-base", "kms-aead/gcp-kms-encryption-base", "ring-aead-encryption"]
+gcp-kms = ["gcp-kms-base", "gcloud-sdk/auth-default-crypto"]
+gcp-kms-tls-roots = ["gcp-kms", "gcp-tls-roots"]  # The 2.x name of gcp-kms with gcp-tls-roots
+gcp-kms-webpki = ["gcp-kms", "gcp-tls-webpki"]  # The 2.x name of gcp-kms with gcp-tls-webpki
 
 gcp = ["gcp-tls-roots"]  # Default to tls-roots for backward compatibility
 aws = ["dep:aws-config"]
@@ -104,6 +106,13 @@ azure-keyvault-tls-no-provider = ["azure-keyvault-base", "reqwest/rustls-no-prov
 azure-keyvault-native-tls = ["azure-keyvault-base", "reqwest/native-tls"]
 azure-keyvault = ["azure-keyvault-tls-aws-lc-rs"]
 
+azure-kms-base = ["dep:azure_core", "kms-aead/azure-kms-encryption-base", "ring-aead-encryption"]
+# TLS variants - user can choose one, the same one as for azure-keyvault
+azure-kms-tls-aws-lc-rs = ["azure-kms-base", "kms-aead/azure-kms-encryption-tls-aws-lc-rs"]
+azure-kms-tls-no-provider = ["azure-kms-base", "kms-aead/azure-kms-encryption-tls-no-provider"]
+azure-kms-native-tls = ["azure-kms-base", "kms-aead/azure-kms-encryption-native-tls"]
+azure-kms = ["azure-kms-tls-aws-lc-rs"]
+
 hashicorp-vault-base = [
     "dep:hyper",
     "dep:hyper-util",
@@ -121,6 +130,15 @@ hashicorp-vault-tls-webpki = ["hashicorp-vault-base", "dep:webpki-roots"]
 hashicorp-vault-tls-aws-lc-rs = ["hashicorp-vault-base", "rustls/aws_lc_rs"]
 hashicorp-vault-tls-ring = ["hashicorp-vault-base", "rustls/ring"]
 hashicorp-vault = ["hashicorp-vault-tls-roots", "hashicorp-vault-tls-aws-lc-rs"]
+
+hashicorp-vault-transit-base = ["kms-aead/vault-transit-kms-encryption-base", "ring-aead-encryption"]
+# TLS root store variants - user can choose one
+hashicorp-vault-transit-tls-roots = ["hashicorp-vault-transit-base", "kms-aead/vault-transit-kms-encryption-tls-roots"]
+hashicorp-vault-transit-tls-webpki = ["hashicorp-vault-transit-base", "kms-aead/vault-transit-kms-encryption-tls-webpki"]
+# TLS crypto provider variants - user can choose one
+hashicorp-vault-transit-tls-aws-lc-rs = ["hashicorp-vault-transit-base", "kms-aead/vault-transit-kms-encryption-tls-aws-lc-rs"]
+hashicorp-vault-transit-tls-ring = ["hashicorp-vault-transit-base", "kms-aead/vault-transit-kms-encryption-tls-ring"]
+hashicorp-vault-transit = ["hashicorp-vault-transit-tls-roots", "hashicorp-vault-transit-tls-aws-lc-rs"]
 
 ahash = ["dep:ahash"]
 
@@ -140,7 +158,9 @@ features = [
     "aws-secretmanager",
     "aws-kms-encryption",
     "azure-keyvault",
+    "azure-kms",
     "hashicorp-vault",
+    "hashicorp-vault-transit",
     "ahash"
 ]
 
@@ -162,12 +182,22 @@ required-features = ["hashicorp-vault-base", "ring-aead-encryption"]
 [[example]]
 name = "kms_gcp_secret_manager_vault"
 path = "examples/kms_gcp_secret_manager_vault.rs"
-required-features = ["gcp-secretmanager", "gcp-kms-tls-roots"]
+required-features = ["gcp-secretmanager", "gcp-kms"]
 
 [[example]]
 name = "kms_aws_secret_manager_vault"
 path = "examples/kms_aws_secret_manager_vault.rs"
 required-features = ["aws-secretmanager", "aws-kms-encryption"]
+
+[[example]]
+name = "kms_azure_key_vault"
+path = "examples/kms_azure_key_vault.rs"
+required-features = ["azure-keyvault-base", "azure-kms-base"]
+
+[[example]]
+name = "kms_hashicorp_vault"
+path = "examples/kms_hashicorp_vault.rs"
+required-features = ["hashicorp-vault-base", "hashicorp-vault-transit-base"]
 
 [[example]]
 name = "insecure_env_secret_vault"
@@ -187,6 +217,11 @@ required-features = ["azure-keyvault-base", "ring-aead-encryption"]
 name = "azure_key_vault_emulator"
 path = "tests/azure_key_vault_emulator.rs"
 required-features = ["azure-keyvault-base"]
+
+[[test]]
+name = "hashicorp_vault_transit"
+path = "tests/hashicorp_vault_transit.rs"
+required-features = ["hashicorp-vault-transit-base"]
 
 [[bench]]
 name = "read_vault_bench"

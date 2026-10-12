@@ -3,7 +3,7 @@
 //! ```sh
 //! docker run --rm -d --name lowkey-vault -p 8443:8443 docker.io/nagyesta/lowkey-vault:7.3.112
 //! AZURE_KEY_VAULT_EMULATOR_URL=https://localhost:8443 \
-//!   cargo test -p secret-vault --features azure-keyvault --test azure_key_vault_emulator -- --ignored
+//!   cargo test -p secret-vault --features azure-keyvault,azure-kms --test azure_key_vault_emulator -- --ignored
 //! ```
 
 use azure_core::credentials::{AccessToken, TokenCredential, TokenRequestOptions};
@@ -55,9 +55,8 @@ impl Emulator {
         Self { vault_url, client }
     }
 
-    /// The emulator serves a self-signed certificate and names itself, not a Key Vault domain,
-    /// as the authentication challenge resource.
-    fn client_options() -> SecretClientOptions {
+    /// The emulator serves a self-signed certificate.
+    fn http_client_options() -> ClientOptions {
         // With this feature the application installs the provider; an install that finds one
         // already installed by another test changes nothing.
         #[cfg(feature = "azure-keyvault-tls-no-provider")]
@@ -66,12 +65,17 @@ impl Emulator {
             .tls_danger_accept_invalid_certs(true)
             .build()
             .unwrap();
-        let client_options = ClientOptions {
+        ClientOptions {
             transport: Some(Transport::new(Arc::new(http_client))),
             ..Default::default()
-        };
+        }
+    }
+
+    /// The emulator names itself, not a Key Vault domain, as the authentication challenge
+    /// resource.
+    fn client_options() -> SecretClientOptions {
         SecretClientOptions {
-            client_options,
+            client_options: Self::http_client_options(),
             verify_challenge_resource: Some(false),
             ..Default::default()
         }
@@ -210,4 +214,89 @@ async fn missing_secret_fails_only_when_required() {
         required,
         Err(SecretVaultError::DataNotFoundError(_))
     ));
+}
+
+#[cfg(feature = "azure-kms-base")]
+mod kms {
+    use super::*;
+    use azure_security_keyvault_keys::models::{CreateKeyParameters, KeyOperation, KeyType};
+    use azure_security_keyvault_keys::ResourceExt as _;
+    use azure_security_keyvault_keys::{KeyClient, KeyClientOptions};
+    use rvstruct::ValueStruct;
+    use secret_vault::azure::{
+        AzureKmsEnvelopeEncryption, AzureKmsKeyRef, AzureKmsProviderOptions, KmsKeyVersion,
+    };
+    use secret_vault_value::SecretValue;
+
+    fn key_client_options() -> KeyClientOptions {
+        KeyClientOptions {
+            client_options: Emulator::http_client_options(),
+            verify_challenge_resource: Some(false),
+            ..Default::default()
+        }
+    }
+
+    /// Creates an RSA key and returns its version: Lowkey Vault wraps only with an explicit
+    /// key version.
+    async fn create_rsa_key(vault_url: &str, key_name: &str) -> KmsKeyVersion {
+        let client = KeyClient::new(
+            vault_url,
+            Arc::new(EmulatorCredential),
+            Some(key_client_options()),
+        )
+        .unwrap();
+        let parameters = CreateKeyParameters {
+            kty: Some(KeyType::Rsa),
+            key_size: Some(2048),
+            // Lowkey Vault checks the encrypt and decrypt operations on wrap and unwrap.
+            key_ops: Some(vec![
+                KeyOperation::WrapKey,
+                KeyOperation::UnwrapKey,
+                KeyOperation::Encrypt,
+                KeyOperation::Decrypt,
+            ]),
+            ..Default::default()
+        };
+        let key = client
+            .create_key(
+                key_name,
+                RequestContent::try_from(parameters).unwrap(),
+                None,
+            )
+            .await
+            .unwrap()
+            .into_model()
+            .unwrap();
+        KmsKeyVersion::try_from(key.resource_id().unwrap().version.unwrap()).unwrap()
+    }
+
+    #[tokio::test]
+    #[ignore = "needs the Lowkey Vault emulator, see the module docs"]
+    async fn value_round_trips_through_azure_kms_envelope_encryption() {
+        let emulator = Emulator::connect();
+        let key_name = unique_name("secret-vault-dek");
+        let key_version = create_rsa_key(&emulator.vault_url, &key_name).await;
+        let encryption = AzureKmsEnvelopeEncryption::with_options(
+            &AzureKmsKeyRef::new(emulator.vault_url.clone(), key_name)
+                .with_key_version(key_version),
+            AzureKmsProviderOptions::new().with_client_options(key_client_options()),
+            Arc::new(EmulatorCredential),
+        )
+        .await
+        .unwrap();
+        let secret_vault_key = SecretVaultKey::new(SecretName::from_static("db-password"));
+        let secret_value = SecretValue::from("test-secret");
+
+        let encrypted_value = encryption
+            .encrypt_value(&secret_vault_key, &secret_value)
+            .await
+            .unwrap();
+        assert_ne!(encrypted_value.value(), secret_value.ref_sensitive_value());
+
+        let decrypted_value = encryption
+            .decrypt_value(&secret_vault_key, &encrypted_value)
+            .await
+            .unwrap();
+        assert_eq!(decrypted_value.as_sensitive_str(), "test-secret");
+    }
 }

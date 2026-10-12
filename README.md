@@ -30,7 +30,7 @@ Library provides the support for the secrets coming to your application from the
 - Memory encryption using AEAD cryptography (optional);
 - Automatic refresh secrets from the sources support (optional);
 - Extensible and strongly typed API to be able to implement any kind of sources;
-- Memory encryption using Google/AWS KMS [envelope encryption](https://cloud.google.com/kms/docs/envelope-encryption) (optional);
+- Memory encryption using Google/AWS/Azure KMS or HashiCorp Vault Transit [envelope encryption](https://cloud.google.com/kms/docs/envelope-encryption) (optional);
 - Multi-sources support;
 - Snapshots for performance-critical secrets;
 
@@ -51,8 +51,9 @@ See the security consideration below about versioning.
 - `gcp` - GCP support with the default TLS, same as `gcp-tls-roots`
 - `gcp-secretmanager` - Google Secret Manager support with the aws-lc-rs crypto provider of gcloud-sdk
 - `gcp-secretmanager-base` - Google Secret Manager support with the crypto provider your application installs
-- `gcp-kms-tls-roots` (also aliased to `gcp-kms`) - Google Cloud KMS support with TLS roots and aws-lc-rs
-- `gcp-kms-tls-webpki` (`gcp-kms-webpki` in 2.x, still works) - Google Cloud KMS support with WebPKI roots and aws-lc-rs
+- `gcp-kms` - Google Cloud KMS envelope encryption with the aws-lc-rs crypto provider of gcloud-sdk
+- `gcp-kms-base` - Google Cloud KMS envelope encryption with the crypto provider your application installs
+- `gcp-kms-tls-roots` and `gcp-kms-webpki` - the 2.x names of `gcp-kms` with `gcp-tls-roots` and with `gcp-tls-webpki`, still work
 - One of the following TLS root stores is required when using GCP features:
   - `gcp-tls-roots` - System TLS roots (default)
   - `gcp-tls-webpki` - WebPKI roots
@@ -64,10 +65,12 @@ See the security consideration below about versioning.
 
 **Microsoft Azure**
 - `azure-keyvault` - Azure Key Vault secrets support with the default TLS, same as `azure-keyvault-tls-aws-lc-rs`
-- One of the following TLS implementations is required when using Azure features:
-  - `azure-keyvault-tls-aws-lc-rs` - rustls with the aws-lc-rs crypto provider and the platform certificate verifier (default)
-  - `azure-keyvault-tls-no-provider` - rustls with the crypto provider your application installs
-  - `azure-keyvault-native-tls` - native TLS of the platform (OpenSSL on Linux)
+- `azure-kms` - Azure Key Vault keys envelope encryption with the default TLS, same as `azure-kms-tls-aws-lc-rs`
+- One of the following TLS implementations is required when using Azure features, the same one for the secrets and the keys:
+  - `azure-keyvault-tls-aws-lc-rs` and `azure-kms-tls-aws-lc-rs` - rustls with the aws-lc-rs crypto provider and the platform certificate verifier (default)
+  - `azure-keyvault-tls-no-provider` and `azure-kms-tls-no-provider` - rustls with the crypto provider your application installs
+  - `azure-keyvault-native-tls` and `azure-kms-native-tls` - native TLS of the platform (OpenSSL on Linux)
+- With `gcp-tls-roots` in the same build both use native-tls, whichever Azure TLS feature is selected
 
 **HashiCorp Vault**
 - `hashicorp-vault` - HashiCorp Vault KV secrets engine v2 support with the default TLS, same as `hashicorp-vault-tls-roots` and `hashicorp-vault-tls-aws-lc-rs`
@@ -77,6 +80,10 @@ See the security consideration below about versioning.
 - One of the following rustls crypto providers is required when using HashiCorp Vault features:
   - `hashicorp-vault-tls-aws-lc-rs` - aws-lc-rs (default)
   - `hashicorp-vault-tls-ring` - ring
+- `hashicorp-vault-transit` - HashiCorp Vault Transit secrets engine envelope encryption with the default TLS, same as `hashicorp-vault-transit-tls-roots` and `hashicorp-vault-transit-tls-aws-lc-rs`
+- The Transit encryption has its own client with the same TLS features under its own names, and needs one root store and one crypto provider:
+  - `hashicorp-vault-transit-tls-roots` or `hashicorp-vault-transit-tls-webpki`;
+  - `hashicorp-vault-transit-tls-aws-lc-rs` or `hashicorp-vault-transit-tls-ring`.
 
 #### Encryption Features
 - `ring-aead-encryption` - Encryption support using Ring AEAD
@@ -91,6 +98,11 @@ See the security consideration below about versioning.
 For GCP Secret Manager with the default TLS:
 ```toml
 secret-vault = { version = "3.0", features = ["gcp-secretmanager", "gcp"] }
+```
+
+For GCP Secret Manager with KMS encryption:
+```toml
+secret-vault = { version = "3.0", features = ["gcp-secretmanager", "gcp-kms", "gcp"] }
 ```
 
 For AWS Secrets Manager with KMS encryption:
@@ -108,6 +120,11 @@ For Azure Key Vault with native TLS:
 secret-vault = { version = "3.0", features = ["azure-keyvault-native-tls"] }
 ```
 
+For Azure Key Vault with Azure KMS encryption:
+```toml
+secret-vault = { version = "3.0", features = ["azure-keyvault", "azure-kms"] }
+```
+
 For HashiCorp Vault with AEAD encryption:
 ```toml
 secret-vault = { version = "3.0", features = ["hashicorp-vault", "ring-aead-encryption"] }
@@ -118,13 +135,19 @@ For HashiCorp Vault with WebPKI roots and the ring crypto provider:
 secret-vault = { version = "3.0", features = ["hashicorp-vault-tls-webpki", "hashicorp-vault-tls-ring"] }
 ```
 
+For HashiCorp Vault with Transit encryption:
+```toml
+secret-vault = { version = "3.0", features = ["hashicorp-vault", "hashicorp-vault-transit"] }
+```
+
 For GCP Secret Manager with WebPKI and serde support:
 ```toml
 secret-vault = { version = "3.0", features = ["gcp-secretmanager", "gcp-tls-webpki", "serde"] }
 ```
 
-Note: Each group of TLS features above needs one feature when its source is used. The features of a group are mutually exclusive and cannot be enabled simultaneously.
-`gcp`, `azure-keyvault` and `hashicorp-vault` already select the defaults, so use the TLS features instead of them, not together with them.
+Note: Each group of TLS features above needs one feature when its source or encryption is used. The features of a group are mutually exclusive and cannot be enabled simultaneously.
+`gcp`, `azure-keyvault`, `azure-kms`, `hashicorp-vault` and `hashicorp-vault-transit` already select the defaults, so use the TLS features instead of them, not together with them.
+The Azure KMS and Transit TLS features turn on the kms-aead features of the same variant, so a missing or a second variant fails to compile with the kms-aead name, for example `vault-transit-kms-encryption-tls-roots` for `hashicorp-vault-transit-tls-roots`.
 
 ## Example for GCP with AEAD encryption:
 
@@ -167,8 +190,7 @@ To run this example use with environment variables:
 ```
 
 The HTTP client of gcloud-sdk uses native-tls (OpenSSL on Linux) with `gcp-tls-roots`, and rustls with aws-lc-rs with `gcp-tls-webpki`.
-With `gcp-secretmanager-base` install a default `CryptoProvider` with `CryptoProvider::install_default` before creating the source, for example `rustls::crypto::ring::default_provider().install_default()`; without one rustls panics unless the build has exactly one provider.
-GCP KMS supports only aws-lc-rs, since kms-aead enables it.
+With `gcp-secretmanager-base` or `gcp-kms-base` install a default `CryptoProvider` with `CryptoProvider::install_default` before creating the source or the encryption, for example `rustls::crypto::ring::default_provider().install_default()`; without one rustls panics unless the build has exactly one provider.
 
 ## Example for Azure Key Vault
 
@@ -216,6 +238,25 @@ Both backends verify certificates, but a pair of GCP and Azure features can sele
 To run the example:
 ```
 # VAULT_URL=https://<your-vault>.vault.azure.net cargo run --example azure_key_vault --features azure-keyvault,ring-aead-encryption
+```
+
+The `azure-kms` feature encrypts the secrets in memory with a Key Vault or Managed HSM key, using envelope encryption: every value gets its own data encryption key, wrapped by the key.
+
+```rust
+let encryption = azure::AzureKmsEnvelopeEncryption::new(
+    &azure::AzureKmsKeyRef::new("https://my-vault.vault.azure.net".into(), "secret-vault-key".into()),
+    credential,
+)
+.await?;
+```
+
+The data encryption keys are wrapped with RSA-OAEP-256 by default, use `with_options` and `AzureKmsProviderOptions` to change the algorithm, for example to `A256Kw` for a Managed HSM AES key.
+The source and the encryption build their clients on one reqwest, which has one TLS backend, so `azure-kms` needs the same TLS variant as `azure-keyvault`, and different variants fail to compile.
+`gcp-tls-roots` compiles the native-tls of reqwest, so with it the Azure KMS encryption runs on native-tls whichever `azure-kms-*` variant is selected, the same as the Azure source.
+
+To run the example:
+```
+# VAULT_URL=https://<your-vault>.vault.azure.net KMS_KEY_NAME=<your-key> cargo run --example kms_azure_key_vault --features azure-keyvault,azure-kms
 ```
 
 All examples available at [secret-vault/examples](secret-vault/examples) directory.
@@ -269,7 +310,7 @@ The source uses rustls, and the TLS features select its root store and crypto pr
 
 The provider is used for the connections of the source only and is not installed as the process default.
 If your application uses rustls with `ring`, enable `hashicorp-vault-tls-ring`.
-With `hashicorp-vault-tls-ring` and a feature that enables aws-lc-rs, such as `gcp-secretmanager` or GCP KMS, rustls has both providers and cannot choose one, so install a default `CryptoProvider` with `CryptoProvider::install_default` at startup; without one rustls panics in the GCP source and the GCP KMS encryption.
+With `hashicorp-vault-tls-ring` and a feature that enables aws-lc-rs, such as `gcp-secretmanager` or `gcp-kms`, rustls has both providers and cannot choose one, so install a default `CryptoProvider` with `CryptoProvider::install_default` at startup; without one rustls panics in the GCP source and the GCP KMS encryption.
 When the root store has no certificates and no CA certificate file is set, for example `hashicorp-vault-tls-roots` in an image without system CA certificates, creating the source fails with `InvalidParametersError`.
 
 Be aware that an `http://` address sends the token and the secrets unencrypted. The source logs a warning when such an address points to a host other than `localhost` or a loopback IP address.
@@ -285,6 +326,24 @@ The integration tests need a Vault server and are ignored by default. To run the
 ```
 docker run -d --rm --name vault-dev -p 8200:8200 -e VAULT_DEV_ROOT_TOKEN_ID=dev-root docker.io/hashicorp/vault:latest
 VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=dev-root cargo test -p secret-vault --features hashicorp-vault --test hashicorp_vault_source -- --ignored
+```
+
+The `hashicorp-vault-transit` feature encrypts the secrets in memory with a key of the Transit secrets engine, using envelope encryption: every value gets its own data encryption key, wrapped by the Transit key.
+It reads `VAULT_ADDR`, `VAULT_TOKEN`, `VAULT_NAMESPACE` and `VAULT_CACERT` the same way as the source, and `with_options` with `VaultTransitProviderOptions` configures it in code.
+
+```rust
+let encryption = hashicorp::VaultTransitEnvelopeEncryption::new(
+    &hashicorp::VaultTransitKeyRef::new("secret-vault".into()),
+)
+.await?;
+```
+
+The mount path is `transit` by default and can be changed with `with_mount`.
+The token needs the `update` capability on `transit/encrypt/<key>` and `transit/decrypt/<key>`.
+
+To run the example:
+```
+# VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=<your-token> VAULT_TRANSIT_KEY=<your-key> cargo run --example kms_hashicorp_vault --features hashicorp-vault,hashicorp-vault-transit
 ```
 
 ## Making `SecretVaultRef` available globally

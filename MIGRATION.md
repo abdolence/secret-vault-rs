@@ -10,11 +10,12 @@ so they can be created in `const` and `static` items. Changes visible to callers
 - `value()` is an inherent method, since the types no longer implement `rvstruct::ValueStruct`,
   so remove `use rvstruct::ValueStruct` unless it is needed for `EncryptedSecretValue`;
 - `SecretVaultKey::to_aad()` returns `Cow<'static, [u8]>` instead of `&String`,
-  so custom `SecretVaultEncryption` implementations pass `&key.to_aad()` to kms-aead;
+  so custom `SecretVaultEncryption` implementations pass `&key.to_aad()` to kms-aead,
+  and the ones using the `From<kms_aead::…>` conversions to secret-vault types move to kms-aead 0.29 as well;
 - `SecretVaultRef::new`, `with_required`, `with_auto_refresh` and `with_allow_in_snapshots` are `const fn`.
 
 Creating the types with `new()`, `"name".into()`, `String::into()` and `parse()`, and formatting them with `Display`, work as before.
 
 ## GCP KMS features
 
-`gcp-kms-webpki` is renamed to `gcp-kms-tls-webpki`, the old name still works.
+`gcp-kms` no longer selects a TLS root store, enable `gcp`, `gcp-tls-roots` or `gcp-tls-webpki` with it; without one gcloud-sdk fails to compile with `cannot find ClientTlsConfig in tonic::transport`.

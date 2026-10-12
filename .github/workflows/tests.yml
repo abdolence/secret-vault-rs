@@ -4,12 +4,12 @@ on:
   pull_request:
     types: [opened]
 jobs:
-  # One job per TLS variant over the features of every source. The AWS SDK has no TLS features
-  # and brings aws-lc-rs into every job. GCP and Azure share one reqwest, which uses native-tls
-  # whenever gcp-tls-roots compiles it in, so the roots jobs select native-tls for Azure.
-  # gcp-tls-webpki brings aws-lc-rs through reqwest/rustls. The ring jobs leave out GCP KMS, which
-  # only supports aws-lc-rs, and use gcp-secretmanager-base, so GCP and the webpki Azure client
-  # run on the provider the application installs, which is ring in the tests.
+  # One job per TLS variant over the features of every source and KMS encryption. The AWS SDK has
+  # no TLS features and brings aws-lc-rs into every job. GCP and Azure share one reqwest, which
+  # uses native-tls whenever gcp-tls-roots compiles it in, so the roots jobs select native-tls for
+  # Azure. gcp-tls-webpki brings aws-lc-rs through reqwest/rustls. The ring jobs use
+  # gcp-secretmanager-base and gcp-kms-base, so GCP and the webpki Azure client run on the
+  # provider the application installs, which is ring in the tests.
   tls-variant:
     name: ${{ matrix.variant }}
     runs-on: ubuntu-latest
@@ -18,13 +18,13 @@ jobs:
       matrix:
         include:
           - variant: roots-aws-lc-rs
-            tls: gcp-secretmanager,gcp-tls-roots,gcp-kms-tls-roots,azure-keyvault-native-tls,hashicorp-vault-tls-roots,hashicorp-vault-tls-aws-lc-rs
+            tls: gcp-secretmanager,gcp-kms,gcp-tls-roots,azure-keyvault-native-tls,azure-kms-native-tls,hashicorp-vault-tls-roots,hashicorp-vault-tls-aws-lc-rs,hashicorp-vault-transit-tls-roots,hashicorp-vault-transit-tls-aws-lc-rs
           - variant: webpki-aws-lc-rs
-            tls: gcp-secretmanager,gcp-tls-webpki,gcp-kms-tls-webpki,azure-keyvault-tls-aws-lc-rs,hashicorp-vault-tls-webpki,hashicorp-vault-tls-aws-lc-rs
+            tls: gcp-secretmanager,gcp-kms,gcp-tls-webpki,azure-keyvault-tls-aws-lc-rs,azure-kms-tls-aws-lc-rs,hashicorp-vault-tls-webpki,hashicorp-vault-tls-aws-lc-rs,hashicorp-vault-transit-tls-webpki,hashicorp-vault-transit-tls-aws-lc-rs
           - variant: roots-ring
-            tls: gcp-secretmanager-base,gcp-tls-roots,azure-keyvault-native-tls,hashicorp-vault-tls-roots,hashicorp-vault-tls-ring
+            tls: gcp-secretmanager-base,gcp-kms-base,gcp-tls-roots,azure-keyvault-native-tls,azure-kms-native-tls,hashicorp-vault-tls-roots,hashicorp-vault-tls-ring,hashicorp-vault-transit-tls-roots,hashicorp-vault-transit-tls-ring
           - variant: webpki-ring
-            tls: gcp-secretmanager-base,gcp-tls-webpki,azure-keyvault-tls-no-provider,hashicorp-vault-tls-webpki,hashicorp-vault-tls-ring
+            tls: gcp-secretmanager-base,gcp-kms-base,gcp-tls-webpki,azure-keyvault-tls-no-provider,azure-kms-tls-no-provider,hashicorp-vault-tls-webpki,hashicorp-vault-tls-ring,hashicorp-vault-transit-tls-webpki,hashicorp-vault-transit-tls-ring
     steps:
       - uses: actions/checkout@v7
       - uses: actions-rs/toolchain@v1
@@ -38,11 +38,41 @@ jobs:
 
           FEATURES="serde,ring-aead-encryption,kms,aws,aws-secretmanager,aws-kms-encryption,ahash,${{ matrix.tls }}"
 
-          # The Azure TLS features select the TLS backend of secret-vault's direct reqwest, which
-          # only reaches azure_core while both resolve to the same reqwest.
+          # The Azure TLS features select the TLS backend of the direct reqwest of secret-vault and
+          # kms-aead, which only reaches azure_core while all resolve to the same reqwest.
           if cargo tree --workspace -e normal --features "$FEATURES" -d --depth 0 | grep -q '^reqwest '; then
             echo "azure_core and secret-vault resolve to different reqwest versions"
             exit 1
           fi
           cargo clippy --workspace --all-targets --features "$FEATURES" -- -Dwarnings
           cargo test --workspace --features "$FEATURES"
+  vault-transit-live:
+    name: vault-transit-live
+    runs-on: ubuntu-latest
+    services:
+      vault:
+        image: hashicorp/vault:2.1.2
+        env:
+          VAULT_DEV_ROOT_TOKEN_ID: root
+          VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+        ports:
+          - 8200:8200
+        options: --cap-add=IPC_LOCK
+    env:
+      VAULT_ADDR: http://127.0.0.1:8200
+      VAULT_TOKEN: root
+      VAULT_TRANSIT_KEY: secret-vault
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+      - run: |
+          for attempt in $(seq 1 30); do
+            curl -sf "$VAULT_ADDR/v1/sys/health" > /dev/null && break
+            sleep 1
+          done
+          curl -sf -H "X-Vault-Token: $VAULT_TOKEN" -d '{"type":"transit"}' "$VAULT_ADDR/v1/sys/mounts/transit"
+          curl -sf -H "X-Vault-Token: $VAULT_TOKEN" -X POST "$VAULT_ADDR/v1/transit/keys/$VAULT_TRANSIT_KEY"
+      - run: cargo test -p secret-vault --features hashicorp-vault-transit --test hashicorp_vault_transit -- --ignored
