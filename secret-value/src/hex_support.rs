@@ -1,5 +1,5 @@
 use crate::SecretValue;
-use zeroize::{Zeroize, Zeroizing};
+use zeroize::Zeroizing;
 
 impl SecretValue {
     /// Encodes the secret as a lowercase hex string that is zeroized on drop.
@@ -28,7 +28,7 @@ impl SecretValue {
 
     /// Decodes a hex string, upper or lower case, into a secret.
     ///
-    /// The input string is zeroized after a successful decode.
+    /// The input string is zeroized whether the decode succeeds or not.
     ///
     /// # Errors
     ///
@@ -41,10 +41,9 @@ impl SecretValue {
     /// assert_eq!(secret_value.as_sensitive_bytes(), [0xca, 0xfe]);
     /// # Ok::<(), hex::FromHexError>(())
     /// ```
-    pub fn from_hex_str(mut hex_string: String) -> Result<Self, hex::FromHexError> {
-        let result = Self::new(hex::decode(&hex_string)?);
-        hex_string.zeroize();
-        Ok(result)
+    pub fn from_hex_str(hex_string: String) -> Result<Self, hex::FromHexError> {
+        let hex_string = Zeroizing::new(hex_string);
+        Ok(Self::new(hex::decode(hex_string.as_str())?))
     }
 }
 
