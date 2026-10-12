@@ -222,10 +222,9 @@ mod kms {
     use azure_security_keyvault_keys::models::{CreateKeyParameters, KeyOperation, KeyType};
     use azure_security_keyvault_keys::ResourceExt as _;
     use azure_security_keyvault_keys::{KeyClient, KeyClientOptions};
-    use kms_aead::KmsKeyVersion;
     use rvstruct::ValueStruct;
     use secret_vault::azure::{
-        AzureKmsEnvelopeEncryption, AzureKmsKeyRef, AzureKmsProviderOptions,
+        AzureKmsEnvelopeEncryption, AzureKmsKeyRef, AzureKmsProviderOptions, KmsKeyVersion,
     };
     use secret_vault_value::SecretValue;
 

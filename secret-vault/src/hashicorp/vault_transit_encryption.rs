@@ -12,7 +12,7 @@ impl VaultTransitEnvelopeEncryption {
     /// Same as [`Self::with_options`] with [`VaultTransitProviderOptions::from_env`], which
     /// reads `VAULT_ADDR`, `VAULT_TOKEN`, `VAULT_NAMESPACE` and `VAULT_CACERT`.
     pub async fn new(key_ref: &VaultTransitKeyRef) -> SecretVaultResult<Self> {
-        Self::with_options(key_ref, VaultTransitProviderOptions::from_env()?).await
+        Self::with_provider(kms_aead::providers::VaultTransitProvider::new(key_ref)?).await
     }
 
     /// Wraps the data encryption keys with the Transit key at `key_ref`. No request is made
