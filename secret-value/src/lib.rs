@@ -1,60 +1,48 @@
-//! # Secret Vault Value type
+//! # Secret value type
 //!
-//! Library provides a simple implementation of a secure and serializable (serde and proto) type
-//! of any kind of secrets:
-//!
-//! - Automatically cleaning up its value after destruction in memory.
-//! - Prevents leaking in logs and stack traces
-//! - Stored as a byte array and suitable for binary secrets;
-//! - Introduces additional functions with predicates to control the exposed border;
-//!   of exposed secret values and clean-ups: `exposed_in_*`;
-//! - Supports deserialization of embedded JSON value in string using `expose_json_value_as`;
-//! - Securely encoding/decoding from hex/base64 formats;
-//!
-//! # Working with the type:
-//!
-//! ```ignore
-//! use secret_vault_value::*;
-//!
-//! // Creating from string
-//! let secret_value: SecretValue = "test".into();
-//!
-//! // Creating from vec
-//! let secret_value: SecretValue = vec![4,2].into();
-//!
-//! // Creating from BytesMut
-//! let secret_value: SecretValue = bytes::BytesMut::from("test").into();
-//!
-//! // Reading as a string
-//! let secret_value: &str = secret_value4.as_sensitive_str();
-//!
-//! Reading as bytes
-//! let secret_value: &[u8] = secret_value.as_sensitive_bytes()
-//!
-//! // Reading as hex string
-//! let secret_value: Zeroizing<String> = secret_value.as_sensitive_hex_str();
-//!
-//! // Reading as base64 string
-//! let secret_value: Zeroizing<String> = secret_value.as_sensitive_base64_str();
-//!
-//! // Controlling the exposed value with closures/lambdas
-//! let your_result = secret_value.exposed_in_as_zstr(|secret_value|{
-//!      todo!()
-//! });
-//!
-//! // Controlling the exposed value with async closures/lambdas
-//! let your_result = secret_value.exposed_in_as_zstr_async(|secret_value| async {
-//!      todo!()
-//! }).await;
-//!
-//! // Deserialize embedded string value from JSON and expose it as zeroizable structure:
-//! #[derive(Deserialize, Zeroize)]
-//! struct YourType { ... }
-//!
-//! let your_result_json: YourType = secret_value.expose_json_value_as::<YourType>().unwrap();
+//! A secure and serializable type for any kind of secret:
+//! - zeroizes its bytes in memory when dropped, using [zeroize](https://docs.rs/zeroize);
+//! - prints `***` in `Debug` and `Display`, so it does not leak into logs and panic messages;
+//! - stores bytes, so it fits binary secrets too;
+//! - lends copies to closures with the `exposed_in_*` methods and zeroizes them afterwards;
+//! - parses JSON embedded in a secret with `expose_json_value_as`;
+//! - encodes and decodes hex and base64.
 //!
 //! ```
+//! use secret_vault_value::SecretValue;
+//!
+//! let secret_value: SecretValue = "my-password".into();
+//! assert_eq!(format!("{secret_value:?}"), "***");
+//!
+//! // Borrowing, no copies
+//! let password: &str = secret_value.as_sensitive_str();
+//! let bytes: &[u8] = secret_value.as_sensitive_bytes();
+//!
+//! // The copy passed to the closure is zeroized when the closure is done
+//! let length = secret_value.exposed_in_as_zstr(|password| password.len());
+//!
+//! // Async closures work the same way
+//! async fn password_length(secret_value: &SecretValue) -> usize {
+//!     secret_value
+//!         .exposed_in_as_zstr_async(|password| async move { password.len() })
+//!         .await
+//! }
+//! # assert_eq!(password, "my-password");
+//! # assert_eq!(bytes, b"my-password");
+//! # assert_eq!(length, 11);
+//! # let runtime = tokio::runtime::Runtime::new().unwrap();
+//! # assert_eq!(runtime.block_on(password_length(&secret_value)), 11);
+//! ```
+//!
+//! # Features
+//!
+//! - `serde`: `Serialize` and `Deserialize` as a string, and `expose_json_value_as` (brings `serde_json`);
+//! - `proto`: `prost::Message`, encoding the value as a `bytes` field;
+//! - `bytes`: conversion from `bytes::BytesMut`;
+//! - `hex`: hex encoding and decoding;
+//! - `base64`: base64 encoding and decoding.
 
+#![warn(missing_docs)]
 #![allow(unused_parens, unused_imports)]
 #![forbid(unsafe_code)]
 
