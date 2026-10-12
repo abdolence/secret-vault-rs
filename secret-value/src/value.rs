@@ -100,6 +100,10 @@ impl SecretValue {
     /// that `f` neither returns as `Z` nor zeroizes itself is not zeroized.
     /// [`exposed_in_as_zstr`](Self::exposed_in_as_zstr) needs no such pair.
     ///
+    /// If `f` panics, the copy is freed without being zeroized. Use
+    /// [`exposed_in_as_zstr`](Self::exposed_in_as_zstr), which zeroizes it on
+    /// unwinding too.
+    ///
     /// # Panics
     ///
     /// Panics if the bytes are not valid UTF-8.
@@ -152,6 +156,10 @@ impl SecretValue {
     /// [`exposed_in_as_str`](Self::exposed_in_as_str): `Z` is zeroized once
     /// `f` returns.
     ///
+    /// If `f` panics, the copy is freed without being zeroized. Use
+    /// [`exposed_in_as_zvec`](Self::exposed_in_as_zvec), which zeroizes it on
+    /// unwinding too.
+    ///
     /// ```
     /// use secret_vault_value::SecretValue;
     ///
@@ -189,6 +197,12 @@ impl SecretValue {
 
     /// Async form of [`exposed_in_as_str`](Self::exposed_in_as_str): `Z` is
     /// zeroized once the future returned by `f` completes.
+    ///
+    /// If `f` or its future panics, or the future is dropped before it
+    /// completes (a timeout, a losing `select!` branch, an aborted task), the
+    /// copy is freed without being zeroized. Use
+    /// [`exposed_in_as_zstr_async`](Self::exposed_in_as_zstr_async), which
+    /// zeroizes it in those cases too.
     ///
     /// # Panics
     ///
@@ -245,6 +259,12 @@ impl SecretValue {
 
     /// Async form of [`exposed_in_as_vec`](Self::exposed_in_as_vec): `Z` is
     /// zeroized once the future returned by `f` completes.
+    ///
+    /// If `f` or its future panics, or the future is dropped before it
+    /// completes (a timeout, a losing `select!` branch, an aborted task), the
+    /// copy is freed without being zeroized. Use
+    /// [`exposed_in_as_zvec_async`](Self::exposed_in_as_zvec_async), which
+    /// zeroizes it in those cases too.
     ///
     /// ```
     /// use secret_vault_value::SecretValue;
