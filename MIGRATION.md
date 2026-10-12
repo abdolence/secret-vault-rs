@@ -17,4 +17,4 @@ Creating the types with `new()`, `"name".into()`, `String::into()` and `parse()`
 
 ## GCP KMS features
 
-`gcp-kms-webpki` is renamed to `gcp-kms-tls-webpki`, the old name still works.
+`gcp-kms` no longer selects a TLS root store, enable `gcp`, `gcp-tls-roots` or `gcp-tls-webpki` with it; without one gcloud-sdk fails to compile with `cannot find ClientTlsConfig in tonic::transport`.

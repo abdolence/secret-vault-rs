@@ -14,7 +14,7 @@
 //! - Reading/caching registered secrets and their metadata in memory from defined sources;
 //! - Extensible and strongly typed API to be able to implement any kind of sources;
 //! - Memory encryption using AEAD cryptography (optional);
-//! - Memory encryption using Google/AWS KMS envelope encryption (https://cloud.google.com/kms/docs/envelope-encryption) (optional);
+//! - Memory encryption using Google/AWS/Azure KMS or HashiCorp Vault Transit envelope encryption (<https://cloud.google.com/kms/docs/envelope-encryption>) (optional);
 //! - Automatic refresh secrets from the sources support (optional);
 //! - Multi-sources support;
 //! - Snapshots for performance-critical secrets;
@@ -98,6 +98,30 @@ compile_error!(
     "You can enable only one of \"azure-keyvault-tls-aws-lc-rs\" (enabled by \"azure-keyvault\"), \"azure-keyvault-tls-no-provider\" and \"azure-keyvault-native-tls\""
 );
 
+#[cfg(any(
+    all(
+        feature = "azure-keyvault-tls-aws-lc-rs",
+        any(
+            feature = "azure-kms-tls-no-provider",
+            feature = "azure-kms-native-tls"
+        )
+    ),
+    all(
+        feature = "azure-keyvault-tls-no-provider",
+        any(feature = "azure-kms-tls-aws-lc-rs", feature = "azure-kms-native-tls")
+    ),
+    all(
+        feature = "azure-keyvault-native-tls",
+        any(
+            feature = "azure-kms-tls-aws-lc-rs",
+            feature = "azure-kms-tls-no-provider"
+        )
+    )
+))]
+compile_error!(
+    "The Azure Key Vault source and the Azure KMS encryption build their clients on one reqwest, which has one TLS backend, so enable the same TLS variant for both: \"azure-keyvault-tls-aws-lc-rs\" with \"azure-kms-tls-aws-lc-rs\", \"azure-keyvault-tls-no-provider\" with \"azure-kms-tls-no-provider\", or \"azure-keyvault-native-tls\" with \"azure-kms-native-tls\""
+);
+
 #[cfg(all(
     feature = "hashicorp-vault-base",
     not(feature = "hashicorp-vault-tls-roots"),
@@ -150,15 +174,26 @@ pub use common_types::*;
 #[cfg(feature = "ring-aead-encryption")]
 pub mod ring_encryption;
 
+#[cfg(any(
+    feature = "gcp-kms-base",
+    feature = "aws-kms-encryption",
+    feature = "azure-kms-base",
+    feature = "hashicorp-vault-transit-base"
+))]
+pub mod kms_encryption;
+
 #[cfg(feature = "gcp-base")]
 pub mod gcp;
 
 #[cfg(feature = "aws")]
 pub mod aws;
 
-#[cfg(feature = "azure-keyvault-base")]
+#[cfg(any(feature = "azure-keyvault-base", feature = "azure-kms-base"))]
 pub mod azure;
-#[cfg(feature = "hashicorp-vault-base")]
+#[cfg(any(
+    feature = "hashicorp-vault-base",
+    feature = "hashicorp-vault-transit-base"
+))]
 pub mod hashicorp;
 
 pub type SecretVaultResult<T> = std::result::Result<T, errors::SecretVaultError>;
