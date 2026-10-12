@@ -70,6 +70,7 @@ See the security consideration below about versioning.
   - `azure-keyvault-tls-aws-lc-rs` and `azure-kms-tls-aws-lc-rs` - rustls with the aws-lc-rs crypto provider and the platform certificate verifier (default)
   - `azure-keyvault-tls-no-provider` and `azure-kms-tls-no-provider` - rustls with the crypto provider your application installs
   - `azure-keyvault-native-tls` and `azure-kms-native-tls` - native TLS of the platform (OpenSSL on Linux)
+- With `gcp-tls-roots` in the same build both use native-tls, whichever Azure TLS feature is selected
 
 **HashiCorp Vault**
 - `hashicorp-vault` - HashiCorp Vault KV secrets engine v2 support with the default TLS, same as `hashicorp-vault-tls-roots` and `hashicorp-vault-tls-aws-lc-rs`
@@ -251,6 +252,7 @@ let encryption = azure::AzureKmsEnvelopeEncryption::new(
 
 The data encryption keys are wrapped with RSA-OAEP-256 by default, use `with_options` and `AzureKmsProviderOptions` to change the algorithm, for example to `A256Kw` for a Managed HSM AES key.
 The source and the encryption build their clients on one reqwest, which has one TLS backend, so `azure-kms` needs the same TLS variant as `azure-keyvault`, and different variants fail to compile.
+`gcp-tls-roots` compiles the native-tls of reqwest, so with it the Azure KMS encryption runs on native-tls whichever `azure-kms-*` variant is selected, the same as the Azure source.
 
 To run the example:
 ```
