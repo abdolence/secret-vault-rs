@@ -51,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       vault:
-        image: hashicorp/vault:2.1.2
+        image: hashicorp/vault:2.2.0
         env:
           VAULT_DEV_ROOT_TOKEN_ID: root
           VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
