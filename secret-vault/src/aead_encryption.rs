@@ -1,6 +1,6 @@
 use async_trait::async_trait;
-use kms_aead::{AeadCipher, CipherText, DataEncryptionKey};
-use rvstruct::ValueStruct;
+use kms_aead::formats::Bare;
+use kms_aead::{AeadCipher, DataEncryptionKey, Encrypted};
 use secret_vault_value::SecretValue;
 
 use crate::{
@@ -38,7 +38,7 @@ impl<B: AeadBackend> SecretVaultAeadEncryption<B> {
     /// for AES-256-GCM-SIV, and `RANDOM_GENERATOR` when the CSPRNG fails.
     pub fn with_algorithm(algorithm: AeadAlgorithm) -> SecretVaultResult<Self> {
         let cipher = AeadCipher::new(algorithm)?;
-        let key = cipher.generate_key()?;
+        let key = cipher.generate_dek()?;
         Ok(Self { cipher, key })
     }
 }
@@ -52,7 +52,7 @@ impl<B: AeadBackend> SecretVaultEncryption for SecretVaultAeadEncryption<B> {
     ) -> SecretVaultResult<EncryptedSecretValue> {
         let encrypted =
             self.cipher
-                .encrypt_value(secret_vault_key.to_aad(), secret_value, &self.key)?;
+                .encrypt_bare(secret_vault_key.to_aad(), secret_value, &self.key)?;
         Ok(encrypted.into())
     }
 
@@ -61,23 +61,11 @@ impl<B: AeadBackend> SecretVaultEncryption for SecretVaultAeadEncryption<B> {
         secret_vault_key: &SecretVaultKey,
         encrypted_secret_value: &EncryptedSecretValue,
     ) -> SecretVaultResult<SecretValue> {
-        Ok(self.cipher.decrypt_value(
+        Ok(self.cipher.decrypt_bare(
             secret_vault_key.to_aad(),
-            &encrypted_secret_value.clone().into(),
+            &Encrypted::<SecretValue, Bare>::try_from(encrypted_secret_value.clone())?,
             &self.key,
         )?)
-    }
-}
-
-impl From<CipherText> for EncryptedSecretValue {
-    fn from(cipher_text: CipherText) -> Self {
-        EncryptedSecretValue(cipher_text.into_value())
-    }
-}
-
-impl From<EncryptedSecretValue> for CipherText {
-    fn from(encrypted_value: EncryptedSecretValue) -> Self {
-        CipherText(encrypted_value.into_value())
     }
 }
 
@@ -90,6 +78,7 @@ mod tests {
     use proptest::prelude::*;
     use proptest::strategy::ValueTree;
     use proptest::test_runner::TestRunner;
+    use rvstruct::ValueStruct;
 
     async fn encryption_test_for(mock_secret_value: SecretValue) -> SecretVaultResult<()> {
         let mock_secret_name: SecretName = "test".to_string().into();

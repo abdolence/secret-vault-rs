@@ -18,6 +18,42 @@ impl fmt::Debug for EncryptedSecretValue {
     }
 }
 
+#[cfg(any(
+    feature = "ring",
+    feature = "aws-lc",
+    feature = "aws-lc-fips",
+    feature = "rustcrypto"
+))]
+impl<F: kms_aead::formats::Format> From<kms_aead::Encrypted<SecretValue, F>>
+    for EncryptedSecretValue
+{
+    fn from(encrypted: kms_aead::Encrypted<SecretValue, F>) -> Self {
+        EncryptedSecretValue(encrypted.into_value())
+    }
+}
+
+/// Reads the stored bytes as a value of the format `F`.
+///
+/// # Errors
+///
+/// The errors of kms-aead's `TryFrom<Vec<u8>>` for `Encrypted`, such as
+/// `INVALID_CIPHER_TEXT_FORMAT` for bytes outside the layout of `F`.
+#[cfg(any(
+    feature = "ring",
+    feature = "aws-lc",
+    feature = "aws-lc-fips",
+    feature = "rustcrypto"
+))]
+impl<F: kms_aead::formats::Format> TryFrom<EncryptedSecretValue>
+    for kms_aead::Encrypted<SecretValue, F>
+{
+    type Error = kms_aead::errors::KmsAeadError;
+
+    fn try_from(stored: EncryptedSecretValue) -> Result<Self, Self::Error> {
+        kms_aead::Encrypted::try_from(stored.into_value())
+    }
+}
+
 #[async_trait]
 pub trait SecretVaultEncryption {
     async fn encrypt_value(
@@ -113,5 +149,26 @@ mod tests {
 
         assert!(!printed.contains("plaintext-secret"));
         assert!(!printed.contains(&format!("{:?}", stored.0)));
+    }
+
+    #[cfg(any(
+        feature = "ring",
+        feature = "aws-lc",
+        feature = "aws-lc-fips",
+        feature = "rustcrypto"
+    ))]
+    #[test]
+    fn stored_bytes_outside_the_layout_are_refused() {
+        use kms_aead::errors::KmsAeadError;
+        use kms_aead::formats::Bare;
+        use kms_aead::Encrypted;
+
+        let read = Encrypted::<SecretValue, Bare>::try_from(EncryptedSecretValue(vec![0; 8]));
+
+        assert!(
+            matches!(&read, Err(KmsAeadError::EncryptionError(error))
+                if error.public.code == "INVALID_CIPHER_TEXT_FORMAT"),
+            "{read:?}"
+        );
     }
 }

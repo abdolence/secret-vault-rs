@@ -1,9 +1,7 @@
 use crate::*;
 use async_trait::async_trait;
-use kms_aead::{
-    CipherTextWithEncryptedKey, KmsAeadEncryptionProvider, KmsAeadEnvelope, KmsAeadEnvelopeOptions,
-};
-use rvstruct::ValueStruct;
+use kms_aead::formats::Envelope;
+use kms_aead::{Encrypted, KmsAeadEncryptionProvider, KmsAeadEnvelope, KmsAeadEnvelopeOptions};
 
 use secret_vault_value::SecretValue;
 
@@ -47,7 +45,7 @@ where
     ) -> SecretVaultResult<EncryptedSecretValue> {
         let encrypted_value = self
             .envelope
-            .encrypt_value(secret_vault_key.to_aad(), secret_value)
+            .encrypt(secret_vault_key.to_aad(), secret_value)
             .await?;
 
         Ok(encrypted_value.into())
@@ -60,24 +58,12 @@ where
     ) -> SecretVaultResult<SecretValue> {
         let secret_value = self
             .envelope
-            .decrypt_value(
+            .decrypt(
                 secret_vault_key.to_aad(),
-                &encrypted_secret_value.clone().into(),
+                &Encrypted::<SecretValue, Envelope>::try_from(encrypted_secret_value.clone())?,
             )
             .await?;
         Ok(secret_value)
-    }
-}
-
-impl From<CipherTextWithEncryptedKey> for EncryptedSecretValue {
-    fn from(cipher_text: CipherTextWithEncryptedKey) -> Self {
-        EncryptedSecretValue(cipher_text.into_value())
-    }
-}
-
-impl From<EncryptedSecretValue> for CipherTextWithEncryptedKey {
-    fn from(encrypted_value: EncryptedSecretValue) -> Self {
-        CipherTextWithEncryptedKey(encrypted_value.into_value())
     }
 }
 
@@ -114,6 +100,7 @@ impl<B: AeadBackend> LocalKmsEnvelopeEncryption<B> {
 mod tests {
     use super::*;
     use crate::errors::SecretVaultError;
+    use rvstruct::ValueStruct;
     use std::num::NonZeroU32;
 
     fn local_kms_encryption() -> SecretVaultResult<LocalKmsEnvelopeEncryption<TestBackend>> {

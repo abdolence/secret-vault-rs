@@ -34,7 +34,8 @@ The vault keeps values in memory only, so no stored data needs to be migrated.
 - a printable temporary secret with an odd `key_len` has `key_len` characters instead of one less;
 - the code of an `EncryptionError` from kms-aead is the kms-aead error code, such as `DECRYPT` or `IncorrectKeyException` from AWS KMS, instead of the `Debug` text of the error;
 - `SecretVaultKey::to_aad()` returns `&[u8]` instead of `Cow<'static, [u8]>`, `&key.to_aad()` still compiles where a `&[u8]` is expected;
-- the `From` conversions between `EncryptedSecretValue` and the kms-aead `CipherText` and `CipherTextWithEncryptedKey` are on the kms-aead 0.30 types, so custom `SecretVaultEncryption` implementations using them move to kms-aead 0.30 as well;
+- the `From` conversions between `EncryptedSecretValue` and the kms-aead `CipherText` and `CipherTextWithEncryptedKey` are replaced by one pair for kms-aead 0.30's `Encrypted<SecretValue, F>` in any format `F`: `From<Encrypted<SecretValue, F>>` for `EncryptedSecretValue`, and `TryFrom<EncryptedSecretValue>` for `Encrypted<SecretValue, F>`, which checks the bytes against the layout of `F` and fails with `INVALID_CIPHER_TEXT_FORMAT` outside it, so custom `SecretVaultEncryption` implementations write `Encrypted::<SecretValue, Bare>::try_from(value)?` where they wrote `value.into()`;
+- the AEAD encryption stores its values in kms-aead's `Bare` format and the KMS envelope encryption in its `Envelope` format, the same bytes as before;
 - the defaults of the options are public constants, such as `TempSecretOptions::DEFAULT_PRINTABLE` and `hashicorp::HashiCorpVaultSourceOptions::DEFAULT_TIMEOUT`.
 
 # Migrating from 2.x to 3.0
