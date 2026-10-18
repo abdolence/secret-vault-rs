@@ -1,7 +1,7 @@
+use crate::backends::AeadBackend;
 use crate::errors::*;
 use crate::*;
 use async_trait::*;
-use kms_aead::generate_random_bytes;
 use rsb_derive::*;
 use secret_vault_value::SecretValue;
 use std::collections::HashMap;
@@ -40,7 +40,7 @@ impl TempSecretOptions {
             self.key_len
         };
 
-        let random = generate_random_bytes::<B>(random_len).map_err(|e| {
+        let random = B::generate_random_bytes(random_len).map_err(|e| {
             SecretVaultError::SecretsSourceError(
                 SecretsSourceError::new(
                     SecretVaultErrorPublicGenericDetails::new(e.code().to_string()),

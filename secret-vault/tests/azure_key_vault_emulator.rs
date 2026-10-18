@@ -226,6 +226,7 @@ mod kms {
     use secret_vault::azure::{
         AzureKmsEnvelopeEncryption, AzureKmsKeyRef, AzureKmsProviderOptions, KmsKeyVersion,
     };
+    use secret_vault::backends::AwsLc;
     use secret_vault_value::SecretValue;
 
     fn key_client_options() -> KeyClientOptions {

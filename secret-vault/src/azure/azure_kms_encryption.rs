@@ -1,3 +1,4 @@
+use crate::backends::AeadBackend;
 use crate::kms_encryption::SecretVaultKmsEnvelopeEncryption;
 use crate::*;
 use azure_core::credentials::TokenCredential;

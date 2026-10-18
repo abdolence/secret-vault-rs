@@ -158,6 +158,15 @@ mod encryption;
 pub use encryption::*;
 
 pub mod errors;
+
+#[cfg(any(
+    feature = "ring",
+    feature = "aws-lc",
+    feature = "aws-lc-fips",
+    feature = "rustcrypto"
+))]
+pub mod backends;
+
 mod secrets_source;
 pub use secrets_source::*;
 

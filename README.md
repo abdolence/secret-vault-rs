@@ -85,7 +85,7 @@ See the security consideration below about versioning.
   - `hashicorp-vault-transit-tls-aws-lc-rs` or `hashicorp-vault-transit-tls-ring`.
 
 #### Encryption Features
-The encryption runs on a crypto library a feature compiles in, and the type parameter of the encryption selects it, for example `SecretVaultAeadEncryption<AwsLc>`.
+The encryption runs on a crypto library a feature compiles in, and the type parameter of the encryption selects it from `secret_vault::backends`, for example `SecretVaultAeadEncryption<AwsLc>`.
 A build may enable any number of them, and every KMS encryption feature above needs one, and so does `TempSecretGenSource`, which generates its secrets with the random generator of the backend:
 - `aws-lc` - `AwsLc`, [aws-lc-rs](https://crates.io/crates/aws-lc-rs), the crypto library the default TLS features already compile in
 - `aws-lc-fips` - `AwsLc` on the AWS-LC FIPS module, which needs CMake and Go to build

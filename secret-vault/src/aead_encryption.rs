@@ -3,9 +3,9 @@ use kms_aead::formats::Bare;
 use kms_aead::{AeadCipher, DataEncryptionKey, Encrypted};
 use secret_vault_value::SecretValue;
 
+use crate::backends::AeadBackend;
 use crate::{
-    AeadAlgorithm, AeadBackend, EncryptedSecretValue, SecretVaultEncryption, SecretVaultKey,
-    SecretVaultResult,
+    AeadAlgorithm, EncryptedSecretValue, SecretVaultEncryption, SecretVaultKey, SecretVaultResult,
 };
 
 /// Encrypts the stored values with an AEAD algorithm on the backend `B`, under one key generated

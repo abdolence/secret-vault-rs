@@ -5,6 +5,7 @@ use criterion::*;
 use proptest::prelude::*;
 use proptest::test_runner::TestRunner;
 use secret_vault::aead_encryption::SecretVaultAeadEncryption;
+use secret_vault::backends::AwsLc;
 use secret_vault::*;
 use secret_vault_value::SecretValue;
 use std::hint::black_box;

@@ -18,6 +18,7 @@ impl fmt::Debug for EncryptedSecretValue {
     }
 }
 
+/// Stores the bytes of a value in the format `F`, as they are.
 #[cfg(any(
     feature = "ring",
     feature = "aws-lc",
@@ -101,33 +102,15 @@ impl SecretVaultEncryption for SecretVaultNoEncryption {
 ))]
 pub use kms_aead::AeadAlgorithm;
 
-/// The backend is a type parameter of the encryption types and of `TempSecretGenSource`, such as
-/// `SecretVaultAeadEncryption<AwsLc>`: `Ring` with the `ring` feature, `AwsLc` with `aws-lc` or
-/// `aws-lc-fips`, and `RustCrypto` with `rustcrypto`.
-#[cfg(any(
-    feature = "ring",
-    feature = "aws-lc",
-    feature = "aws-lc-fips",
-    feature = "rustcrypto"
-))]
-pub use kms_aead::AeadBackend;
-
-#[cfg(any(feature = "aws-lc", feature = "aws-lc-fips"))]
-pub use kms_aead::AwsLc;
-#[cfg(feature = "ring")]
-pub use kms_aead::Ring;
-#[cfg(feature = "rustcrypto")]
-pub use kms_aead::RustCrypto;
-
 /// The backend the encryption tests run on: one of the backends the build has.
 #[cfg(all(test, feature = "ring"))]
-pub(crate) type TestBackend = Ring;
+pub(crate) type TestBackend = crate::backends::Ring;
 #[cfg(all(
     test,
     not(feature = "ring"),
     any(feature = "aws-lc", feature = "aws-lc-fips")
 ))]
-pub(crate) type TestBackend = AwsLc;
+pub(crate) type TestBackend = crate::backends::AwsLc;
 #[cfg(all(
     test,
     not(feature = "ring"),
@@ -135,7 +118,7 @@ pub(crate) type TestBackend = AwsLc;
     not(feature = "aws-lc-fips"),
     feature = "rustcrypto"
 ))]
-pub(crate) type TestBackend = RustCrypto;
+pub(crate) type TestBackend = crate::backends::RustCrypto;
 
 #[cfg(test)]
 mod tests {

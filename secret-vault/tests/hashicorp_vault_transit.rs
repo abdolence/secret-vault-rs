@@ -12,6 +12,7 @@
 //! ```
 
 use rvstruct::ValueStruct;
+use secret_vault::backends::AwsLc;
 use secret_vault::hashicorp::{HcVaultTransitEnvelopeEncryption, HcVaultTransitKeyRef};
 use secret_vault::*;
 use secret_vault_value::SecretValue;

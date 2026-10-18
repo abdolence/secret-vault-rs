@@ -1,3 +1,4 @@
+use secret_vault::backends::AwsLc;
 use secret_vault::*;
 use std::ops::Deref;
 
