@@ -25,7 +25,7 @@ assert_eq!(format!("{secret_value:?}"), "***");
 let password: &str = secret_value.as_sensitive_str();
 let bytes: &[u8] = secret_value.as_sensitive_bytes();
 
-// The copy passed to the closure is zeroized when the closure is done
+// The copy passed to the closure is zeroised when the closure is done
 let length = secret_value.exposed_in_as_zstr(|password| password.len());
 
 // Async closures work the same way
