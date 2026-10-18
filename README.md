@@ -27,10 +27,10 @@ Library provides the support for the secrets coming to your application from the
 
 ## Features
 - Reading/caching registered secrets and their metadata in memory from defined sources;
-- Memory encryption using AEAD cryptography (optional);
+- Memory encryption using AEAD cryptography on ring, aws-lc-rs or RustCrypto (optional);
 - Automatic refresh secrets from the sources support (optional);
 - Extensible and strongly typed API to be able to implement any kind of sources;
-- Memory encryption using Google/AWS/Azure KMS or HashiCorp Vault Transit [envelope encryption](https://cloud.google.com/kms/docs/envelope-encryption) (optional);
+- Memory encryption using Google/AWS/Azure KMS, HashiCorp Vault Transit or a local key encryption key with [envelope encryption](https://cloud.google.com/kms/docs/envelope-encryption) (optional);
 - Multi-sources support;
 - Snapshots for performance-critical secrets;
 
@@ -40,7 +40,7 @@ Library provides the support for the secrets coming to your application from the
 Cargo.toml:
 ```toml
 [dependencies]
-secret-vault = { version = "3.0", features=["..."] }
+secret-vault = { version = "3.1", features=["..."] }
 ```
 See the security consideration below about versioning.
 
@@ -53,7 +53,6 @@ See the security consideration below about versioning.
 - `gcp-secretmanager-base` - Google Secret Manager support with the crypto provider your application installs
 - `gcp-kms` - Google Cloud KMS envelope encryption with the aws-lc-rs crypto provider of gcloud-sdk
 - `gcp-kms-base` - Google Cloud KMS envelope encryption with the crypto provider your application installs
-- `gcp-kms-tls-roots` and `gcp-kms-webpki` - the 2.x names of `gcp-kms` with `gcp-tls-roots` and with `gcp-tls-webpki`, still work
 - One of the following TLS root stores is required when using GCP features:
   - `gcp-tls-roots` - System TLS roots (default)
   - `gcp-tls-webpki` - WebPKI roots
@@ -86,8 +85,12 @@ See the security consideration below about versioning.
   - `hashicorp-vault-transit-tls-aws-lc-rs` or `hashicorp-vault-transit-tls-ring`.
 
 #### Encryption Features
-- `ring-aead-encryption` - Encryption support using Ring AEAD
-- `kms` - Base KMS support for envelope encryption
+The encryption runs on a crypto library a feature compiles in, and an `AeadBackend` value selects it at runtime, for example `AeadBackend::AwsLc`.
+A build may enable any number of them, and every KMS encryption feature above needs one:
+- `aws-lc` - [aws-lc-rs](https://crates.io/crates/aws-lc-rs), the crypto library the default TLS features already compile in
+- `aws-lc-fips` - aws-lc-rs on the AWS-LC FIPS module, which needs CMake and Go to build
+- `ring` - [ring](https://crates.io/crates/ring), with ChaCha20-Poly1305, AES-128-GCM and AES-256-GCM only
+- `rustcrypto` - the pure-Rust [RustCrypto](https://github.com/RustCrypto/AEADs) crates, with no C compiler needed
 
 #### Utility Features
 - `serde` - Serde serialization support
@@ -97,57 +100,58 @@ See the security consideration below about versioning.
 
 For GCP Secret Manager with the default TLS:
 ```toml
-secret-vault = { version = "3.0", features = ["gcp-secretmanager", "gcp"] }
+secret-vault = { version = "3.1", features = ["gcp-secretmanager", "gcp"] }
 ```
 
 For GCP Secret Manager with KMS encryption:
 ```toml
-secret-vault = { version = "3.0", features = ["gcp-secretmanager", "gcp-kms", "gcp"] }
+secret-vault = { version = "3.1", features = ["gcp-secretmanager", "gcp-kms", "gcp", "aws-lc"] }
 ```
 
 For AWS Secrets Manager with KMS encryption:
 ```toml
-secret-vault = { version = "3.0", features = ["aws-secretmanager", "aws-kms-encryption"] }
+secret-vault = { version = "3.1", features = ["aws-secretmanager", "aws-kms-encryption", "aws-lc"] }
 ```
 
 For Azure Key Vault:
 ```toml
-secret-vault = { version = "3.0", features = ["azure-keyvault"] }
+secret-vault = { version = "3.1", features = ["azure-keyvault"] }
 ```
 
 For Azure Key Vault with native TLS:
 ```toml
-secret-vault = { version = "3.0", features = ["azure-keyvault-native-tls"] }
+secret-vault = { version = "3.1", features = ["azure-keyvault-native-tls"] }
 ```
 
 For Azure Key Vault with Azure KMS encryption:
 ```toml
-secret-vault = { version = "3.0", features = ["azure-keyvault", "azure-kms"] }
+secret-vault = { version = "3.1", features = ["azure-keyvault", "azure-kms", "aws-lc"] }
 ```
 
 For HashiCorp Vault with AEAD encryption:
 ```toml
-secret-vault = { version = "3.0", features = ["hashicorp-vault", "ring-aead-encryption"] }
+secret-vault = { version = "3.1", features = ["hashicorp-vault", "aws-lc"] }
 ```
 
 For HashiCorp Vault with WebPKI roots and the ring crypto provider:
 ```toml
-secret-vault = { version = "3.0", features = ["hashicorp-vault-tls-webpki", "hashicorp-vault-tls-ring"] }
+secret-vault = { version = "3.1", features = ["hashicorp-vault-tls-webpki", "hashicorp-vault-tls-ring"] }
 ```
 
 For HashiCorp Vault with Transit encryption:
 ```toml
-secret-vault = { version = "3.0", features = ["hashicorp-vault", "hashicorp-vault-transit"] }
+secret-vault = { version = "3.1", features = ["hashicorp-vault", "hashicorp-vault-transit", "aws-lc"] }
 ```
 
 For GCP Secret Manager with WebPKI and serde support:
 ```toml
-secret-vault = { version = "3.0", features = ["gcp-secretmanager", "gcp-tls-webpki", "serde"] }
+secret-vault = { version = "3.1", features = ["gcp-secretmanager", "gcp-tls-webpki", "serde"] }
 ```
 
 Note: Each group of TLS features above needs one feature when its source or encryption is used. The features of a group are mutually exclusive and cannot be enabled simultaneously.
 `gcp`, `azure-keyvault`, `azure-kms`, `hashicorp-vault` and `hashicorp-vault-transit` already select the defaults, so use the TLS features instead of them, not together with them.
-The Azure KMS and Transit TLS features turn on the kms-aead features of the same variant, so a missing or a second variant fails to compile with the kms-aead name, for example `vault-transit-kms-encryption-tls-roots` for `hashicorp-vault-transit-tls-roots`.
+The Azure KMS and Transit TLS features turn on the kms-aead features of the same variant, so a missing or a second variant fails to compile with the kms-aead name, for example `hashicorp-vault-transit-kms-encryption-tls-roots` for `hashicorp-vault-transit-tls-roots`.
+A KMS encryption feature without a backend feature fails to compile with `kms-aead needs a crypto backend for its KMS providers`.
 
 ## Example for GCP with AEAD encryption:
 
@@ -164,7 +168,7 @@ let secret2 = SecretVaultRef::new("test-secret2".into())
 let vault = SecretVaultBuilder::with_source(
     gcp::GcpSecretManagerSource::new(&config_env_var("PROJECT_ID")?).await?,
 )
-    .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
+    .with_encryption(aead_encryption::SecretVaultAeadEncryption::new(AeadBackend::AwsLc)?)
     .with_secret_refs(vec![&secret1, &secret2])
     .build()?;
 
@@ -186,7 +190,7 @@ vault_viewer.get_secret_by_ref(&secret2).await?;
 
 To run this example use with environment variables:
 ```
-# PROJECT_ID=<your-google-project-id> cargo run --example gcloud_secret_manager_vault
+# PROJECT_ID=<your-google-project-id> cargo run --example gcp_secret_manager_vault --features gcp-secretmanager,gcp,aws-lc
 ```
 
 The HTTP client of gcloud-sdk uses native-tls (OpenSSL on Linux) with `gcp-tls-roots`, and rustls with aws-lc-rs with `gcp-tls-webpki`.
@@ -211,7 +215,7 @@ let credential = azure_identity::ManagedIdentityCredential::new(None)?;
 let vault = SecretVaultBuilder::with_source(
     azure::AzureKeyVaultSource::new("https://my-vault.vault.azure.net", credential)?,
 )
-    .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
+    .with_encryption(aead_encryption::SecretVaultAeadEncryption::new(AeadBackend::AwsLc)?)
     .with_secret_refs(vec![&SECRET_REF1, &SECRET_REF2])
     .build()?;
 ```
@@ -237,7 +241,7 @@ Both backends verify certificates, but a pair of GCP and Azure features can sele
 
 To run the example:
 ```
-# VAULT_URL=https://<your-vault>.vault.azure.net cargo run --example azure_key_vault --features azure-keyvault,ring-aead-encryption
+# VAULT_URL=https://<your-vault>.vault.azure.net cargo run --example azure_key_vault --features azure-keyvault,aws-lc
 ```
 
 The `azure-kms` feature encrypts the secrets in memory with a Key Vault or Managed HSM key, using envelope encryption: every value gets its own data encryption key, wrapped by the key.
@@ -246,8 +250,8 @@ The `azure-kms` feature encrypts the secrets in memory with a Key Vault or Manag
 let encryption = azure::AzureKmsEnvelopeEncryption::new(
     &azure::AzureKmsKeyRef::new("https://my-vault.vault.azure.net".into(), "secret-vault-key".into()),
     credential,
-)
-.await?;
+    AeadBackend::AwsLc,
+)?;
 ```
 
 The data encryption keys are wrapped with RSA-OAEP-256 by default, use `with_options` and `AzureKmsProviderOptions` to change the algorithm, for example to `A256Kw` for a Managed HSM AES key.
@@ -256,7 +260,7 @@ The source and the encryption build their clients on one reqwest, which has one 
 
 To run the example:
 ```
-# VAULT_URL=https://<your-vault>.vault.azure.net KMS_KEY_NAME=<your-key> cargo run --example kms_azure_key_vault --features azure-keyvault,azure-kms
+# VAULT_URL=https://<your-vault>.vault.azure.net KMS_KEY_NAME=<your-key> cargo run --example kms_azure_key_vault --features azure-keyvault,azure-kms,aws-lc
 ```
 
 All examples available at [secret-vault/examples](secret-vault/examples) directory.
@@ -281,7 +285,7 @@ let vault = SecretVaultBuilder::with_source(hashicorp::HashiCorpVaultSource::wit
         .with_mount("secret".into())
         .with_read_metadata(true),
 )?)
-    .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
+    .with_encryption(aead_encryption::SecretVaultAeadEncryption::new(AeadBackend::AwsLc)?)
     .with_secret_refs(vec![&DATABASE_SECRET_REF])
     .build()?;
 
@@ -319,7 +323,7 @@ Only token authentication is supported. For other authentication methods (AppRol
 
 To run the example:
 ```
-# VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=<your-token> cargo run --example hashicorp_vault --features hashicorp-vault,ring-aead-encryption
+# VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=<your-token> cargo run --example hashicorp_vault --features hashicorp-vault,aws-lc
 ```
 
 The integration tests need a Vault server and are ignored by default. To run them with a dev server in Docker:
@@ -329,13 +333,13 @@ VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=dev-root cargo test -p secret-vault
 ```
 
 The `hashicorp-vault-transit` feature encrypts the secrets in memory with a key of the Transit secrets engine, using envelope encryption: every value gets its own data encryption key, wrapped by the Transit key.
-It reads `VAULT_ADDR`, `VAULT_TOKEN`, `VAULT_NAMESPACE` and `VAULT_CACERT` the same way as the source, and `with_options` with `VaultTransitProviderOptions` configures it in code.
+It reads `VAULT_ADDR`, `VAULT_TOKEN`, `VAULT_NAMESPACE` and `VAULT_CACERT` the same way as the source, and `with_options` with `HcVaultTransitProviderOptions` configures it in code.
 
 ```rust
-let encryption = hashicorp::VaultTransitEnvelopeEncryption::new(
-    &hashicorp::VaultTransitKeyRef::new("secret-vault".into()),
-)
-.await?;
+let encryption = hashicorp::HcVaultTransitEnvelopeEncryption::new(
+    &hashicorp::HcVaultTransitKeyRef::new("secret-vault".into()),
+    AeadBackend::AwsLc,
+)?;
 ```
 
 The mount path is `transit` by default and can be changed with `with_mount`.
@@ -343,8 +347,27 @@ The token needs the `update` capability on `transit/encrypt/<key>` and `transit/
 
 To run the example:
 ```
-# VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=<your-token> VAULT_TRANSIT_KEY=<your-key> cargo run --example kms_hashicorp_vault --features hashicorp-vault,hashicorp-vault-transit
+# VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=<your-token> VAULT_TRANSIT_KEY=<your-key> cargo run --example kms_hashicorp_vault --features hashicorp-vault,hashicorp-vault-transit,aws-lc
 ```
+
+## Local key encryption key
+
+`kms_encryption::LocalKmsEnvelopeEncryption` encrypts the secrets in memory with envelope encryption too, with the data encryption keys wrapped by a key encryption key (KEK) the process holds.
+It is meant for development, tests and single-host installs without a cloud KMS, and needs only a backend feature.
+
+```rust
+let encryption = kms_encryption::LocalKmsEnvelopeEncryption::new(
+    kms_encryption::LocalKekId::try_from("my-app".to_string())?,
+    vec![kms_encryption::LocalKek::from_file(
+        kms_encryption::LocalKekVersion::from(NonZeroU32::MIN),
+        Path::new("/run/credentials/my-app.service/kek"),
+    )?],
+    AeadBackend::AwsLc,
+)?;
+```
+
+The file holds the standard base64 of 32 random bytes; `LocalKek::from_env` and `LocalKek::from_secret` read the KEK from an environment variable or a value the application holds.
+Be aware that protecting the KEK is the job of the operator, and that the limits of `LocalKmsProvider` in kms-aead apply: every value the vault stores costs one wrap under the KEK on each refresh.
 
 ## Making `SecretVaultRef` available globally
 It is convenient to make those references globally available inside your apps since
@@ -501,8 +524,8 @@ Then you have two options for configuration/version management:
 - Updating automatically secrets and their versions using `SecretVaultAutoRefresher`
   (or your own implementation) without redeploys.
 
-## Migrating from 2.x
-The breaking changes in 3.0 and their replacements are listed in [MIGRATION.md](MIGRATION.md).
+## Migrating from 3.0 or 2.x
+The breaking changes in 3.1 and 3.0 and their replacements are listed in [MIGRATION.md](MIGRATION.md).
 
 ## Licence
 Apache Software License (ASL)
