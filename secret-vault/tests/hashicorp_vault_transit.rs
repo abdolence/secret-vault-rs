@@ -8,11 +8,11 @@
 //! export VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=dev-root VAULT_TRANSIT_KEY=secret-vault
 //! curl -sf -H "X-Vault-Token: $VAULT_TOKEN" -d '{"type":"transit"}' "$VAULT_ADDR/v1/sys/mounts/transit"
 //! curl -sf -H "X-Vault-Token: $VAULT_TOKEN" -X POST "$VAULT_ADDR/v1/transit/keys/$VAULT_TRANSIT_KEY"
-//! cargo test -p secret-vault --features hashicorp-vault-transit --test hashicorp_vault_transit -- --ignored
+//! cargo test -p secret-vault --features hashicorp-vault-transit,aws-lc --test hashicorp_vault_transit -- --ignored
 //! ```
 
 use rvstruct::ValueStruct;
-use secret_vault::hashicorp::{VaultTransitEnvelopeEncryption, VaultTransitKeyRef};
+use secret_vault::hashicorp::{HcVaultTransitEnvelopeEncryption, HcVaultTransitKeyRef};
 use secret_vault::*;
 use secret_vault_value::SecretValue;
 
@@ -21,9 +21,11 @@ use secret_vault_value::SecretValue;
 async fn value_round_trips_through_vault_transit_envelope_encryption() {
     let key_name = std::env::var("VAULT_TRANSIT_KEY")
         .expect("VAULT_TRANSIT_KEY must name a Transit key to run the ignored Vault tests");
-    let encryption = VaultTransitEnvelopeEncryption::new(&VaultTransitKeyRef::new(key_name))
-        .await
-        .unwrap();
+    let encryption = HcVaultTransitEnvelopeEncryption::new(
+        &HcVaultTransitKeyRef::new(key_name),
+        AeadBackend::AwsLc,
+    )
+    .unwrap();
     let secret_vault_key = SecretVaultKey::new(SecretName::from_static("my-app/database"));
     let secret_value = SecretValue::from("test-secret");
 

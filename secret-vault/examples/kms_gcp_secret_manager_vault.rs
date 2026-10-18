@@ -25,12 +25,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         gcp::GcpSecretManagerSource::new(&google_project_id).await?,
     )
     .with_encryption(
-        gcp::GcpKmsEnvelopeEncryption::new(&gcp::GcpKmsKeyRef::new(
-            google_project_id,
-            google_project_location,
-            google_kms_key_ring,
-            google_kms_key,
-        ))
+        gcp::GcpKmsEnvelopeEncryption::new(
+            &gcp::GcpKmsKeyRef::new(
+                google_project_id,
+                google_project_location,
+                google_kms_key_ring,
+                google_kms_key,
+            ),
+            AeadBackend::AwsLc,
+        )
         .await?,
     )
     .with_secret_refs(vec![&SECRET_REF])

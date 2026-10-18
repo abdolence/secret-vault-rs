@@ -32,7 +32,7 @@
 //!    let vault = SecretVaultBuilder::with_source(
 //!        aws::AwsSecretManagerSource::new(&config_env_var("ACCOUNT_ID")?).await?,
 //!    )
-//!    .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
+//!    .with_encryption(aead_encryption::SecretVaultAeadEncryption::new(AeadBackend::AwsLc)?)
 //!    .with_secret_refs(vec![&secret_ref1, &secret_ref2])
 //!    .build()?;
 //!
@@ -169,14 +169,19 @@ mod vault_store;
 mod common_types;
 pub use common_types::*;
 
-#[cfg(feature = "ring-aead-encryption")]
-pub mod ring_encryption;
+#[cfg(any(
+    feature = "ring",
+    feature = "aws-lc",
+    feature = "aws-lc-fips",
+    feature = "rustcrypto"
+))]
+pub mod aead_encryption;
 
 #[cfg(any(
-    feature = "gcp-kms-base",
-    feature = "aws-kms-encryption",
-    feature = "azure-kms-base",
-    feature = "hashicorp-vault-transit-base"
+    feature = "ring",
+    feature = "aws-lc",
+    feature = "aws-lc-fips",
+    feature = "rustcrypto"
 ))]
 pub mod kms_encryption;
 

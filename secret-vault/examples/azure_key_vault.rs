@@ -34,7 +34,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             .with_read_metadata(true),
         credential,
     )?)
-    .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
+    .with_encryption(aead_encryption::SecretVaultAeadEncryption::new(
+        AeadBackend::AwsLc,
+    )?)
     .with_secret_refs(vec![&SECRET_REF1, &SECRET_REF2])
     .build()?;
 

@@ -19,12 +19,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Building the vault. The source and the encryption both read VAULT_ADDR, VAULT_TOKEN,
     // VAULT_NAMESPACE and VAULT_CACERT.
     let vault = SecretVaultBuilder::with_source(hashicorp::HashiCorpVaultSource::new()?)
-        .with_encryption(
-            hashicorp::VaultTransitEnvelopeEncryption::new(&hashicorp::VaultTransitKeyRef::new(
-                config_env_var("VAULT_TRANSIT_KEY")?,
-            ))
-            .await?,
-        )
+        .with_encryption(hashicorp::HcVaultTransitEnvelopeEncryption::new(
+            &hashicorp::HcVaultTransitKeyRef::new(config_env_var("VAULT_TRANSIT_KEY")?),
+            AeadBackend::AwsLc,
+        )?)
         .with_secret_refs(vec![&SECRET_REF])
         .build()?;
 

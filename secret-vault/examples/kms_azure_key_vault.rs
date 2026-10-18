@@ -27,13 +27,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         &vault_url,
         credential.clone(),
     )?)
-    .with_encryption(
-        azure::AzureKmsEnvelopeEncryption::new(
-            &azure::AzureKmsKeyRef::new(vault_url, kms_key_name),
-            credential,
-        )
-        .await?,
-    )
+    .with_encryption(azure::AzureKmsEnvelopeEncryption::new(
+        &azure::AzureKmsKeyRef::new(vault_url, kms_key_name),
+        credential,
+        AeadBackend::AwsLc,
+    )?)
     .with_secret_refs(vec![&SECRET_REF])
     .build()?;
 

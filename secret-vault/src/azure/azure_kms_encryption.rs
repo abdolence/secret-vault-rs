@@ -12,31 +12,40 @@ pub type AzureKmsEnvelopeEncryption =
 
 impl AzureKmsEnvelopeEncryption {
     /// Wraps the data encryption keys with the key at `kms_key_ref`, using any Azure credential,
-    /// for example one from `azure_identity`. No request is made until the first value is
-    /// encrypted.
-    pub async fn new(
+    /// for example one from `azure_identity`, and seals the values on `backend`. No request is
+    /// made until the first value is encrypted.
+    ///
+    /// # Errors
+    ///
+    /// As [`Self::with_options`].
+    pub fn new(
         kms_key_ref: &AzureKmsKeyRef,
         credential: Arc<dyn TokenCredential>,
+        backend: AeadBackend,
     ) -> SecretVaultResult<Self> {
-        Self::with_provider(kms_aead::providers::AzureKmsProvider::new(
-            kms_key_ref,
-            credential,
-        )?)
-        .await
+        Self::with_provider(
+            kms_aead::providers::AzureKmsProvider::new(kms_key_ref, credential)?,
+            backend,
+        )
     }
 
     /// Same as [`Self::new`], with the wrap algorithm and the Azure SDK client settings taken
     /// from `options`.
-    pub async fn with_options(
+    ///
+    /// # Errors
+    ///
+    /// `AZURE_KEY_NAME` when the key name holds characters Key Vault does not allow in it,
+    /// `AZURE_WRAP_ALGORITHM` when the algorithm is `Rsa1_5` or unknown, and `AZURE_VAULT_URL`
+    /// when the vault URL is not an HTTP(S) URL.
+    pub fn with_options(
         kms_key_ref: &AzureKmsKeyRef,
         options: AzureKmsProviderOptions,
         credential: Arc<dyn TokenCredential>,
+        backend: AeadBackend,
     ) -> SecretVaultResult<Self> {
-        Self::with_provider(kms_aead::providers::AzureKmsProvider::with_options(
-            kms_key_ref,
-            options,
-            credential,
-        )?)
-        .await
+        Self::with_provider(
+            kms_aead::providers::AzureKmsProvider::with_options(kms_key_ref, options, credential)?,
+            backend,
+        )
     }
 }

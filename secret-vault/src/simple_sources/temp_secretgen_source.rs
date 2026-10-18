@@ -1,7 +1,6 @@
 use crate::errors::*;
 use crate::*;
 use async_trait::*;
-use ring::rand::{SecureRandom, SystemRandom};
 use rsb_derive::*;
 use secret_vault_value::SecretValue;
 use std::collections::HashMap;
@@ -16,6 +15,33 @@ pub struct TempSecretOptions {
 
     #[default = "true"]
     pub printable: bool,
+}
+
+impl TempSecretOptions {
+    fn generate_value(&self) -> SecretVaultResult<SecretValue> {
+        let effective_key_len = if self.printable {
+            self.key_len / 2
+        } else {
+            self.key_len
+        };
+
+        let mut random = SecretValue::new(vec![0; effective_key_len]);
+        getrandom::fill(random.ref_sensitive_value_mut()).map_err(|e| {
+            SecretVaultError::SecretsSourceError(
+                SecretsSourceError::new(
+                    SecretVaultErrorPublicGenericDetails::new("RANDOM_GENERATOR".into()),
+                    format!("Unable to generate a random secret: {e}"),
+                )
+                .with_root_cause(Box::new(e)),
+            )
+        })?;
+
+        if self.printable {
+            Ok(SecretValue::from(hex::encode(random.ref_sensitive_value())))
+        } else {
+            Ok(random)
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -43,14 +69,11 @@ impl TempSecretGenSourceOptions {
 #[derive(Debug)]
 pub struct TempSecretGenSource {
     options: TempSecretGenSourceOptions,
-    secure_rand: SystemRandom,
     generated_secrets: HashMap<SecretVaultKey, SecretValue>,
 }
 
 impl TempSecretGenSource {
     pub fn with_options(options: TempSecretGenSourceOptions) -> SecretVaultResult<Self> {
-        let secure_rand = SystemRandom::new();
-
         let secrets_to_pregen: Vec<(&SecretVaultKey, &TempSecretOptions)> = options
             .registered_secrets
             .iter()
@@ -61,44 +84,13 @@ impl TempSecretGenSource {
 
         for (key, options) in secrets_to_pregen {
             debug!("Pre-generating a new secret value for {:?}", key);
-            generated_secrets.insert(
-                key.clone(),
-                generate_secret_value(&secure_rand, options.key_len, options.printable)?,
-            );
+            generated_secrets.insert(key.clone(), options.generate_value()?);
         }
 
         Ok(Self {
             options,
-            secure_rand,
             generated_secrets,
         })
-    }
-}
-
-pub fn generate_secret_value(
-    secure_rand: &ring::rand::SystemRandom,
-    key_len: usize,
-    printable: bool,
-) -> SecretVaultResult<SecretValue> {
-    let effective_key_len = if printable { key_len / 2 } else { key_len };
-
-    let mut rand_key_data: Vec<u8> = vec![0; effective_key_len];
-    secure_rand.fill(&mut rand_key_data).map_err(|e| {
-        SecretVaultError::SecretsSourceError(
-            SecretsSourceError::new(
-                SecretVaultErrorPublicGenericDetails::new(format!(
-                    "Unable to initialise random key: {e:?}"
-                )),
-                format!("Unable to initialise random key: {e}"),
-            )
-            .with_root_cause(Box::new(e)),
-        )
-    })?;
-
-    if printable {
-        Ok(SecretValue::from(hex::encode(rand_key_data)))
-    } else {
-        Ok(SecretValue::from(rand_key_data))
     }
 }
 
@@ -121,11 +113,7 @@ impl SecretsSource for TempSecretGenSource {
                         Some(secret_value) => secret_value.clone(),
                         None => {
                             debug!("Generating a new secret value for {:?}", secret_ref.key);
-                            generate_secret_value(
-                                &self.secure_rand,
-                                secret_options.key_len,
-                                secret_options.printable,
-                            )?
+                            secret_options.generate_value()?
                         }
                     };
 

@@ -281,13 +281,8 @@ impl SecretVaultKey {
 
     /// The additional authenticated data for a value encrypted under this key: the
     /// bytes of the secret name, the same whichever way the name was built.
-    pub fn to_aad(&self) -> Cow<'static, [u8]> {
-        // kms-aead takes the AAD as an owned `'static` type, so a `&[u8]` borrowed
-        // from `self` will not do; a name from a `static` still costs no allocation.
-        match &self.secret_name.0 {
-            Cow::Borrowed(name) => Cow::Borrowed(name.as_bytes()),
-            Cow::Owned(name) => Cow::Owned(name.as_bytes().to_vec()),
-        }
+    pub fn to_aad(&self) -> &[u8] {
+        self.secret_name.value().as_bytes()
     }
 }
 

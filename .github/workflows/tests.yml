@@ -10,6 +10,10 @@ jobs:
   # Azure. gcp-tls-webpki brings aws-lc-rs through reqwest/rustls. The ring jobs use
   # gcp-secretmanager-base and gcp-kms-base, so GCP and the webpki Azure client run on the
   # provider the application installs, which is ring in the tests.
+  #
+  # Each job encrypts on one AEAD backend: roots-aws-lc-rs on aws-lc, webpki-aws-lc-rs on
+  # rustcrypto, and the ring jobs on ring. `absent` lists the crates a job's normal dependency tree
+  # must not contain: a job that names no ring feature builds without ring.
   tls-variant:
     name: ${{ matrix.variant }}
     runs-on: ubuntu-latest
@@ -18,12 +22,18 @@ jobs:
       matrix:
         include:
           - variant: roots-aws-lc-rs
+            backend: aws-lc
+            absent: ring
             tls: gcp-secretmanager,gcp-kms,gcp-tls-roots,azure-keyvault-native-tls,azure-kms-native-tls,hashicorp-vault-tls-roots,hashicorp-vault-tls-aws-lc-rs,hashicorp-vault-transit-tls-roots,hashicorp-vault-transit-tls-aws-lc-rs
           - variant: webpki-aws-lc-rs
+            backend: rustcrypto
+            absent: ring
             tls: gcp-secretmanager,gcp-kms,gcp-tls-webpki,azure-keyvault-tls-aws-lc-rs,azure-kms-tls-aws-lc-rs,hashicorp-vault-tls-webpki,hashicorp-vault-tls-aws-lc-rs,hashicorp-vault-transit-tls-webpki,hashicorp-vault-transit-tls-aws-lc-rs
           - variant: roots-ring
+            backend: ring
             tls: gcp-secretmanager-base,gcp-kms-base,gcp-tls-roots,azure-keyvault-native-tls,azure-kms-native-tls,hashicorp-vault-tls-roots,hashicorp-vault-tls-ring,hashicorp-vault-transit-tls-roots,hashicorp-vault-transit-tls-ring
           - variant: webpki-ring
+            backend: ring
             tls: gcp-secretmanager-base,gcp-kms-base,gcp-tls-webpki,azure-keyvault-tls-no-provider,azure-kms-tls-no-provider,hashicorp-vault-tls-webpki,hashicorp-vault-tls-ring,hashicorp-vault-transit-tls-webpki,hashicorp-vault-transit-tls-ring
     steps:
       - uses: actions/checkout@v7
@@ -33,10 +43,12 @@ jobs:
           toolchain: stable
           components: rustfmt, clippy
       - name: Run checks
+        env:
+          ABSENT: ${{ matrix.absent }}
         run: |
           cargo fmt -- --check
 
-          FEATURES="serde,ring-aead-encryption,kms,aws,aws-secretmanager,aws-kms-encryption,ahash,${{ matrix.tls }}"
+          FEATURES="serde,aws,aws-secretmanager,aws-kms-encryption,ahash,${{ matrix.backend }},${{ matrix.tls }}"
 
           # The Azure TLS features select the TLS backend of the direct reqwest of secret-vault and
           # kms-aead, which only reaches azure_core while all resolve to the same reqwest.
@@ -44,6 +56,12 @@ jobs:
             echo "azure_core and secret-vault resolve to different reqwest versions"
             exit 1
           fi
+          for crate in $ABSENT; do
+            if cargo tree --workspace -e normal --features "$FEATURES" --prefix none -f '{p}' | grep -q "^$crate v"; then
+              echo "$crate is in the dependency tree of $FEATURES"
+              exit 1
+            fi
+          done
           cargo clippy --workspace --all-targets --features "$FEATURES" -- -Dwarnings
           cargo test --workspace --features "$FEATURES"
   vault-transit-live:
@@ -75,4 +93,4 @@ jobs:
           done
           curl -sf -H "X-Vault-Token: $VAULT_TOKEN" -d '{"type":"transit"}' "$VAULT_ADDR/v1/sys/mounts/transit"
           curl -sf -H "X-Vault-Token: $VAULT_TOKEN" -X POST "$VAULT_ADDR/v1/transit/keys/$VAULT_TRANSIT_KEY"
-      - run: cargo test -p secret-vault --features hashicorp-vault-transit --test hashicorp_vault_transit -- --ignored
+      - run: cargo test -p secret-vault --features hashicorp-vault-transit,aws-lc --test hashicorp_vault_transit -- --ignored

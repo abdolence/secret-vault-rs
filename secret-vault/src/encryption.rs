@@ -57,33 +57,42 @@ impl SecretVaultEncryption for SecretVaultNoEncryption {
     }
 }
 
-#[cfg(any(feature = "kms", feature = "ring-aead-encryption"))]
-impl From<kms_aead::CipherText> for EncryptedSecretValue {
-    fn from(kms_aead_value: kms_aead::CipherText) -> Self {
-        EncryptedSecretValue(kms_aead_value.value().to_owned())
-    }
-}
+/// The crypto library that seals the stored values, selected at runtime among the ones the `ring`,
+/// `aws-lc`, `aws-lc-fips` and `rustcrypto` features compile in.
+#[cfg(any(
+    feature = "ring",
+    feature = "aws-lc",
+    feature = "aws-lc-fips",
+    feature = "rustcrypto"
+))]
+pub type AeadBackend = kms_aead::AeadBackend;
 
-#[cfg(any(feature = "kms", feature = "ring-aead-encryption"))]
-impl From<kms_aead::CipherTextWithEncryptedKey> for EncryptedSecretValue {
-    fn from(kms_aead_value: kms_aead::CipherTextWithEncryptedKey) -> Self {
-        EncryptedSecretValue(kms_aead_value.value().to_owned())
-    }
-}
+/// The AEAD algorithm of [`aead_encryption::SecretVaultAeadEncryption`](crate::aead_encryption::SecretVaultAeadEncryption).
+#[cfg(any(
+    feature = "ring",
+    feature = "aws-lc",
+    feature = "aws-lc-fips",
+    feature = "rustcrypto"
+))]
+pub type AeadAlgorithm = kms_aead::AeadAlgorithm;
 
-#[cfg(any(feature = "kms", feature = "ring-aead-encryption"))]
-impl From<EncryptedSecretValue> for kms_aead::CipherText {
-    fn from(encrypted_value: EncryptedSecretValue) -> Self {
-        kms_aead::CipherText(encrypted_value.value().to_owned())
-    }
-}
-
-#[cfg(any(feature = "kms", feature = "ring-aead-encryption"))]
-impl From<EncryptedSecretValue> for kms_aead::CipherTextWithEncryptedKey {
-    fn from(encrypted_value: EncryptedSecretValue) -> Self {
-        kms_aead::CipherTextWithEncryptedKey(encrypted_value.value().to_owned())
-    }
-}
+/// The backend the encryption tests run on: one of the backends the build has.
+#[cfg(all(test, feature = "ring"))]
+pub(crate) const TEST_BACKEND: AeadBackend = AeadBackend::Ring;
+#[cfg(all(
+    test,
+    not(feature = "ring"),
+    any(feature = "aws-lc", feature = "aws-lc-fips")
+))]
+pub(crate) const TEST_BACKEND: AeadBackend = AeadBackend::AwsLc;
+#[cfg(all(
+    test,
+    not(feature = "ring"),
+    not(feature = "aws-lc"),
+    not(feature = "aws-lc-fips"),
+    feature = "rustcrypto"
+))]
+pub(crate) const TEST_BACKEND: AeadBackend = AeadBackend::RustCrypto;
 
 #[cfg(test)]
 mod tests {

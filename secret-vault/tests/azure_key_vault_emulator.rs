@@ -3,7 +3,7 @@
 //! ```sh
 //! docker run --rm -d --name lowkey-vault -p 8443:8443 docker.io/nagyesta/lowkey-vault:7.3.112
 //! AZURE_KEY_VAULT_EMULATOR_URL=https://localhost:8443 \
-//!   cargo test -p secret-vault --features azure-keyvault,azure-kms --test azure_key_vault_emulator -- --ignored
+//!   cargo test -p secret-vault --features azure-keyvault,azure-kms,aws-lc --test azure_key_vault_emulator -- --ignored
 //! ```
 
 use azure_core::credentials::{AccessToken, TokenCredential, TokenRequestOptions};
@@ -216,7 +216,7 @@ async fn missing_secret_fails_only_when_required() {
     ));
 }
 
-#[cfg(feature = "azure-kms-base")]
+#[cfg(all(feature = "azure-kms-base", feature = "aws-lc"))]
 mod kms {
     use super::*;
     use azure_security_keyvault_keys::models::{CreateKeyParameters, KeyOperation, KeyType};
@@ -281,8 +281,8 @@ mod kms {
                 .with_key_version(key_version),
             AzureKmsProviderOptions::new().with_client_options(key_client_options()),
             Arc::new(EmulatorCredential),
+            AeadBackend::AwsLc,
         )
-        .await
         .unwrap();
         let secret_vault_key = SecretVaultKey::new(SecretName::from_static("db-password"));
         let secret_value = SecretValue::from("test-secret");

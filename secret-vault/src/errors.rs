@@ -369,11 +369,16 @@ impl From<azure_core::Error> for SecretVaultError {
     }
 }
 
-#[cfg(any(feature = "kms", feature = "ring-aead-encryption"))]
+#[cfg(any(
+    feature = "ring",
+    feature = "aws-lc",
+    feature = "aws-lc-fips",
+    feature = "rustcrypto"
+))]
 impl From<kms_aead::errors::KmsAeadError> for SecretVaultError {
     fn from(e: kms_aead::errors::KmsAeadError) -> Self {
         SecretVaultError::EncryptionError(SecretVaultEncryptionError::new(
-            SecretVaultErrorPublicGenericDetails::new(format!("{e:?}")),
+            SecretVaultErrorPublicGenericDetails::new(e.code().to_string()),
             format!("KMS error: {e}"),
         ))
     }
