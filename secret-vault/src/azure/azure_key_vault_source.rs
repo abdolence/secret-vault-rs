@@ -19,11 +19,17 @@ pub struct AzureKeyVaultSourceOptions {
 
     /// Copies tags into labels and the expiry, creation and update times into the secret
     /// metadata. The version is filled in either way.
-    #[default = "false"]
+    /// [`DEFAULT_READ_METADATA`](Self::DEFAULT_READ_METADATA) by default.
+    #[default = "Self::DEFAULT_READ_METADATA"]
     pub read_metadata: bool,
 
     /// Client settings passed to the Azure SDK, such as a custom HTTP transport or retry policy.
     pub client_options: Option<SecretClientOptions>,
+}
+
+impl AzureKeyVaultSourceOptions {
+    /// The default [`read_metadata`](Self::read_metadata): `false`, only the version is read.
+    pub const DEFAULT_READ_METADATA: bool = false;
 }
 
 /// Reads secrets from Azure Key Vault.

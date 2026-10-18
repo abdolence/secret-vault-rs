@@ -95,23 +95,35 @@ pub struct HashiCorpVaultSourceOptions {
     /// certificate from any public CA in the root store is trusted as well.
     pub ca_certificate: Option<PathBuf>,
 
-    /// Mount path of the KV secrets engine v2 the secrets are read from.
-    #[default = "\"secret\".into()"]
+    /// Mount path of the KV secrets engine v2 the secrets are read from:
+    /// [`DEFAULT_MOUNT`](Self::DEFAULT_MOUNT) by default.
+    #[default = "Self::DEFAULT_MOUNT.into()"]
     pub mount: String,
 
     /// Read the KV v2 custom metadata into the secret labels, and the creation time of the
-    /// version into `created_at`.
-    #[default = "false"]
+    /// version into `created_at`: [`DEFAULT_READ_METADATA`](Self::DEFAULT_READ_METADATA) by
+    /// default.
+    #[default = "Self::DEFAULT_READ_METADATA"]
     pub read_metadata: bool,
 
     /// Time limit for one read, from opening the connection to receiving the last byte of the
     /// response. It keeps a server that accepts the connection and never answers from stalling
-    /// `refresh` and the auto-refresher.
-    #[default = "Duration::from_secs(60)"]
+    /// `refresh` and the auto-refresher. [`DEFAULT_TIMEOUT`](Self::DEFAULT_TIMEOUT) by default.
+    #[default = "Self::DEFAULT_TIMEOUT"]
     pub timeout: Duration,
 }
 
 impl HashiCorpVaultSourceOptions {
+    /// The default [`mount`](Self::mount): `secret`, the path Vault mounts the KV v2 engine at
+    /// in dev mode.
+    pub const DEFAULT_MOUNT: &'static str = "secret";
+
+    /// The default [`read_metadata`](Self::read_metadata): `false`.
+    pub const DEFAULT_READ_METADATA: bool = false;
+
+    /// The default [`timeout`](Self::timeout): 60 seconds.
+    pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(60);
+
     /// Options from the variables the Vault CLI reads: `VAULT_ADDR` (required), `VAULT_TOKEN`,
     /// `VAULT_NAMESPACE`, `VAULT_CACERT` and `VAULT_CLIENT_TIMEOUT` (whole seconds such as `60`, or
     /// a duration such as `1m30s`). An empty variable counts as unset.

@@ -13,8 +13,16 @@ pub struct AwsSecretManagerSourceOptions {
     pub account_id: String,
     pub region: Option<aws_sdk_secretsmanager::config::Region>,
 
-    #[default = "false"]
+    /// Reads the tags into labels, and the description and the creation and last change times
+    /// into the secret metadata, with one more request per secret:
+    /// [`DEFAULT_READ_METADATA`](Self::DEFAULT_READ_METADATA) by default.
+    #[default = "Self::DEFAULT_READ_METADATA"]
     pub read_metadata: bool,
+}
+
+impl AwsSecretManagerSourceOptions {
+    /// The default [`read_metadata`](Self::read_metadata): `false`.
+    pub const DEFAULT_READ_METADATA: bool = false;
 }
 
 #[derive(Debug, Clone)]

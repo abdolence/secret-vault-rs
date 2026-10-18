@@ -16,8 +16,16 @@ use gcloud_sdk::google::cloud::secretmanager::v1::{AccessSecretVersionRequest, G
 pub struct GcpSecretManagerSourceOptions {
     pub google_project_id: String,
 
-    #[default = "false"]
+    /// Reads the labels, annotations, expiry and creation time of the secret into its metadata,
+    /// with one more request per secret. The version is filled in either way.
+    /// [`DEFAULT_READ_METADATA`](Self::DEFAULT_READ_METADATA) by default.
+    #[default = "Self::DEFAULT_READ_METADATA"]
     pub read_metadata: bool,
+}
+
+impl GcpSecretManagerSourceOptions {
+    /// The default [`read_metadata`](Self::read_metadata): `false`.
+    pub const DEFAULT_READ_METADATA: bool = false;
 }
 
 pub struct GcpSecretManagerSource {

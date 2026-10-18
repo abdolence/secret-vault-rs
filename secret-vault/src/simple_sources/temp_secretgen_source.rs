@@ -10,16 +10,29 @@ use tracing::*;
 
 #[derive(Debug, Clone, Eq, PartialEq, Builder)]
 pub struct TempSecretOptions {
+    /// The length of the secret: characters when [`printable`](Self::printable), bytes
+    /// otherwise.
     pub key_len: usize,
 
-    #[default = "false"]
+    /// Generates a new value on every refresh instead of once, when the source is created:
+    /// [`DEFAULT_REGENERATE_ON_REFRESH`](Self::DEFAULT_REGENERATE_ON_REFRESH) by default.
+    #[default = "Self::DEFAULT_REGENERATE_ON_REFRESH"]
     pub regenerate_on_refresh: bool,
 
-    #[default = "true"]
+    /// Generates `key_len` lowercase hex characters instead of `key_len` random bytes:
+    /// [`DEFAULT_PRINTABLE`](Self::DEFAULT_PRINTABLE) by default.
+    #[default = "Self::DEFAULT_PRINTABLE"]
     pub printable: bool,
 }
 
 impl TempSecretOptions {
+    /// The default [`regenerate_on_refresh`](Self::regenerate_on_refresh): `false`, the value is
+    /// generated once.
+    pub const DEFAULT_REGENERATE_ON_REFRESH: bool = false;
+
+    /// The default [`printable`](Self::printable): `true`, hex characters.
+    pub const DEFAULT_PRINTABLE: bool = true;
+
     fn generate_value<B: AeadBackend>(&self) -> SecretVaultResult<SecretValue> {
         let random_len = if self.printable {
             self.key_len.div_ceil(2)
