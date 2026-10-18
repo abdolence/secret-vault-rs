@@ -503,8 +503,8 @@ Then you have two options for configuration/version management:
 - Updating automatically secrets and their versions using `SecretVaultAutoRefresher`
   (or your own implementation) without redeploys.
 
-## Migrating from 3.0 or 2.x
-The breaking changes in 3.1 and 3.0 and their replacements are listed in [MIGRATION.md](MIGRATION.md).
+## Migrating from 2.x
+The breaking changes from 2.x to 3.1 and their replacements are listed in [MIGRATION.md](MIGRATION.md), and 3.0 users follow the same guide.
 
 ## Licence
 Apache Software License (ASL)
