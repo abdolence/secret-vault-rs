@@ -64,6 +64,33 @@ jobs:
           done
           cargo clippy --workspace --all-targets --features "$FEATURES" -- -Dwarnings
           cargo test --workspace --features "$FEATURES"
+  # A check-only build on the FIPS backend alone, so the `aws-lc-fips` branches of the backend
+  # `cfg` gates compile. The FIPS module builds from source with CMake and Go, and the tests run on
+  # the other backends in the jobs above.
+  fips-check:
+    name: backend aws-lc FIPS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: clippy
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          cache: false
+      - name: Run checks
+        run: |
+          FEATURES="serde,ahash,aws-lc-fips"
+          for crate in ring aws-lc-sys; do
+            if cargo tree --workspace -e normal --features "$FEATURES" --prefix none -f '{p}' | grep -q "^$crate v"; then
+              echo "$crate is in the dependency tree of $FEATURES"
+              exit 1
+            fi
+          done
+          cargo clippy --workspace --all-targets --features "$FEATURES" -- -Dwarnings
   vault-transit-live:
     name: vault-transit-live
     runs-on: ubuntu-latest
