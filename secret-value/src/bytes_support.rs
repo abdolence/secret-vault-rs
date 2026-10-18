@@ -3,7 +3,7 @@ use zeroize::*;
 
 use bytes::BytesMut;
 
-/// Copies the bytes and zeroizes the source buffer, including its spare
+/// Copies the bytes and zeroises the source buffer, including its spare
 /// capacity, which may still hold bytes written before a `truncate` or `clear`.
 impl From<BytesMut> for SecretValue {
     fn from(mut bytes: BytesMut) -> SecretValue {

@@ -4,7 +4,7 @@ use zeroize::Zeroizing;
 
 impl SecretValue {
     /// Encodes the secret as standard padded base64 in a string that is
-    /// zeroized on drop.
+    /// zeroised on drop.
     ///
     /// ```
     /// use secret_vault_value::SecretValue;
@@ -31,7 +31,7 @@ impl SecretValue {
 
     /// Decodes standard padded base64 into a secret.
     ///
-    /// The input string is zeroized whether the decode succeeds or not.
+    /// The input string is zeroised whether the decode succeeds or not.
     ///
     /// # Errors
     ///

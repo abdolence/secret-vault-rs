@@ -45,7 +45,7 @@ const PATH_SEGMENT: &AsciiSet = &NON_ALPHANUMERIC
     .remove(b'_')
     .remove(b'~');
 
-/// A Vault token: non-empty visible ASCII, zeroized on drop, shown as `***` by `Debug`.
+/// A Vault token: non-empty visible ASCII, zeroised on drop, shown as `***` by `Debug`.
 #[derive(Debug, Clone)]
 pub struct HashiCorpVaultToken(SecretValue);
 
@@ -66,7 +66,7 @@ impl TryFrom<SecretValue> for HashiCorpVaultToken {
 }
 
 impl HashiCorpVaultToken {
-    /// The HTTP stack copies the value into buffers this crate cannot zeroize. Marking it
+    /// The HTTP stack copies the value into buffers this crate cannot zeroise. Marking it
     /// sensitive keeps it out of the `Debug` output of the request headers.
     fn header_value(&self) -> HeaderValue {
         let mut value = HeaderValue::from_bytes(self.0.ref_sensitive_value())
@@ -326,7 +326,7 @@ impl HashiCorpVaultSource {
         let exchange = async {
             let response = self.http_client.request(request).await?;
             let status = response.status();
-            // The body buffer belongs to the HTTP stack and is freed without being zeroized;
+            // The body buffer belongs to the HTTP stack and is freed without being zeroised;
             // the only copy this crate keeps is the `SecretValue`.
             let body = Limited::new(response.into_body(), MAX_RESPONSE_SIZE)
                 .collect()

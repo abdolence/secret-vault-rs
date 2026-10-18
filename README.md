@@ -3,13 +3,13 @@
 ![tests and formatting](https://github.com/abdolence/secret-vault-rs/workflows/tests%20&amp;%20formatting/badge.svg)
 ![security audit](https://github.com/abdolence/secret-vault-rs/workflows/security%20audit/badge.svg)
 ![unsafe](https://img.shields.io/badge/unsafe-forbidden-success.svg)
-![license](https://img.shields.io/github/license/abdolence/secret-vault-rs)
+![licence](https://img.shields.io/github/license/abdolence/secret-vault-rs)
 
 # Secret Vault for Rust
 
 Library provides the following crates:
 
-- General secret value type - a simple implementation of a secure and serializable (serde and proto) type
+- General secret value type - a simple implementation of a secure and serialisable (serde and proto) type
   of any kind of secrets. Documentation is [here](https://github.com/abdolence/secret-vault-rs/blob/master/secret-value/README.md).
 - Secret vault - a library provides a memory-backed storage for the application secrets integrated with external source of secrets.
   Documentation is below.
@@ -93,7 +93,7 @@ A build may enable any number of them, and every KMS encryption feature above ne
 - `rustcrypto` - `RustCrypto`, the pure-Rust [RustCrypto](https://github.com/RustCrypto/AEADs) crates, with no C compiler needed
 
 #### Utility Features
-- `serde` - Serde serialization support
+- `serde` - Serde serialisation support
 - `ahash` - Uses [AHashMap](https://crates.io/crates/ahash) for maps and snapshots
 
 ### Feature Flag Examples
@@ -477,7 +477,7 @@ One of the unexpected side-effects of not having the official SDK for Rust from 
 For performance critical secrets there are snapshots support reducing overheads from:
 - encryption, so snapshots are decrypted all the time
 - async runtime and possible network calls (such for KMS, etc)
-- RwLock synchronization
+- RwLock synchronisation
 
 To make secret available for snapshotting you need to enable it explicitly using `with_allow_in_snapshots` for secret refs.
 For complete example look at [hashmap_snapshot.rs](secret-vault/examples/hashmap_snapshot.rs)

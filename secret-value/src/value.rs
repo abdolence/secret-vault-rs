@@ -5,10 +5,10 @@ use std::str::Utf8Error;
 use subtle::ConstantTimeEq;
 use zeroize::*;
 
-/// A secret held as bytes and zeroized when it is dropped.
+/// A secret held as bytes and zeroised when it is dropped.
 ///
 /// `Debug` and `Display` print `***`, so the value does not end up in logs or
-/// panic messages. `Clone` makes a second buffer, and each copy is zeroized on
+/// panic messages. `Clone` makes a second buffer, and each copy is zeroised on
 /// its own drop. `==` takes time that depends on the lengths only, not on the
 /// bytes.
 ///
@@ -16,7 +16,7 @@ use zeroize::*;
 /// - borrowing it with `as_sensitive_*` and `ref_sensitive_value`, which make
 ///   no copy;
 /// - lending a copy to a closure with `exposed_in_*`, which makes sure the
-///   copy is zeroized once the closure is done with it.
+///   copy is zeroised once the closure is done with it.
 ///
 /// ```
 /// use secret_vault_value::SecretValue;
@@ -43,7 +43,7 @@ impl SecretValue {
     /// Borrows the secret bytes mutably.
     ///
     /// Be aware that growing the vector may reallocate it, and the old
-    /// allocation is freed without being zeroized. Reserve the capacity up
+    /// allocation is freed without being zeroised. Reserve the capacity up
     /// front if the value is built in place.
     pub fn ref_sensitive_value_mut(&mut self) -> &mut Vec<u8> {
         &mut self.0
@@ -65,7 +65,7 @@ impl SecretValue {
         std::str::from_utf8(&self.0)
     }
 
-    /// Zeroizes the bytes and leaves the value empty.
+    /// Zeroises the bytes and leaves the value empty.
     ///
     /// ```
     /// use secret_vault_value::SecretValue;
@@ -99,12 +99,12 @@ impl SecretValue {
     /// its result.
     ///
     /// `f` returns a pair `(T, Z)`: `T` is the result, `Z` is whatever must be
-    /// zeroized once `f` returns, usually the `String` it was given. A copy
-    /// that `f` neither returns as `Z` nor zeroizes itself is not zeroized.
+    /// zeroised once `f` returns, usually the `String` it was given. A copy
+    /// that `f` neither returns as `Z` nor zeroises itself is not zeroised.
     /// [`exposed_in_as_zstr`](Self::exposed_in_as_zstr) needs no such pair.
     ///
-    /// If `f` panics, the copy is freed without being zeroized. Use
-    /// [`exposed_in_as_zstr`](Self::exposed_in_as_zstr), which zeroizes it on
+    /// If `f` panics, the copy is freed without being zeroised. Use
+    /// [`exposed_in_as_zstr`](Self::exposed_in_as_zstr), which zeroises it on
     /// unwinding too.
     ///
     /// # Panics
@@ -131,7 +131,7 @@ impl SecretValue {
     /// Lends a [`Zeroizing<String>`] copy of the secret to `f` and returns its
     /// result.
     ///
-    /// The copy is zeroized when `f` drops it.
+    /// The copy is zeroised when `f` drops it.
     ///
     /// # Panics
     ///
@@ -156,11 +156,11 @@ impl SecretValue {
     /// of its result.
     ///
     /// The `(T, Z)` pair works as in
-    /// [`exposed_in_as_str`](Self::exposed_in_as_str): `Z` is zeroized once
+    /// [`exposed_in_as_str`](Self::exposed_in_as_str): `Z` is zeroised once
     /// `f` returns.
     ///
-    /// If `f` panics, the copy is freed without being zeroized. Use
-    /// [`exposed_in_as_zvec`](Self::exposed_in_as_zvec), which zeroizes it on
+    /// If `f` panics, the copy is freed without being zeroised. Use
+    /// [`exposed_in_as_zvec`](Self::exposed_in_as_zvec), which zeroises it on
     /// unwinding too.
     ///
     /// ```
@@ -182,7 +182,7 @@ impl SecretValue {
     /// Lends a [`Zeroizing<Vec<u8>>`] copy of the secret to `f` and returns
     /// its result.
     ///
-    /// The copy is zeroized when `f` drops it.
+    /// The copy is zeroised when `f` drops it.
     ///
     /// ```
     /// use secret_vault_value::SecretValue;
@@ -199,13 +199,13 @@ impl SecretValue {
     }
 
     /// Async form of [`exposed_in_as_str`](Self::exposed_in_as_str): `Z` is
-    /// zeroized once the future returned by `f` completes.
+    /// zeroised once the future returned by `f` completes.
     ///
     /// If `f` or its future panics, or the future is dropped before it
     /// completes (a timeout, a losing `select!` branch, an aborted task), the
-    /// copy is freed without being zeroized. Use
+    /// copy is freed without being zeroised. Use
     /// [`exposed_in_as_zstr_async`](Self::exposed_in_as_zstr_async), which
-    /// zeroizes it in those cases too.
+    /// zeroises it in those cases too.
     ///
     /// # Panics
     ///
@@ -234,7 +234,7 @@ impl SecretValue {
     }
 
     /// Async form of [`exposed_in_as_zstr`](Self::exposed_in_as_zstr): the
-    /// copy is zeroized when the future returned by `f` drops it.
+    /// copy is zeroised when the future returned by `f` drops it.
     ///
     /// # Panics
     ///
@@ -261,13 +261,13 @@ impl SecretValue {
     }
 
     /// Async form of [`exposed_in_as_vec`](Self::exposed_in_as_vec): `Z` is
-    /// zeroized once the future returned by `f` completes.
+    /// zeroised once the future returned by `f` completes.
     ///
     /// If `f` or its future panics, or the future is dropped before it
     /// completes (a timeout, a losing `select!` branch, an aborted task), the
-    /// copy is freed without being zeroized. Use
+    /// copy is freed without being zeroised. Use
     /// [`exposed_in_as_zvec_async`](Self::exposed_in_as_zvec_async), which
-    /// zeroizes it in those cases too.
+    /// zeroises it in those cases too.
     ///
     /// ```
     /// use secret_vault_value::SecretValue;
@@ -291,7 +291,7 @@ impl SecretValue {
     }
 
     /// Async form of [`exposed_in_as_zvec`](Self::exposed_in_as_zvec): the
-    /// copy is zeroized when the future returned by `f` drops it.
+    /// copy is zeroised when the future returned by `f` drops it.
     ///
     /// ```
     /// use secret_vault_value::SecretValue;
@@ -313,7 +313,7 @@ impl SecretValue {
     }
 }
 
-/// Copies the bytes and zeroizes the source `String`.
+/// Copies the bytes and zeroises the source `String`.
 impl From<String> for SecretValue {
     fn from(mut str: String) -> Self {
         let result = Self(str.as_bytes().to_vec());
@@ -322,7 +322,7 @@ impl From<String> for SecretValue {
     }
 }
 
-/// Copies the bytes and zeroizes the caller's `String`, leaving it empty.
+/// Copies the bytes and zeroises the caller's `String`, leaving it empty.
 impl From<&mut String> for SecretValue {
     fn from(str: &mut String) -> Self {
         let result = Self(str.as_bytes().to_vec());
@@ -343,7 +343,7 @@ impl From<Vec<u8>> for SecretValue {
     }
 }
 
-/// Copies the bytes and zeroizes the caller's `Vec`, leaving it empty.
+/// Copies the bytes and zeroises the caller's `Vec`, leaving it empty.
 impl From<&mut Vec<u8>> for SecretValue {
     fn from(vec: &mut Vec<u8>) -> Self {
         let result = Self(vec.clone());

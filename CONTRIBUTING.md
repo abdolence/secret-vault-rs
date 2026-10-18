@@ -1,14 +1,14 @@
 # Contributing
 
 Welcome! Please read this document to understand what you can do:
-* [Analyze Issues](#analyze-issues)
+* [Analyse Issues](#analyse-issues)
 * [Report an Issue](#report-an-issue)
 * [Contribute Code](#contribute-code)
 
-## Analyze Issues
+## Analyse Issues
 
-Analyzing issue reports can be a lot of effort. Any help is welcome!
-Go to the GitHub issue tracker and find an open issue which needs additional work or a bugfix (e.g. issues labeled with "help wanted" or "bug").
+Analysing issue reports can be a lot of effort. Any help is welcome!
+Go to the GitHub issue tracker and find an open issue which needs additional work or a bugfix (e.g. issues labelled with "help wanted" or "bug").
 Additional work could include any further information, or a gist, or it might be a hint that helps understanding the issue.
 
 ## Report an Issue
@@ -60,7 +60,7 @@ These are some of the rules we try to follow:
 -   No println() - use logging service if needed
 -   Comment your code where it gets non-trivial
 -   Keep an eye on performance and memory consumption, properly destroy objects when not used anymore
--   Avoid incompatible changes if possible, especially do not modify the name or behavior of public API methods or properties
+-   Avoid incompatible changes if possible, especially do not modify the name or behaviour of public API methods or properties
 
 ### How to contribute - the Process
 

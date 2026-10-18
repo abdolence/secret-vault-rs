@@ -1,10 +1,10 @@
 //! # Secret value type
 //!
-//! A secure and serializable type for any kind of secret:
-//! - zeroizes its bytes in memory when dropped, using [zeroize](https://docs.rs/zeroize);
+//! A secure and serialisable type for any kind of secret:
+//! - zeroises its bytes in memory when dropped, using [zeroize](https://docs.rs/zeroize);
 //! - prints `***` in `Debug` and `Display`, so it does not leak into logs and panic messages;
 //! - stores bytes, so it fits binary secrets too;
-//! - lends copies to closures with the `exposed_in_*` methods and zeroizes them afterwards;
+//! - lends copies to closures with the `exposed_in_*` methods and zeroises them afterwards;
 //! - parses JSON embedded in a secret with `expose_json_value_as`;
 //! - encodes and decodes hex and base64.
 //!

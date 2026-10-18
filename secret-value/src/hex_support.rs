@@ -2,7 +2,7 @@ use crate::SecretValue;
 use zeroize::Zeroizing;
 
 impl SecretValue {
-    /// Encodes the secret as a lowercase hex string that is zeroized on drop.
+    /// Encodes the secret as a lowercase hex string that is zeroised on drop.
     ///
     /// ```
     /// use secret_vault_value::SecretValue;
@@ -28,7 +28,7 @@ impl SecretValue {
 
     /// Decodes a hex string, upper or lower case, into a secret.
     ///
-    /// The input string is zeroized whether the decode succeeds or not.
+    /// The input string is zeroised whether the decode succeeds or not.
     ///
     /// # Errors
     ///

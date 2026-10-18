@@ -8,7 +8,7 @@ use std::fmt;
 /// [`SecretVaultNoEncryption`]. `Debug` prints `***` in place of the bytes.
 ///
 /// The vault wipes the bytes it stores when it replaces or drops them, but this type does not
-/// wipe itself: bytes moved or cloned out of it are the caller's to zeroize.
+/// wipe itself: bytes moved or cloned out of it are the caller's to zeroise.
 #[derive(Clone, Eq, PartialEq, ValueStruct)]
 pub struct EncryptedSecretValue(pub Vec<u8>);
 
