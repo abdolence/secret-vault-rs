@@ -30,7 +30,7 @@ Library provides the support for the secrets coming to your application from the
 - Memory encryption using AEAD cryptography on ring, aws-lc-rs or RustCrypto (optional);
 - Automatic refresh secrets from the sources support (optional);
 - Extensible and strongly typed API to be able to implement any kind of sources;
-- Memory encryption using Google/AWS/Azure KMS, HashiCorp Vault Transit or a local key encryption key with [envelope encryption](https://cloud.google.com/kms/docs/envelope-encryption) (optional);
+- Memory encryption using Google/AWS/Azure KMS or HashiCorp Vault Transit with [envelope encryption](https://cloud.google.com/kms/docs/envelope-encryption) (optional);
 - Multi-sources support;
 - Snapshots for performance-critical secrets;
 
@@ -244,7 +244,7 @@ To run the example:
 # VAULT_URL=https://<your-vault>.vault.azure.net cargo run --example azure_key_vault --features azure-keyvault,aws-lc
 ```
 
-The `azure-kms` feature encrypts the secrets in memory with a Key Vault or Managed HSM key, using envelope encryption: every value gets its own data encryption key, wrapped by the key.
+The `azure-kms` feature encrypts the secrets in memory with a Key Vault or Managed HSM key, using envelope encryption: every value gets its own data encryption key (DEK), encrypted by the key.
 
 ```rust
 let encryption = azure::AzureKmsEnvelopeEncryption::<AwsLc>::new(
@@ -253,7 +253,7 @@ let encryption = azure::AzureKmsEnvelopeEncryption::<AwsLc>::new(
 )?;
 ```
 
-The data encryption keys are wrapped with RSA-OAEP-256 by default, use `with_options` and `AzureKmsProviderOptions` to change the algorithm, for example to `A256Kw` for a Managed HSM AES key.
+The DEKs are encrypted with RSA-OAEP-256 by default, use `with_options` and `AzureKmsProviderOptions` to change the algorithm, for example to `A256Kw` for a Managed HSM AES key.
 The source and the encryption build their clients on one reqwest, which has one TLS backend, so `azure-kms` needs the same TLS variant as `azure-keyvault`, and different variants fail to compile.
 `gcp-tls-roots` compiles the native-tls of reqwest, so with it the Azure KMS encryption runs on native-tls whichever `azure-kms-*` variant is selected, the same as the Azure source.
 
@@ -331,7 +331,7 @@ docker run -d --rm --name vault-dev -p 8200:8200 -e VAULT_DEV_ROOT_TOKEN_ID=dev-
 VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=dev-root cargo test -p secret-vault --features hashicorp-vault --test hashicorp_vault_source -- --ignored
 ```
 
-The `hashicorp-vault-transit` feature encrypts the secrets in memory with a key of the Transit secrets engine, using envelope encryption: every value gets its own data encryption key, wrapped by the Transit key.
+The `hashicorp-vault-transit` feature encrypts the secrets in memory with a key of the Transit secrets engine, using envelope encryption: every value gets its own data encryption key (DEK), encrypted by the Transit key.
 It reads `VAULT_ADDR`, `VAULT_TOKEN`, `VAULT_NAMESPACE` and `VAULT_CACERT` the same way as the source, and `with_options` with `HcVaultTransitProviderOptions` configures it in code.
 
 ```rust
@@ -347,24 +347,6 @@ To run the example:
 ```
 # VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=<your-token> VAULT_TRANSIT_KEY=<your-key> cargo run --example kms_hashicorp_vault --features hashicorp-vault,hashicorp-vault-transit,aws-lc
 ```
-
-## Local key encryption key
-
-`kms_encryption::LocalKmsEnvelopeEncryption` encrypts the secrets in memory with envelope encryption too, with the data encryption keys wrapped by a key encryption key (KEK) the process holds.
-It is meant for development, tests and single-host installs without a cloud KMS, and needs only a backend feature.
-
-```rust
-let encryption = kms_encryption::LocalKmsEnvelopeEncryption::<AwsLc>::new(
-    kms_encryption::LocalKekId::try_from("my-app".to_string())?,
-    vec![kms_encryption::LocalKek::from_file(
-        kms_encryption::LocalKekVersion::from(NonZeroU32::MIN),
-        Path::new("/run/credentials/my-app.service/kek"),
-    )?],
-)?;
-```
-
-The file holds the standard base64 of 32 random bytes; `LocalKek::from_env` and `LocalKek::from_secret` read the KEK from an environment variable or a value the application holds.
-Be aware that protecting the KEK is the job of the operator, and that the limits of `LocalKmsProvider` in kms-aead apply: every value the vault stores costs one wrap under the KEK on each refresh.
 
 ## Making `SecretVaultRef` available globally
 It is convenient to make those references globally available inside your apps since

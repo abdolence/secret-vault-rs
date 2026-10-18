@@ -3,6 +3,7 @@ name = "secret-vault"
 version = "3.0.2"
 authors = ["Abdulla Abdurakhmanov <me@abdolence.dev>"]
 edition = "2021"
+rust-version.workspace = true
 license = "Apache-2.0"
 description = "Library provides a secure vault to store securely application secrets in memory from Google, AWS, Azure Key Vault, HashiCorp Vault, K8S and environment variables"
 homepage = "https://github.com/abdolence/secret-vault-rs"
@@ -35,7 +36,6 @@ serde = { version = "1", features = ["derive"], optional = true }
 gcloud-sdk = { version = "0.33", default-features = false, optional = true }
 aws-config = { version = "1", optional = true }
 aws-sdk-secretsmanager = { version = "1", optional = true, default-features = false, features = ["default-https-client", "rt-tokio"] }
-aws-sdk-kms = { version = "1", optional = true, default-features = false, features = ["default-https-client", "rt-tokio"] }
 kms-aead = { git = "https://github.com/abdolence/kms-aead-rs", rev = "4a8139eff7a52a80dfe6cc226fbbfff48df4392f", optional = true }
 ahash = { version = "0.8", optional = true }
 azure_core = { version = "1.1", optional = true, default-features = false, features = ["reqwest", "tokio"] }
@@ -92,7 +92,7 @@ gcp = ["gcp-tls-roots"]  # Default to tls-roots for backward compatibility
 aws = ["dep:aws-config"]
 
 aws-secretmanager = ["aws", "dep:aws-sdk-secretsmanager"]
-aws-kms-encryption = ["aws", "dep:aws-sdk-kms", "kms-aead/aws-kms-encryption"]
+aws-kms-encryption = ["aws", "kms-aead/aws-kms-encryption"]
 
 azure-keyvault-base = [
     "dep:azure_core",

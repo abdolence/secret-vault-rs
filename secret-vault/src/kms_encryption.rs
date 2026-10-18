@@ -6,15 +6,16 @@ use kms_aead::{Encrypted, KmsAeadEncryptionProvider, KmsAeadEnvelope, KmsAeadEnv
 
 use secret_vault_value::SecretValue;
 
-/// Envelope encryption with an AES-256-GCM data encryption key per value, wrapped by the KMS
-/// key of the provider `P`, with the AEAD on the backend `B`. Each provider has an alias with its
-/// constructors, such as `gcp::GcpKmsEnvelopeEncryption<B>`.
+/// Envelope encryption with an AES-256-GCM DEK per value, which the KMS key of the provider `P`
+/// encrypts, with the AEAD on the backend `B`. Each provider has an alias with its constructors,
+/// such as `gcp::GcpKmsEnvelopeEncryption<B>`.
 ///
-/// No data encryption key is cached: every read unwraps the key of its value with the KMS.
+/// No DEK is cached: every read decrypts the encrypted DEK of its value with the KMS.
 ///
-/// Errors are `EncryptionError`s with the kms-aead code, which for a failed KMS call is the
-/// code the KMS returned, such as `PermissionDenied` from Google Cloud KMS or
-/// `IncorrectKeyException` from AWS KMS.
+/// Errors keep the kms-aead code, which for a failed KMS call is the code the KMS returned. A KMS
+/// that could not be reached, timed out or throttled is a `NetworkError`, which may be retried;
+/// a permission, not-found or invalid-key failure, such as `PermissionDenied` from Google Cloud
+/// KMS or `IncorrectKeyException` from AWS KMS, is an `EncryptionError`.
 pub struct SecretVaultKmsEnvelopeEncryption<P, B> {
     envelope: KmsAeadEnvelope<P, B>,
 }
@@ -68,56 +69,20 @@ where
     }
 }
 
-/// The name of a local key encryption key.
-pub type LocalKekId = kms_aead::providers::LocalKekId;
-/// The version of a local key encryption key.
-pub type LocalKekVersion = kms_aead::providers::LocalKekVersion;
-/// One version of a local key encryption key, read from a file, an environment variable or a
-/// secret the application holds.
-pub type LocalKek = kms_aead::providers::LocalKek;
-
-/// Envelope encryption with the data encryption keys wrapped by a key encryption key the process
-/// holds, for development, tests and single-host installs without a cloud KMS. The backend `B`
-/// seals both the values and the keys.
-///
-/// The limits of [`kms_aead::providers::LocalKmsProvider`] apply: each value the vault stores, on
-/// every refresh, costs one wrap under the KEK.
-pub type LocalKmsEnvelopeEncryption<B> =
-    SecretVaultKmsEnvelopeEncryption<kms_aead::providers::LocalKmsProvider<B>, B>;
-
-impl<B: AeadBackend> LocalKmsEnvelopeEncryption<B> {
-    /// Wraps the data encryption keys with the KEK `id`, whose highest version in `keks` wraps
-    /// and every version unwraps, with AES-256-GCM for both the values and the keys.
-    ///
-    /// # Errors
-    ///
-    /// `LOCAL_KEK_VERSIONS` when `keks` is empty or lists a version twice.
-    pub fn new(id: LocalKekId, keks: Vec<LocalKek>) -> SecretVaultResult<Self> {
-        Self::with_provider(kms_aead::providers::LocalKmsProvider::new(id, keks)?)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::errors::SecretVaultError;
+    use kms_aead::providers::{LocalKekId, LocalKmsProvider};
     use rvstruct::ValueStruct;
-    use std::num::NonZeroU32;
-
-    fn local_kms_encryption() -> SecretVaultResult<LocalKmsEnvelopeEncryption<TestBackend>> {
-        let kek = LocalKek::from_secret(
-            LocalKekVersion::from(NonZeroU32::MIN),
-            SecretValue::new(vec![42; 32]),
-        )?;
-        LocalKmsEnvelopeEncryption::new(
-            LocalKekId::try_from("secret-vault-test".to_string())?,
-            vec![kek],
-        )
-    }
 
     #[tokio::test]
     async fn value_round_trips_through_local_kms_envelope() -> SecretVaultResult<()> {
-        let encryption = local_kms_encryption()?;
+        let provider = LocalKmsProvider::<TestBackend>::ephemeral(LocalKekId::try_from(
+            "secret-vault-test".to_string(),
+        )?)?;
+        let encryption =
+            SecretVaultKmsEnvelopeEncryption::<_, TestBackend>::with_provider(provider)?;
         let secret_vault_key = SecretVaultKey::new(SecretName::from_static("my-app/database"));
         let secret_value = SecretValue::from("test-secret");
 
@@ -135,7 +100,11 @@ mod tests {
 
     #[tokio::test]
     async fn value_does_not_decrypt_under_another_secret_name() -> SecretVaultResult<()> {
-        let encryption = local_kms_encryption()?;
+        let provider = LocalKmsProvider::<TestBackend>::ephemeral(LocalKekId::try_from(
+            "secret-vault-test".to_string(),
+        )?)?;
+        let encryption =
+            SecretVaultKmsEnvelopeEncryption::<_, TestBackend>::with_provider(provider)?;
         let secret_value = SecretValue::from("test-secret");
 
         let encrypted_value = encryption

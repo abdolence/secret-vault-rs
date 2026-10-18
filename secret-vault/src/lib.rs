@@ -13,7 +13,7 @@
 //! ## Features
 //! - Reading/caching registered secrets and their metadata in memory from defined sources;
 //! - Extensible and strongly typed API to be able to implement any kind of sources;
-//! - Memory encryption using AEAD cryptography (optional);
+//! - Memory encryption using AEAD cryptography on ring, aws-lc-rs or RustCrypto (optional);
 //! - Memory encryption using Google/AWS/Azure KMS or HashiCorp Vault Transit envelope encryption (<https://cloud.google.com/kms/docs/envelope-encryption>) (optional);
 //! - Automatic refresh secrets from the sources support (optional);
 //! - Multi-sources support;

@@ -17,7 +17,7 @@ use crate::{
 /// authentic under the key and the secret name.
 pub struct SecretVaultAeadEncryption<B> {
     cipher: AeadCipher<B>,
-    key: DataEncryptionKey,
+    dek: DataEncryptionKey,
 }
 
 impl<B: AeadBackend> SecretVaultAeadEncryption<B> {
@@ -38,8 +38,8 @@ impl<B: AeadBackend> SecretVaultAeadEncryption<B> {
     /// for AES-256-GCM-SIV, and `RANDOM_GENERATOR` when the CSPRNG fails.
     pub fn with_algorithm(algorithm: AeadAlgorithm) -> SecretVaultResult<Self> {
         let cipher = AeadCipher::new(algorithm)?;
-        let key = cipher.generate_dek()?;
-        Ok(Self { cipher, key })
+        let dek = cipher.generate_dek()?;
+        Ok(Self { cipher, dek })
     }
 }
 
@@ -52,7 +52,7 @@ impl<B: AeadBackend> SecretVaultEncryption for SecretVaultAeadEncryption<B> {
     ) -> SecretVaultResult<EncryptedSecretValue> {
         let encrypted =
             self.cipher
-                .encrypt_bare(secret_vault_key.to_aad(), secret_value, &self.key)?;
+                .encrypt_bare(secret_vault_key.to_aad(), secret_value, &self.dek)?;
         Ok(encrypted.into())
     }
 
@@ -64,7 +64,7 @@ impl<B: AeadBackend> SecretVaultEncryption for SecretVaultAeadEncryption<B> {
         Ok(self.cipher.decrypt_bare(
             secret_vault_key.to_aad(),
             &Encrypted::<SecretValue, Bare>::try_from(encrypted_secret_value.clone())?,
-            &self.key,
+            &self.dek,
         )?)
     }
 }

@@ -4,13 +4,13 @@ use crate::*;
 
 pub type GcpKmsKeyRef = kms_aead::providers::GcpKmsKeyRef;
 
-/// Envelope encryption with the data encryption keys wrapped by a Google Cloud KMS CryptoKey,
-/// with the values sealed on the backend `B`.
+/// Envelope encryption with a DEK per value, which a Google Cloud KMS CryptoKey encrypts, with the
+/// values encrypted on the backend `B`.
 pub type GcpKmsEnvelopeEncryption<B> =
     SecretVaultKmsEnvelopeEncryption<kms_aead::providers::GcpKmsProvider, B>;
 
 impl<B: AeadBackend> GcpKmsEnvelopeEncryption<B> {
-    /// Wraps the data encryption keys with the Cloud KMS CryptoKey at `kms_key_ref`, through a
+    /// Encrypts and decrypts the DEKs with the Cloud KMS CryptoKey at `kms_key_ref`, through a
     /// client authenticated with the application default credentials.
     ///
     /// # Errors

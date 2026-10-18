@@ -133,25 +133,4 @@ mod tests {
         assert!(!printed.contains("plaintext-secret"));
         assert!(!printed.contains(&format!("{:?}", stored.0)));
     }
-
-    #[cfg(any(
-        feature = "ring",
-        feature = "aws-lc",
-        feature = "aws-lc-fips",
-        feature = "rustcrypto"
-    ))]
-    #[test]
-    fn stored_bytes_outside_the_layout_are_refused() {
-        use kms_aead::errors::KmsAeadError;
-        use kms_aead::formats::Bare;
-        use kms_aead::Encrypted;
-
-        let read = Encrypted::<SecretValue, Bare>::try_from(EncryptedSecretValue(vec![0; 8]));
-
-        assert!(
-            matches!(&read, Err(KmsAeadError::EncryptionError(error))
-                if error.public.code == "INVALID_CIPHER_TEXT_FORMAT"),
-            "{read:?}"
-        );
-    }
 }

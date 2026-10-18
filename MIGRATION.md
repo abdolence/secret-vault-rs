@@ -1,6 +1,7 @@
 # Migrating from 3.0 to 3.1
 
 secret-vault 3.1 is built on kms-aead 0.30 and no longer depends on ring.
+The minimum supported Rust version is 1.99, the version kms-aead 0.30 needs.
 The encryption runs on a crypto library a feature compiles in, and a type parameter of the encryption selects it: `Ring`, `AwsLc` or `RustCrypto` of `secret_vault::backends`.
 The vault keeps values in memory only, so no stored data needs to be migrated.
 
@@ -24,8 +25,7 @@ The vault keeps values in memory only, so no stored data needs to be migrated.
 
 - `SecretVaultKmsEnvelopeEncryption<P>` is `SecretVaultKmsEnvelopeEncryption<P, B>` with the backend `B`, and so `GcpKmsEnvelopeEncryption`, `AwsKmsEnvelopeEncryption`, `AzureKmsEnvelopeEncryption` and the Transit encryption take the backend as a type parameter, for example `gcp::GcpKmsEnvelopeEncryption::<AwsLc>::new(&kms_key_ref).await?`;
 - the Azure and Transit constructors are not `async`, remove the `.await`;
-- `VaultTransitEnvelopeEncryption`, `VaultTransitKeyRef`, `VaultTransitProviderOptions` and `VaultTransitToken` are renamed to `HcVaultTransitEnvelopeEncryption`, `HcVaultTransitKeyRef`, `HcVaultTransitProviderOptions` and `HcVaultTransitToken`, the names of kms-aead 0.30;
-- `kms_encryption::LocalKmsEnvelopeEncryption<B>` is new: envelope encryption with a key encryption key the process holds.
+- `VaultTransitEnvelopeEncryption`, `VaultTransitKeyRef`, `VaultTransitProviderOptions` and `VaultTransitToken` are renamed to `HcVaultTransitEnvelopeEncryption`, `HcVaultTransitKeyRef`, `HcVaultTransitProviderOptions` and `HcVaultTransitToken`, the names of kms-aead 0.30.
 
 ## Other changes
 
@@ -37,7 +37,9 @@ The vault keeps values in memory only, so no stored data needs to be migrated.
 - the `From` conversions between `EncryptedSecretValue` and the kms-aead `CipherText` and `CipherTextWithEncryptedKey` are replaced by one pair for kms-aead 0.30's `Encrypted<SecretValue, F>` in any format `F`: `From<Encrypted<SecretValue, F>>` for `EncryptedSecretValue`, and `TryFrom<EncryptedSecretValue>` for `Encrypted<SecretValue, F>`, which checks the bytes against the layout of `F` and fails with `INVALID_CIPHER_TEXT_FORMAT` outside it, so custom `SecretVaultEncryption` implementations write `Encrypted::<SecretValue, Bare>::try_from(value)?` where they wrote `value.into()`;
 - the AEAD encryption stores its values in kms-aead's `Bare` format and the KMS envelope encryption in its `Envelope` format, Tink's KMS envelope format;
 - the backend types `Ring`, `AwsLc` and `RustCrypto` and the `AeadBackend` trait are in the `backends` module, the path kms-aead 0.30 uses, so `use secret_vault::backends::AwsLc;`;
-- a kms-aead `NetworkError`, a KMS that could not be reached or did not answer, is a `SecretVaultError::NetworkError` instead of an `EncryptionError`, with the same code;
+- a kms-aead `NetworkError`, a KMS that could not be reached, timed out or throttled, is a `SecretVaultError::NetworkError` instead of an `EncryptionError`, with the same code, and it may be retried; permission, not-found and invalid-key failures stay `EncryptionError`s;
+- a kms-aead `SystemError`, invalid provider options or a KMS client that cannot be built, is a `SecretVaultError::SystemError` instead of an `EncryptionError`, with the same code;
+- the `From` conversion of the AWS SDK `SdkError` of `aws-sdk-kms` into `SecretVaultError` is removed, and with it the direct `aws-sdk-kms` dependency of `aws-kms-encryption`;
 - the defaults of the options are public constants, such as `TempSecretOptions::DEFAULT_PRINTABLE` and `hashicorp::HashiCorpVaultSourceOptions::DEFAULT_TIMEOUT`.
 
 # Migrating from 2.x to 3.0

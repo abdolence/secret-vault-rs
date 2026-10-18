@@ -8,13 +8,13 @@ pub type AzureKmsKeyRef = kms_aead::providers::AzureKmsKeyRef;
 pub type AzureKmsProviderOptions = kms_aead::providers::AzureKmsProviderOptions;
 pub type KmsKeyVersion = kms_aead::providers::KmsKeyVersion;
 
-/// Envelope encryption with the data encryption keys wrapped by an Azure Key Vault or Managed HSM
-/// key, with the values sealed on the backend `B`.
+/// Envelope encryption with a DEK per value, which an Azure Key Vault or Managed HSM key encrypts,
+/// with the values encrypted on the backend `B`.
 pub type AzureKmsEnvelopeEncryption<B> =
     SecretVaultKmsEnvelopeEncryption<kms_aead::providers::AzureKmsProvider, B>;
 
 impl<B: AeadBackend> AzureKmsEnvelopeEncryption<B> {
-    /// Wraps the data encryption keys with the key at `kms_key_ref`, using any Azure credential,
+    /// Encrypts and decrypts the DEKs with the key at `kms_key_ref`, using any Azure credential,
     /// for example one from `azure_identity`. No request is made until the first value is
     /// encrypted.
     ///
