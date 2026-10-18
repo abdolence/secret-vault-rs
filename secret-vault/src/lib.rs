@@ -187,10 +187,10 @@ pub use common_types::*;
 pub mod aead_encryption;
 
 #[cfg(any(
-    feature = "ring",
-    feature = "aws-lc",
-    feature = "aws-lc-fips",
-    feature = "rustcrypto"
+    feature = "gcp-kms-base",
+    feature = "aws-kms-encryption",
+    feature = "azure-kms-base",
+    feature = "hashicorp-vault-transit-base"
 ))]
 pub mod kms_encryption;
 
