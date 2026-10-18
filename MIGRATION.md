@@ -12,7 +12,7 @@ The vault keeps values in memory only, so no stored data needs to be migrated.
 - `kms` and `kms-aead`, the feature of the optional dependency, are removed, the backend and KMS encryption features enable kms-aead themselves;
 - `aws-kms` is removed, use `aws-kms-encryption`;
 - `gcp-kms-tls-roots` and `gcp-kms-webpki` are removed, use `gcp-kms` with `gcp-tls-roots` or `gcp-tls-webpki`;
-- `TempSecretGenSource` is in every build and needs no feature.
+- `TempSecretGenSource` needs a backend feature instead of `ring-aead-encryption`.
 
 ## AEAD encryption
 
@@ -30,7 +30,9 @@ The vault keeps values in memory only, so no stored data needs to be migrated.
 
 ## Other changes
 
-- `generate_secret_value` is removed, it took a ring `SystemRandom`. `TempSecretGenSource` generates the secrets with the random generator of the operating system;
+- `generate_secret_value` is removed, it took a ring `SystemRandom`;
+- `TempSecretGenSource::with_options` takes the `AeadBackend` that generates the secrets as its last parameter, with `aws-lc-fips` they come from the DRBG of the FIPS module;
+- a printable temporary secret with an odd `key_len` has `key_len` characters instead of one less;
 - the code of an `EncryptionError` from kms-aead is the kms-aead error code, such as `DECRYPT` or `IncorrectKeyException` from AWS KMS, instead of the `Debug` text of the error;
 - `SecretVaultKey::to_aad()` returns `&[u8]` instead of `Cow<'static, [u8]>`, `&key.to_aad()` still compiles where a `&[u8]` is expected;
 - the `From` conversions between `EncryptedSecretValue` and the kms-aead `CipherText` and `CipherTextWithEncryptedKey` are on the kms-aead 0.30 types, so custom `SecretVaultEncryption` implementations using them move to kms-aead 0.30 as well.

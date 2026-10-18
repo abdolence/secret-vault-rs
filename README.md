@@ -86,7 +86,7 @@ See the security consideration below about versioning.
 
 #### Encryption Features
 The encryption runs on a crypto library a feature compiles in, and an `AeadBackend` value selects it at runtime, for example `AeadBackend::AwsLc`.
-A build may enable any number of them, and every KMS encryption feature above needs one:
+A build may enable any number of them, and every KMS encryption feature above needs one, and so does `TempSecretGenSource`, which generates its secrets with the random generator of the backend:
 - `aws-lc` - [aws-lc-rs](https://crates.io/crates/aws-lc-rs), the crypto library the default TLS features already compile in
 - `aws-lc-fips` - aws-lc-rs on the AWS-LC FIPS module, which needs CMake and Go to build
 - `ring` - [ring](https://crates.io/crates/ring), with ChaCha20-Poly1305, AES-128-GCM and AES-256-GCM only

@@ -18,18 +18,17 @@ pub struct TempSecretOptions {
 }
 
 impl TempSecretOptions {
-    fn generate_value(&self) -> SecretVaultResult<SecretValue> {
-        let effective_key_len = if self.printable {
-            self.key_len / 2
+    fn generate_value(&self, backend: AeadBackend) -> SecretVaultResult<SecretValue> {
+        let random_len = if self.printable {
+            self.key_len.div_ceil(2)
         } else {
             self.key_len
         };
 
-        let mut random = SecretValue::new(vec![0; effective_key_len]);
-        getrandom::fill(random.ref_sensitive_value_mut()).map_err(|e| {
+        let random = backend.generate_random_bytes(random_len).map_err(|e| {
             SecretVaultError::SecretsSourceError(
                 SecretsSourceError::new(
-                    SecretVaultErrorPublicGenericDetails::new("RANDOM_GENERATOR".into()),
+                    SecretVaultErrorPublicGenericDetails::new(e.code().to_string()),
                     format!("Unable to generate a random secret: {e}"),
                 )
                 .with_root_cause(Box::new(e)),
@@ -37,7 +36,9 @@ impl TempSecretOptions {
         })?;
 
         if self.printable {
-            Ok(SecretValue::from(hex::encode(random.ref_sensitive_value())))
+            let mut printable = hex::encode(random.ref_sensitive_value());
+            printable.truncate(self.key_len);
+            Ok(SecretValue::from(printable))
         } else {
             Ok(random)
         }
@@ -66,14 +67,26 @@ impl TempSecretGenSourceOptions {
     }
 }
 
+/// Generates the registered secrets from the CSPRNG of an AEAD backend. `AeadBackend::AwsLc` in a
+/// build with `aws-lc-fips` draws them from the DRBG of the FIPS module.
 #[derive(Debug)]
 pub struct TempSecretGenSource {
     options: TempSecretGenSourceOptions,
+    backend: AeadBackend,
     generated_secrets: HashMap<SecretVaultKey, SecretValue>,
 }
 
 impl TempSecretGenSource {
-    pub fn with_options(options: TempSecretGenSourceOptions) -> SecretVaultResult<Self> {
+    /// Generates the secrets that are not regenerated on refresh now, and the others on each
+    /// refresh, from the CSPRNG of `backend`.
+    ///
+    /// # Errors
+    ///
+    /// A `SecretsSourceError` with the code `RANDOM_GENERATOR` when the CSPRNG fails.
+    pub fn with_options(
+        options: TempSecretGenSourceOptions,
+        backend: AeadBackend,
+    ) -> SecretVaultResult<Self> {
         let secrets_to_pregen: Vec<(&SecretVaultKey, &TempSecretOptions)> = options
             .registered_secrets
             .iter()
@@ -84,11 +97,12 @@ impl TempSecretGenSource {
 
         for (key, options) in secrets_to_pregen {
             debug!("Pre-generating a new secret value for {:?}", key);
-            generated_secrets.insert(key.clone(), options.generate_value()?);
+            generated_secrets.insert(key.clone(), options.generate_value(backend)?);
         }
 
         Ok(Self {
             options,
+            backend,
             generated_secrets,
         })
     }
@@ -113,7 +127,7 @@ impl SecretsSource for TempSecretGenSource {
                         Some(secret_value) => secret_value.clone(),
                         None => {
                             debug!("Generating a new secret value for {:?}", secret_ref.key);
-                            secret_options.generate_value()?
+                            secret_options.generate_value(self.backend)?
                         }
                     };
 
@@ -140,5 +154,40 @@ impl SecretsSource for TempSecretGenSource {
         }
 
         Ok(result_map)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    static PRINTABLE_SECRET: SecretVaultRef =
+        SecretVaultRef::new(SecretName::from_static("printable-secret"));
+    static RAW_SECRET: SecretVaultRef = SecretVaultRef::new(SecretName::from_static("raw-secret"));
+
+    #[tokio::test]
+    async fn generated_secrets_have_the_requested_length() -> SecretVaultResult<()> {
+        let source = TempSecretGenSource::with_options(
+            TempSecretGenSourceOptions::new()
+                .add_secret_generator(&PRINTABLE_SECRET.key, TempSecretOptions::new(33))
+                .add_secret_generator(
+                    &RAW_SECRET.key,
+                    TempSecretOptions::new(64)
+                        .with_printable(false)
+                        .with_regenerate_on_refresh(true),
+                ),
+            TEST_BACKEND,
+        )?;
+
+        let secrets = source
+            .get_secrets(&[PRINTABLE_SECRET.clone(), RAW_SECRET.clone()])
+            .await?;
+
+        assert_eq!(
+            secrets[&PRINTABLE_SECRET].value.ref_sensitive_value().len(),
+            33
+        );
+        assert_eq!(secrets[&RAW_SECRET].value.ref_sensitive_value().len(), 64);
+        Ok(())
     }
 }

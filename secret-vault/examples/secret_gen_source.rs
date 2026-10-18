@@ -28,6 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     .with_regenerate_on_refresh(true)
                     .with_printable(false),
             ),
+        AeadBackend::AwsLc,
     )?)
     .with_secret_refs(vec![&SECRET_REF1, &SECRET_REF2])
     .build()?;
