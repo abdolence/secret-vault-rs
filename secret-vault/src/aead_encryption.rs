@@ -8,45 +8,43 @@ use crate::{
     SecretVaultResult,
 };
 
-/// Encrypts the stored values with an AEAD algorithm under one key, generated when the encryption
-/// is created and held in memory until it is dropped. Each value is bound to its secret name,
-/// the additional authenticated data, so it only decrypts under the key it was stored with.
+/// Encrypts the stored values with an AEAD algorithm on the backend `B`, under one key generated
+/// when the encryption is created and held in memory until it is dropped. Each value is bound to
+/// its secret name, the additional authenticated data, so it only decrypts under the key it was
+/// stored with.
 ///
 /// Errors are `EncryptionError`s with the kms-aead code, such as `DECRYPT` for a value that is not
 /// authentic under the key and the secret name.
-pub struct SecretVaultAeadEncryption {
-    cipher: AeadCipher,
+pub struct SecretVaultAeadEncryption<B> {
+    cipher: AeadCipher<B>,
     key: DataEncryptionKey,
 }
 
-impl SecretVaultAeadEncryption {
-    /// AES-256-GCM on `backend`, under a new key from the backend's CSPRNG.
+impl<B: AeadBackend> SecretVaultAeadEncryption<B> {
+    /// AES-256-GCM, under a new key from the backend's CSPRNG.
     ///
     /// # Errors
     ///
     /// `RANDOM_GENERATOR` when the CSPRNG fails.
-    pub fn new(backend: AeadBackend) -> SecretVaultResult<Self> {
-        Self::with_algorithm(backend, AeadAlgorithm::Aes256Gcm)
+    pub fn new() -> SecretVaultResult<Self> {
+        Self::with_algorithm(AeadAlgorithm::Aes256Gcm)
     }
 
-    /// `algorithm` on `backend`, under a new key from the backend's CSPRNG.
+    /// `algorithm`, under a new key from the backend's CSPRNG.
     ///
     /// # Errors
     ///
-    /// `UNSUPPORTED_ALGORITHM` when `backend` does not implement `algorithm`, such as ring for
-    /// AES-256-GCM-SIV, and `RANDOM_GENERATOR` when the CSPRNG fails.
-    pub fn with_algorithm(
-        backend: AeadBackend,
-        algorithm: AeadAlgorithm,
-    ) -> SecretVaultResult<Self> {
-        let cipher = AeadCipher::new(backend, algorithm)?;
+    /// `UNSUPPORTED_ALGORITHM` when the backend does not implement `algorithm`, such as `Ring`
+    /// for AES-256-GCM-SIV, and `RANDOM_GENERATOR` when the CSPRNG fails.
+    pub fn with_algorithm(algorithm: AeadAlgorithm) -> SecretVaultResult<Self> {
+        let cipher = AeadCipher::new(algorithm)?;
         let key = cipher.generate_key()?;
         Ok(Self { cipher, key })
     }
 }
 
 #[async_trait]
-impl SecretVaultEncryption for SecretVaultAeadEncryption {
+impl<B: AeadBackend> SecretVaultEncryption for SecretVaultAeadEncryption<B> {
     async fn encrypt_value(
         &self,
         secret_vault_key: &SecretVaultKey,
@@ -88,7 +86,7 @@ mod tests {
     use super::*;
     use crate::errors::SecretVaultError;
     use crate::source_tests::*;
-    use crate::{SecretName, TEST_BACKEND};
+    use crate::{SecretName, TestBackend};
     use proptest::prelude::*;
     use proptest::strategy::ValueTree;
     use proptest::test_runner::TestRunner;
@@ -97,7 +95,7 @@ mod tests {
         let mock_secret_name: SecretName = "test".to_string().into();
         let mock_secret_vault_key: SecretVaultKey = SecretVaultKey::new(mock_secret_name);
 
-        let encryption = SecretVaultAeadEncryption::new(TEST_BACKEND)?;
+        let encryption = SecretVaultAeadEncryption::<TestBackend>::new()?;
 
         let encrypted_value = encryption
             .encrypt_value(&mock_secret_vault_key, &mock_secret_value)
@@ -144,7 +142,7 @@ mod tests {
         let runtime_key = SecretVaultKey::new(String::from("test").into());
         let mock_secret_value = SecretValue::new("42".repeat(1024).as_bytes().to_vec());
 
-        let encryption = SecretVaultAeadEncryption::new(TEST_BACKEND)?;
+        let encryption = SecretVaultAeadEncryption::<TestBackend>::new()?;
         let encrypted_value = encryption
             .encrypt_value(&static_key, &mock_secret_value)
             .await?;
@@ -167,7 +165,7 @@ mod tests {
 
         let mock_secret_value = SecretValue::new("42".repeat(1024).as_bytes().to_vec());
 
-        let encryption = SecretVaultAeadEncryption::new(TEST_BACKEND)?;
+        let encryption = SecretVaultAeadEncryption::<TestBackend>::new()?;
         let encrypted_value = encryption
             .encrypt_value(&mock_secret_vault_key1, &mock_secret_value)
             .await?;

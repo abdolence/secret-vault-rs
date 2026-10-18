@@ -69,7 +69,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
 
     let mut vault_with_encryption = SecretVaultBuilder::with_source(mock_secrets_store.clone())
-        .with_encryption(SecretVaultAeadEncryption::new(AeadBackend::AwsLc).unwrap())
+        .with_encryption(SecretVaultAeadEncryption::<AwsLc>::new().unwrap())
         .build()
         .unwrap();
 

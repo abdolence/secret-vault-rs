@@ -32,7 +32,7 @@
 //!    let vault = SecretVaultBuilder::with_source(
 //!        aws::AwsSecretManagerSource::new(&config_env_var("ACCOUNT_ID")?).await?,
 //!    )
-//!    .with_encryption(aead_encryption::SecretVaultAeadEncryption::new(AeadBackend::AwsLc)?)
+//!    .with_encryption(aead_encryption::SecretVaultAeadEncryption::<AwsLc>::new()?)
 //!    .with_secret_refs(vec![&secret_ref1, &secret_ref2])
 //!    .build()?;
 //!

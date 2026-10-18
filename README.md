@@ -85,12 +85,12 @@ See the security consideration below about versioning.
   - `hashicorp-vault-transit-tls-aws-lc-rs` or `hashicorp-vault-transit-tls-ring`.
 
 #### Encryption Features
-The encryption runs on a crypto library a feature compiles in, and an `AeadBackend` value selects it at runtime, for example `AeadBackend::AwsLc`.
+The encryption runs on a crypto library a feature compiles in, and the type parameter of the encryption selects it, for example `SecretVaultAeadEncryption<AwsLc>`.
 A build may enable any number of them, and every KMS encryption feature above needs one, and so does `TempSecretGenSource`, which generates its secrets with the random generator of the backend:
-- `aws-lc` - [aws-lc-rs](https://crates.io/crates/aws-lc-rs), the crypto library the default TLS features already compile in
-- `aws-lc-fips` - aws-lc-rs on the AWS-LC FIPS module, which needs CMake and Go to build
-- `ring` - [ring](https://crates.io/crates/ring), with ChaCha20-Poly1305, AES-128-GCM and AES-256-GCM only
-- `rustcrypto` - the pure-Rust [RustCrypto](https://github.com/RustCrypto/AEADs) crates, with no C compiler needed
+- `aws-lc` - `AwsLc`, [aws-lc-rs](https://crates.io/crates/aws-lc-rs), the crypto library the default TLS features already compile in
+- `aws-lc-fips` - `AwsLc` on the AWS-LC FIPS module, which needs CMake and Go to build
+- `ring` - `Ring`, [ring](https://crates.io/crates/ring), with ChaCha20-Poly1305, AES-128-GCM and AES-256-GCM only
+- `rustcrypto` - `RustCrypto`, the pure-Rust [RustCrypto](https://github.com/RustCrypto/AEADs) crates, with no C compiler needed
 
 #### Utility Features
 - `serde` - Serde serialization support
@@ -168,7 +168,7 @@ let secret2 = SecretVaultRef::new("test-secret2".into())
 let vault = SecretVaultBuilder::with_source(
     gcp::GcpSecretManagerSource::new(&config_env_var("PROJECT_ID")?).await?,
 )
-    .with_encryption(aead_encryption::SecretVaultAeadEncryption::new(AeadBackend::AwsLc)?)
+    .with_encryption(aead_encryption::SecretVaultAeadEncryption::<AwsLc>::new()?)
     .with_secret_refs(vec![&secret1, &secret2])
     .build()?;
 
@@ -215,7 +215,7 @@ let credential = azure_identity::ManagedIdentityCredential::new(None)?;
 let vault = SecretVaultBuilder::with_source(
     azure::AzureKeyVaultSource::new("https://my-vault.vault.azure.net", credential)?,
 )
-    .with_encryption(aead_encryption::SecretVaultAeadEncryption::new(AeadBackend::AwsLc)?)
+    .with_encryption(aead_encryption::SecretVaultAeadEncryption::<AwsLc>::new()?)
     .with_secret_refs(vec![&SECRET_REF1, &SECRET_REF2])
     .build()?;
 ```
@@ -247,10 +247,9 @@ To run the example:
 The `azure-kms` feature encrypts the secrets in memory with a Key Vault or Managed HSM key, using envelope encryption: every value gets its own data encryption key, wrapped by the key.
 
 ```rust
-let encryption = azure::AzureKmsEnvelopeEncryption::new(
+let encryption = azure::AzureKmsEnvelopeEncryption::<AwsLc>::new(
     &azure::AzureKmsKeyRef::new("https://my-vault.vault.azure.net".into(), "secret-vault-key".into()),
     credential,
-    AeadBackend::AwsLc,
 )?;
 ```
 
@@ -285,7 +284,7 @@ let vault = SecretVaultBuilder::with_source(hashicorp::HashiCorpVaultSource::wit
         .with_mount("secret".into())
         .with_read_metadata(true),
 )?)
-    .with_encryption(aead_encryption::SecretVaultAeadEncryption::new(AeadBackend::AwsLc)?)
+    .with_encryption(aead_encryption::SecretVaultAeadEncryption::<AwsLc>::new()?)
     .with_secret_refs(vec![&DATABASE_SECRET_REF])
     .build()?;
 
@@ -336,9 +335,8 @@ The `hashicorp-vault-transit` feature encrypts the secrets in memory with a key 
 It reads `VAULT_ADDR`, `VAULT_TOKEN`, `VAULT_NAMESPACE` and `VAULT_CACERT` the same way as the source, and `with_options` with `HcVaultTransitProviderOptions` configures it in code.
 
 ```rust
-let encryption = hashicorp::HcVaultTransitEnvelopeEncryption::new(
+let encryption = hashicorp::HcVaultTransitEnvelopeEncryption::<AwsLc>::new(
     &hashicorp::HcVaultTransitKeyRef::new("secret-vault".into()),
-    AeadBackend::AwsLc,
 )?;
 ```
 
@@ -356,13 +354,12 @@ To run the example:
 It is meant for development, tests and single-host installs without a cloud KMS, and needs only a backend feature.
 
 ```rust
-let encryption = kms_encryption::LocalKmsEnvelopeEncryption::new(
+let encryption = kms_encryption::LocalKmsEnvelopeEncryption::<AwsLc>::new(
     kms_encryption::LocalKekId::try_from("my-app".to_string())?,
     vec![kms_encryption::LocalKek::from_file(
         kms_encryption::LocalKekVersion::from(NonZeroU32::MIN),
         Path::new("/run/credentials/my-app.service/kek"),
     )?],
-    AeadBackend::AwsLc,
 )?;
 ```
 

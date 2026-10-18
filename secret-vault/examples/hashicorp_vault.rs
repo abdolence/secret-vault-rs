@@ -25,9 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             .with_mount("secret".into())
             .with_read_metadata(true),
     )?)
-    .with_encryption(aead_encryption::SecretVaultAeadEncryption::new(
-        AeadBackend::AwsLc,
-    )?)
+    .with_encryption(aead_encryption::SecretVaultAeadEncryption::<AwsLc>::new()?)
     .with_secret_refs(vec![&SECRET_REF1, &SECRET_REF2])
     .build()?;
 

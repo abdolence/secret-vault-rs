@@ -57,34 +57,41 @@ impl SecretVaultEncryption for SecretVaultNoEncryption {
     }
 }
 
-/// The crypto library that seals the stored values, selected at runtime among the ones the `ring`,
-/// `aws-lc`, `aws-lc-fips` and `rustcrypto` features compile in.
 #[cfg(any(
     feature = "ring",
     feature = "aws-lc",
     feature = "aws-lc-fips",
     feature = "rustcrypto"
 ))]
-pub type AeadBackend = kms_aead::AeadBackend;
+pub use kms_aead::AeadAlgorithm;
 
-/// The AEAD algorithm of [`aead_encryption::SecretVaultAeadEncryption`](crate::aead_encryption::SecretVaultAeadEncryption).
+/// The backend is a type parameter of the encryption types and of `TempSecretGenSource`, such as
+/// `SecretVaultAeadEncryption<AwsLc>`: `Ring` with the `ring` feature, `AwsLc` with `aws-lc` or
+/// `aws-lc-fips`, and `RustCrypto` with `rustcrypto`.
 #[cfg(any(
     feature = "ring",
     feature = "aws-lc",
     feature = "aws-lc-fips",
     feature = "rustcrypto"
 ))]
-pub type AeadAlgorithm = kms_aead::AeadAlgorithm;
+pub use kms_aead::AeadBackend;
+
+#[cfg(any(feature = "aws-lc", feature = "aws-lc-fips"))]
+pub use kms_aead::AwsLc;
+#[cfg(feature = "ring")]
+pub use kms_aead::Ring;
+#[cfg(feature = "rustcrypto")]
+pub use kms_aead::RustCrypto;
 
 /// The backend the encryption tests run on: one of the backends the build has.
 #[cfg(all(test, feature = "ring"))]
-pub(crate) const TEST_BACKEND: AeadBackend = AeadBackend::Ring;
+pub(crate) type TestBackend = Ring;
 #[cfg(all(
     test,
     not(feature = "ring"),
     any(feature = "aws-lc", feature = "aws-lc-fips")
 ))]
-pub(crate) const TEST_BACKEND: AeadBackend = AeadBackend::AwsLc;
+pub(crate) type TestBackend = AwsLc;
 #[cfg(all(
     test,
     not(feature = "ring"),
@@ -92,7 +99,7 @@ pub(crate) const TEST_BACKEND: AeadBackend = AeadBackend::AwsLc;
     not(feature = "aws-lc-fips"),
     feature = "rustcrypto"
 ))]
-pub(crate) const TEST_BACKEND: AeadBackend = AeadBackend::RustCrypto;
+pub(crate) type TestBackend = RustCrypto;
 
 #[cfg(test)]
 mod tests {

@@ -1,7 +1,7 @@
 # Migrating from 3.0 to 3.1
 
 secret-vault 3.1 is built on kms-aead 0.30 and no longer depends on ring.
-The encryption runs on a crypto library a feature compiles in, and an `AeadBackend` value selects it at runtime.
+The encryption runs on a crypto library a feature compiles in, and a type parameter of the encryption selects it: `Ring`, `AwsLc` or `RustCrypto`.
 The vault keeps values in memory only, so no stored data needs to be migrated.
 
 ## Features
@@ -16,22 +16,21 @@ The vault keeps values in memory only, so no stored data needs to be migrated.
 
 ## AEAD encryption
 
-- `ring_encryption::SecretVaultRingAeadEncryption::new()` is `aead_encryption::SecretVaultAeadEncryption::new(AeadBackend::Ring)`, or another backend;
-- `SecretVaultRingAeadEncryption::with_algorithm(&ring::aead::CHACHA20_POLY1305)` is `SecretVaultAeadEncryption::with_algorithm(backend, AeadAlgorithm::ChaCha20Poly1305)`;
+- `ring_encryption::SecretVaultRingAeadEncryption::new()` is `aead_encryption::SecretVaultAeadEncryption::<Ring>::new()`, or another backend;
+- `SecretVaultRingAeadEncryption::with_algorithm(&ring::aead::CHACHA20_POLY1305)` is `SecretVaultAeadEncryption::<Ring>::with_algorithm(AeadAlgorithm::ChaCha20Poly1305)`;
 - the default algorithm stays AES-256-GCM.
 
 ## KMS envelope encryption
 
-- the constructors of `GcpKmsEnvelopeEncryption`, `AwsKmsEnvelopeEncryption`, `AzureKmsEnvelopeEncryption` and the Transit encryption take the backend as their last parameter;
+- `SecretVaultKmsEnvelopeEncryption<P>` is `SecretVaultKmsEnvelopeEncryption<P, B>` with the backend `B`, and so `GcpKmsEnvelopeEncryption`, `AwsKmsEnvelopeEncryption`, `AzureKmsEnvelopeEncryption` and the Transit encryption take the backend as a type parameter, for example `gcp::GcpKmsEnvelopeEncryption::<AwsLc>::new(&kms_key_ref).await?`;
 - the Azure and Transit constructors are not `async`, remove the `.await`;
 - `VaultTransitEnvelopeEncryption`, `VaultTransitKeyRef`, `VaultTransitProviderOptions` and `VaultTransitToken` are renamed to `HcVaultTransitEnvelopeEncryption`, `HcVaultTransitKeyRef`, `HcVaultTransitProviderOptions` and `HcVaultTransitToken`, the names of kms-aead 0.30;
-- `SecretVaultKmsEnvelopeEncryption` is no longer `UnwindSafe` and `RefUnwindSafe`;
-- `kms_encryption::LocalKmsEnvelopeEncryption` is new: envelope encryption with a key encryption key the process holds.
+- `kms_encryption::LocalKmsEnvelopeEncryption<B>` is new: envelope encryption with a key encryption key the process holds.
 
 ## Other changes
 
 - `generate_secret_value` is removed, it took a ring `SystemRandom`;
-- `TempSecretGenSource::with_options` takes the `AeadBackend` that generates the secrets as its last parameter, with `aws-lc-fips` they come from the DRBG of the FIPS module;
+- `TempSecretGenSource` takes the backend that generates the secrets as a type parameter, `TempSecretGenSource::<AwsLc>::with_options(options)?`, and with `aws-lc-fips` they come from the DRBG of the FIPS module;
 - a printable temporary secret with an odd `key_len` has `key_len` characters instead of one less;
 - the code of an `EncryptionError` from kms-aead is the kms-aead error code, such as `DECRYPT` or `IncorrectKeyException` from AWS KMS, instead of the `Debug` text of the error;
 - `SecretVaultKey::to_aad()` returns `&[u8]` instead of `Cow<'static, [u8]>`, `&key.to_aad()` still compiles where a `&[u8]` is expected;

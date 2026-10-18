@@ -36,7 +36,7 @@ gcloud-sdk = { version = "0.33", default-features = false, optional = true }
 aws-config = { version = "1", optional = true }
 aws-sdk-secretsmanager = { version = "1", optional = true, default-features = false, features = ["default-https-client", "rt-tokio"] }
 aws-sdk-kms = { version = "1", optional = true, default-features = false, features = ["default-https-client", "rt-tokio"] }
-kms-aead = { git = "https://github.com/abdolence/kms-aead-rs", rev = "4132f51f36a562a81316383c5b3db4edbfc53645", optional = true }
+kms-aead = { git = "https://github.com/abdolence/kms-aead-rs", rev = "896cae33d2cdb38cb084da588c846ac894cf2d42", optional = true }
 ahash = { version = "0.8", optional = true }
 azure_core = { version = "1.1", optional = true, default-features = false, features = ["reqwest", "tokio"] }
 azure_security_keyvault_secrets = { version = "1.0.1", optional = true, default-features = false }

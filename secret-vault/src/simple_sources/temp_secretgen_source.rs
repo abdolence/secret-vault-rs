@@ -1,9 +1,11 @@
 use crate::errors::*;
 use crate::*;
 use async_trait::*;
+use kms_aead::generate_random_bytes;
 use rsb_derive::*;
 use secret_vault_value::SecretValue;
 use std::collections::HashMap;
+use std::marker::PhantomData;
 use tracing::*;
 
 #[derive(Debug, Clone, Eq, PartialEq, Builder)]
@@ -18,14 +20,14 @@ pub struct TempSecretOptions {
 }
 
 impl TempSecretOptions {
-    fn generate_value(&self, backend: AeadBackend) -> SecretVaultResult<SecretValue> {
+    fn generate_value<B: AeadBackend>(&self) -> SecretVaultResult<SecretValue> {
         let random_len = if self.printable {
             self.key_len.div_ceil(2)
         } else {
             self.key_len
         };
 
-        let random = backend.generate_random_bytes(random_len).map_err(|e| {
+        let random = generate_random_bytes::<B>(random_len).map_err(|e| {
             SecretVaultError::SecretsSourceError(
                 SecretsSourceError::new(
                     SecretVaultErrorPublicGenericDetails::new(e.code().to_string()),
@@ -67,26 +69,23 @@ impl TempSecretGenSourceOptions {
     }
 }
 
-/// Generates the registered secrets from the CSPRNG of an AEAD backend. `AeadBackend::AwsLc` in a
-/// build with `aws-lc-fips` draws them from the DRBG of the FIPS module.
+/// Generates the registered secrets from the CSPRNG of the AEAD backend `B`. `AwsLc` in a build
+/// with `aws-lc-fips` draws them from the DRBG of the FIPS module.
 #[derive(Debug)]
-pub struct TempSecretGenSource {
+pub struct TempSecretGenSource<B> {
     options: TempSecretGenSourceOptions,
-    backend: AeadBackend,
     generated_secrets: HashMap<SecretVaultKey, SecretValue>,
+    backend: PhantomData<B>,
 }
 
-impl TempSecretGenSource {
+impl<B: AeadBackend> TempSecretGenSource<B> {
     /// Generates the secrets that are not regenerated on refresh now, and the others on each
-    /// refresh, from the CSPRNG of `backend`.
+    /// refresh.
     ///
     /// # Errors
     ///
     /// A `SecretsSourceError` with the code `RANDOM_GENERATOR` when the CSPRNG fails.
-    pub fn with_options(
-        options: TempSecretGenSourceOptions,
-        backend: AeadBackend,
-    ) -> SecretVaultResult<Self> {
+    pub fn with_options(options: TempSecretGenSourceOptions) -> SecretVaultResult<Self> {
         let secrets_to_pregen: Vec<(&SecretVaultKey, &TempSecretOptions)> = options
             .registered_secrets
             .iter()
@@ -97,19 +96,19 @@ impl TempSecretGenSource {
 
         for (key, options) in secrets_to_pregen {
             debug!("Pre-generating a new secret value for {:?}", key);
-            generated_secrets.insert(key.clone(), options.generate_value(backend)?);
+            generated_secrets.insert(key.clone(), options.generate_value::<B>()?);
         }
 
         Ok(Self {
             options,
-            backend,
             generated_secrets,
+            backend: PhantomData,
         })
     }
 }
 
 #[async_trait]
-impl SecretsSource for TempSecretGenSource {
+impl<B: AeadBackend> SecretsSource for TempSecretGenSource<B> {
     fn name(&self) -> String {
         "TempSecretGenSource".to_string()
     }
@@ -127,7 +126,7 @@ impl SecretsSource for TempSecretGenSource {
                         Some(secret_value) => secret_value.clone(),
                         None => {
                             debug!("Generating a new secret value for {:?}", secret_ref.key);
-                            secret_options.generate_value(self.backend)?
+                            secret_options.generate_value::<B>()?
                         }
                     };
 
@@ -167,7 +166,7 @@ mod tests {
 
     #[tokio::test]
     async fn generated_secrets_have_the_requested_length() -> SecretVaultResult<()> {
-        let source = TempSecretGenSource::with_options(
+        let source = TempSecretGenSource::<TestBackend>::with_options(
             TempSecretGenSourceOptions::new()
                 .add_secret_generator(&PRINTABLE_SECRET.key, TempSecretOptions::new(33))
                 .add_secret_generator(
@@ -176,7 +175,6 @@ mod tests {
                         .with_printable(false)
                         .with_regenerate_on_refresh(true),
                 ),
-            TEST_BACKEND,
         )?;
 
         let secrets = source

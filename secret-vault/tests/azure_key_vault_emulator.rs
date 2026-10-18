@@ -272,31 +272,28 @@ mod kms {
 
     #[tokio::test]
     #[ignore = "needs the Lowkey Vault emulator, see the module docs"]
-    async fn value_round_trips_through_azure_kms_envelope_encryption() {
+    async fn value_round_trips_through_azure_kms_envelope_encryption() -> SecretVaultResult<()> {
         let emulator = Emulator::connect();
         let key_name = unique_name("secret-vault-dek");
         let key_version = create_rsa_key(&emulator.vault_url, &key_name).await;
-        let encryption = AzureKmsEnvelopeEncryption::with_options(
+        let encryption = AzureKmsEnvelopeEncryption::<AwsLc>::with_options(
             &AzureKmsKeyRef::new(emulator.vault_url.clone(), key_name)
                 .with_key_version(key_version),
             AzureKmsProviderOptions::new().with_client_options(key_client_options()),
             Arc::new(EmulatorCredential),
-            AeadBackend::AwsLc,
-        )
-        .unwrap();
+        )?;
         let secret_vault_key = SecretVaultKey::new(SecretName::from_static("db-password"));
         let secret_value = SecretValue::from("test-secret");
 
         let encrypted_value = encryption
             .encrypt_value(&secret_vault_key, &secret_value)
-            .await
-            .unwrap();
+            .await?;
         assert_ne!(encrypted_value.value(), secret_value.ref_sensitive_value());
 
         let decrypted_value = encryption
             .decrypt_value(&secret_vault_key, &encrypted_value)
-            .await
-            .unwrap();
-        assert_eq!(decrypted_value.as_sensitive_str(), "test-secret");
+            .await?;
+        assert_eq!(decrypted_value, secret_value);
+        Ok(())
     }
 }

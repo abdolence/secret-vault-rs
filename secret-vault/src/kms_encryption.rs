@@ -8,29 +8,26 @@ use rvstruct::ValueStruct;
 use secret_vault_value::SecretValue;
 
 /// Envelope encryption with an AES-256-GCM data encryption key per value, wrapped by the KMS
-/// key of the provider `P`. The AEAD runs on the backend the encryption is created with. Each
-/// provider has an alias with its constructors, such as `gcp::GcpKmsEnvelopeEncryption`.
+/// key of the provider `P`, with the AEAD on the backend `B`. Each provider has an alias with its
+/// constructors, such as `gcp::GcpKmsEnvelopeEncryption<B>`.
 ///
 /// No data encryption key is cached: every read unwraps the key of its value with the KMS.
 ///
 /// Errors are `EncryptionError`s with the kms-aead code, which for a failed KMS call is the
 /// code the KMS returned, such as `PermissionDenied` from Google Cloud KMS or
 /// `IncorrectKeyException` from AWS KMS.
-pub struct SecretVaultKmsEnvelopeEncryption<P>
-where
-    P: KmsAeadEncryptionProvider + Send + Sync,
-{
-    envelope: KmsAeadEnvelope<P>,
+pub struct SecretVaultKmsEnvelopeEncryption<P, B> {
+    envelope: KmsAeadEnvelope<P, B>,
 }
 
-impl<P> SecretVaultKmsEnvelopeEncryption<P>
+impl<P, B> SecretVaultKmsEnvelopeEncryption<P, B>
 where
     P: KmsAeadEncryptionProvider + Send + Sync,
+    B: AeadBackend,
 {
-    pub(crate) fn with_provider(provider: P, backend: AeadBackend) -> SecretVaultResult<Self> {
+    pub(crate) fn with_provider(provider: P) -> SecretVaultResult<Self> {
         let envelope = KmsAeadEnvelope::with_options(
             provider,
-            backend,
             KmsAeadEnvelopeOptions::new().with_algorithm(AeadAlgorithm::Aes256Gcm),
         )?;
         Ok(Self { envelope })
@@ -38,9 +35,10 @@ where
 }
 
 #[async_trait]
-impl<P> SecretVaultEncryption for SecretVaultKmsEnvelopeEncryption<P>
+impl<P, B> SecretVaultEncryption for SecretVaultKmsEnvelopeEncryption<P, B>
 where
     P: KmsAeadEncryptionProvider + Send + Sync,
+    B: AeadBackend,
 {
     async fn encrypt_value(
         &self,
@@ -92,29 +90,23 @@ pub type LocalKekVersion = kms_aead::providers::LocalKekVersion;
 pub type LocalKek = kms_aead::providers::LocalKek;
 
 /// Envelope encryption with the data encryption keys wrapped by a key encryption key the process
-/// holds, for development, tests and single-host installs without a cloud KMS.
+/// holds, for development, tests and single-host installs without a cloud KMS. The backend `B`
+/// seals both the values and the keys.
 ///
 /// The limits of [`kms_aead::providers::LocalKmsProvider`] apply: each value the vault stores, on
 /// every refresh, costs one wrap under the KEK.
-pub type LocalKmsEnvelopeEncryption =
-    SecretVaultKmsEnvelopeEncryption<kms_aead::providers::LocalKmsProvider>;
+pub type LocalKmsEnvelopeEncryption<B> =
+    SecretVaultKmsEnvelopeEncryption<kms_aead::providers::LocalKmsProvider<B>, B>;
 
-impl LocalKmsEnvelopeEncryption {
+impl<B: AeadBackend> LocalKmsEnvelopeEncryption<B> {
     /// Wraps the data encryption keys with the KEK `id`, whose highest version in `keks` wraps
-    /// and every version unwraps, with AES-256-GCM on `backend` for both the values and the keys.
+    /// and every version unwraps, with AES-256-GCM for both the values and the keys.
     ///
     /// # Errors
     ///
     /// `LOCAL_KEK_VERSIONS` when `keks` is empty or lists a version twice.
-    pub fn new(
-        id: LocalKekId,
-        keks: Vec<LocalKek>,
-        backend: AeadBackend,
-    ) -> SecretVaultResult<Self> {
-        Self::with_provider(
-            kms_aead::providers::LocalKmsProvider::new(id, keks, backend)?,
-            backend,
-        )
+    pub fn new(id: LocalKekId, keks: Vec<LocalKek>) -> SecretVaultResult<Self> {
+        Self::with_provider(kms_aead::providers::LocalKmsProvider::new(id, keks)?)
     }
 }
 
@@ -124,7 +116,7 @@ mod tests {
     use crate::errors::SecretVaultError;
     use std::num::NonZeroU32;
 
-    fn local_kms_encryption() -> SecretVaultResult<LocalKmsEnvelopeEncryption> {
+    fn local_kms_encryption() -> SecretVaultResult<LocalKmsEnvelopeEncryption<TestBackend>> {
         let kek = LocalKek::from_secret(
             LocalKekVersion::from(NonZeroU32::MIN),
             SecretValue::new(vec![42; 32]),
@@ -132,7 +124,6 @@ mod tests {
         LocalKmsEnvelopeEncryption::new(
             LocalKekId::try_from("secret-vault-test".to_string())?,
             vec![kek],
-            TEST_BACKEND,
         )
     }
 
