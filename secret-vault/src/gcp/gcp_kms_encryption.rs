@@ -15,8 +15,7 @@ impl<B: AeadBackend> GcpKmsEnvelopeEncryption<B> {
     ///
     /// # Errors
     ///
-    /// An `EncryptionError` when the client cannot be built, such as when no credentials are
-    /// found.
+    /// A `SystemError` when the client cannot be built, such as when no credentials are found.
     pub async fn new(kms_key_ref: &GcpKmsKeyRef) -> SecretVaultResult<Self> {
         Self::with_provider(kms_aead::providers::GcpKmsProvider::new(kms_key_ref).await?)
     }

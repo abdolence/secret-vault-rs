@@ -52,7 +52,7 @@ Creating the types with `new()`, `"name".into()`, `String::into()` and `parse()`
 ## Custom encryption implementations
 
 - the `From` conversions between `EncryptedSecretValue` and the kms-aead `CipherText` and `CipherTextWithEncryptedKey` are replaced by one pair for kms-aead 0.30's `Encrypted<SecretValue, F>` in any format `F`: `From<Encrypted<SecretValue, F>>` for `EncryptedSecretValue`, and `TryFrom<EncryptedSecretValue>` for `Encrypted<SecretValue, F>`, which checks the bytes against the layout of `F` and fails with `INVALID_CIPHER_TEXT_FORMAT` outside it, so custom `SecretVaultEncryption` implementations write `Encrypted::<SecretValue, Bare>::try_from(value)?` where they wrote `value.into()`;
-- `SecretVaultKey::to_aad()` returns `&[u8]` instead of `&String`, pass `key.to_aad()` to kms-aead;
+- `SecretVaultKey::to_aad()` returns `&[u8]` instead of `Cow<'static, [u8]>`, pass `key.to_aad()` to kms-aead;
 - implementations built on kms-aead types move to kms-aead 0.30 as well.
 
 ## Errors

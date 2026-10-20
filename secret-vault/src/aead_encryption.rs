@@ -1,6 +1,8 @@
 use async_trait::async_trait;
-use kms_aead::formats::Bare;
+use kms_aead::errors::KmsAeadError;
+use kms_aead::formats::{Bare, Format};
 use kms_aead::{AeadCipher, DataEncryptionKey, Encrypted};
+use rvstruct::ValueStruct;
 use secret_vault_value::SecretValue;
 
 use crate::backends::AeadBackend;
@@ -13,8 +15,8 @@ use crate::{
 /// its secret name, the additional authenticated data, so it only decrypts under the key it was
 /// stored with.
 ///
-/// Errors are `EncryptionError`s with the kms-aead code, such as `DECRYPT` for a value that is not
-/// authentic under the key and the secret name.
+/// Encrypting and decrypting fail with `EncryptionError`s with the kms-aead code, such as `DECRYPT`
+/// for a value that is not authentic under the key and the secret name.
 pub struct SecretVaultAeadEncryption<B> {
     cipher: AeadCipher<B>,
     dek: DataEncryptionKey,
@@ -34,8 +36,9 @@ impl<B: AeadBackend> SecretVaultAeadEncryption<B> {
     ///
     /// # Errors
     ///
-    /// `UNSUPPORTED_ALGORITHM` when the backend does not implement `algorithm`, such as `Ring`
-    /// for AES-256-GCM-SIV, and `RANDOM_GENERATOR` when the CSPRNG fails.
+    /// A `SystemError` with `UNSUPPORTED_ALGORITHM` when the backend does not implement
+    /// `algorithm`, such as `Ring` for AES-256-GCM-SIV, and `RANDOM_GENERATOR` when the CSPRNG
+    /// fails.
     pub fn with_algorithm(algorithm: AeadAlgorithm) -> SecretVaultResult<Self> {
         let cipher = AeadCipher::new(algorithm)?;
         let dek = cipher.generate_dek()?;
@@ -69,6 +72,27 @@ impl<B: AeadBackend> SecretVaultEncryption for SecretVaultAeadEncryption<B> {
     }
 }
 
+/// Stores the bytes of a value in the format `F`, as they are.
+impl<F: Format> From<Encrypted<SecretValue, F>> for EncryptedSecretValue {
+    fn from(encrypted: Encrypted<SecretValue, F>) -> Self {
+        EncryptedSecretValue(encrypted.into_value())
+    }
+}
+
+/// Reads the stored bytes as a value of the format `F`.
+///
+/// # Errors
+///
+/// The errors of kms-aead's `TryFrom<Vec<u8>>` for `Encrypted`, such as
+/// `INVALID_CIPHER_TEXT_FORMAT` for bytes outside the layout of `F`.
+impl<F: Format> TryFrom<EncryptedSecretValue> for Encrypted<SecretValue, F> {
+    type Error = KmsAeadError;
+
+    fn try_from(stored: EncryptedSecretValue) -> Result<Self, Self::Error> {
+        Encrypted::try_from(stored.into_value())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -78,7 +102,6 @@ mod tests {
     use proptest::prelude::*;
     use proptest::strategy::ValueTree;
     use proptest::test_runner::TestRunner;
-    use rvstruct::ValueStruct;
 
     async fn encryption_test_for(mock_secret_value: SecretValue) -> SecretVaultResult<()> {
         let mock_secret_name: SecretName = "test".to_string().into();
@@ -166,5 +189,17 @@ mod tests {
             "{decrypted:?}"
         );
         Ok(())
+    }
+
+    #[cfg(feature = "ring")]
+    #[test]
+    fn algorithm_the_backend_lacks_is_a_system_error() {
+        let encryption = SecretVaultAeadEncryption::<crate::backends::Ring>::with_algorithm(
+            AeadAlgorithm::Aes256GcmSiv,
+        );
+
+        assert!(
+            matches!(&encryption, Err(SecretVaultError::SystemError(e)) if e.public.code == "UNSUPPORTED_ALGORITHM")
+        );
     }
 }

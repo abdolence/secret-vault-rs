@@ -354,9 +354,10 @@ impl From<azure_core::Error> for SecretVaultError {
 }
 
 /// A KMS that could not be reached, timed out or throttled is a `NetworkError`, which a caller may
-/// retry. Invalid provider options or a KMS client that cannot be built are a `SystemError`. Every
-/// other kms-aead error, including a permission, not-found or invalid-key failure from the KMS, is
-/// an `EncryptionError`. Each keeps the kms-aead code.
+/// retry. Invalid provider options, an algorithm the backend does not implement or a KMS client that
+/// cannot be built are a `SystemError`. Every other kms-aead error, including a permission,
+/// not-found or invalid-key failure from the KMS, is an `EncryptionError`. Each keeps the kms-aead
+/// code.
 #[cfg(any(
     feature = "ring",
     feature = "aws-lc",
@@ -371,7 +372,8 @@ impl From<kms_aead::errors::KmsAeadError> for SecretVaultError {
             kms_aead::errors::KmsAeadError::NetworkError(_) => {
                 SecretVaultError::NetworkError(SecretVaultNetworkError::new(public, message))
             }
-            kms_aead::errors::KmsAeadError::SystemError(_) => {
+            kms_aead::errors::KmsAeadError::SystemError(_)
+            | kms_aead::errors::KmsAeadError::UnsupportedAlgorithm(_) => {
                 SecretVaultError::SystemError(SecretVaultSystemError::new(public, message))
             }
             _ => {

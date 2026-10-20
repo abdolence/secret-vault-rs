@@ -13,7 +13,8 @@ pub type HcVaultTransitEnvelopeEncryption<B> =
 
 impl<B: AeadBackend> HcVaultTransitEnvelopeEncryption<B> {
     /// Same as [`Self::with_options`] with [`HcVaultTransitProviderOptions::from_env`], which
-    /// reads `VAULT_ADDR`, `VAULT_TOKEN`, `VAULT_NAMESPACE` and `VAULT_CACERT`.
+    /// reads `VAULT_ADDR`, `VAULT_TOKEN`, `VAULT_NAMESPACE`, `VAULT_CACERT` and
+    /// `VAULT_CLIENT_TIMEOUT`.
     ///
     /// # Errors
     ///

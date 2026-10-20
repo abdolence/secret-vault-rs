@@ -1,11 +1,11 @@
 # Contributing
 
 Welcome! Please read this document to understand what you can do:
-* [Analyse Issues](#analyse-issues)
+* [Analyse issues](#analyse-issues)
 * [Report an Issue](#report-an-issue)
 * [Contribute Code](#contribute-code)
 
-## Analyse Issues
+## Analyse issues
 
 Analysing issue reports can be a lot of effort. Any help is welcome!
 Go to the GitHub issue tracker and find an open issue which needs additional work or a bugfix (e.g. issues labelled with "help wanted" or "bug").

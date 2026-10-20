@@ -332,7 +332,7 @@ VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=dev-root cargo test -p secret-vault
 ```
 
 The `hashicorp-vault-transit` feature encrypts the secrets in memory with a key of the Transit secrets engine, using envelope encryption: every value gets its own data encryption key (DEK), encrypted by the Transit key.
-It reads `VAULT_ADDR`, `VAULT_TOKEN`, `VAULT_NAMESPACE` and `VAULT_CACERT` the same way as the source, and `with_options` with `HcVaultTransitProviderOptions` configures it in code.
+It reads `VAULT_ADDR`, `VAULT_TOKEN`, `VAULT_NAMESPACE`, `VAULT_CACERT` and `VAULT_CLIENT_TIMEOUT` the same way as the source, and `with_options` with `HcVaultTransitProviderOptions` configures it in code.
 
 ```rust
 let encryption = hashicorp::HcVaultTransitEnvelopeEncryption::<AwsLc>::new(
