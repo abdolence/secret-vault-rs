@@ -4,6 +4,7 @@ use crate::*;
 use azure_core::credentials::TokenCredential;
 use std::sync::Arc;
 
+pub type AzureKmsAlgorithm = kms_aead::providers::AzureKmsAlgorithm;
 pub type AzureKmsKeyRef = kms_aead::providers::AzureKmsKeyRef;
 pub type AzureKmsProviderOptions = kms_aead::providers::AzureKmsProviderOptions;
 pub type KekVersion = kms_aead::providers::KekVersion;
@@ -36,9 +37,8 @@ impl<B: AeadBackend> AzureKmsEnvelopeEncryption<B> {
     ///
     /// # Errors
     ///
-    /// `AZURE_KEY_NAME` when the key name holds characters Key Vault does not allow in it,
-    /// `AZURE_WRAP_ALGORITHM` when the algorithm is `Rsa1_5` or unknown, and `AZURE_VAULT_URL`
-    /// when the vault URL is not an HTTP(S) URL.
+    /// `AZURE_KEY_NAME` when the key name holds characters Key Vault does not allow in it, and
+    /// `AZURE_VAULT_URL` when the vault URL is not an HTTP(S) URL.
     pub fn with_options(
         kms_key_ref: &AzureKmsKeyRef,
         options: AzureKmsProviderOptions,

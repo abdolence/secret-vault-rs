@@ -19,7 +19,8 @@ The minimum supported Rust version is 1.99, the version kms-aead 0.30 needs.
 - `gcp-kms-tls-roots` and `gcp-kms-webpki` are removed, use `gcp-kms` with `gcp-tls-roots` or `gcp-tls-webpki`;
 - `aws-kms` is removed, use `aws-kms-encryption`;
 - `kms` and `kms-aead`, the feature of the optional dependency, are removed, the backend and KMS encryption features enable kms-aead themselves;
-- `TempSecretGenSource` needs a backend feature instead of `ring-aead-encryption`.
+- `TempSecretGenSource` needs a backend feature instead of `ring-aead-encryption`;
+- `opentelemetry` is new, it turns on the OpenTelemetry metrics of kms-aead for the encryption of stored values.
 
 ## Secret names and refs
 
@@ -47,6 +48,7 @@ Creating the types with `new()`, `"name".into()`, `String::into()` and `parse()`
 - the encryptions for Azure Key Vault and HashiCorp Vault Transit, `azure::AzureKmsEnvelopeEncryption<B>` and `hashicorp::HcVaultTransitEnvelopeEncryption<B>`, take the backend the same way, and their constructors are not `async`, so the `.await` of 3.0 code goes;
 - the 3.0 names `VaultTransitEnvelopeEncryption`, `VaultTransitKeyRef`, `VaultTransitProviderOptions` and `VaultTransitToken` are `HcVaultTransitEnvelopeEncryption`, `HcVaultTransitKeyRef`, `HcVaultTransitProviderOptions` and `HcVaultTransitToken`, the names of kms-aead 0.30;
 - the 3.0 `azure::KmsKeyVersion` is `azure::KekVersion`, and the `key_version` field of `AzureKmsKeyRef` is `kek_version`, set with `with_kek_version`, the names of kms-aead 0.30;
+- the `algorithm` of `AzureKmsProviderOptions` is `azure::AzureKmsAlgorithm` instead of the Azure SDK's `EncryptionAlgorithm`, with the variant names of kms-aead 0.30, for example `RsaOaepSha256` for `RsaOaep256`, and without `Rsa1_5`;
 - the AEAD encryption stores its values in kms-aead's `Bare` format and the KMS envelope encryption in its `Envelope` format, Tink's KMS envelope format.
 
 ## Custom encryption implementations

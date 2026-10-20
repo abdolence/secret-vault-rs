@@ -22,7 +22,7 @@ pub struct SecretVaultKmsEnvelopeEncryption<P, B> {
 
 impl<P, B> SecretVaultKmsEnvelopeEncryption<P, B>
 where
-    P: KmsAeadEncryptionProvider + Send + Sync,
+    P: KmsAeadEncryptionProvider,
     B: AeadBackend,
 {
     pub(crate) fn with_provider(provider: P) -> SecretVaultResult<Self> {
@@ -37,7 +37,7 @@ where
 #[async_trait]
 impl<P, B> SecretVaultEncryption for SecretVaultKmsEnvelopeEncryption<P, B>
 where
-    P: KmsAeadEncryptionProvider + Send + Sync,
+    P: KmsAeadEncryptionProvider,
     B: AeadBackend,
 {
     async fn encrypt_value(

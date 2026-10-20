@@ -95,6 +95,7 @@ A build may enable any number of them, and every KMS encryption feature above ne
 #### Utility Features
 - `serde` - Serde serialisation support
 - `ahash` - Uses [AHashMap](https://crates.io/crates/ahash) for maps and snapshots
+- `opentelemetry` - OpenTelemetry metrics of the encryption of stored values, recorded by kms-aead with its `opentelemetry` feature, needs a backend feature
 
 ### Feature Flag Examples
 
