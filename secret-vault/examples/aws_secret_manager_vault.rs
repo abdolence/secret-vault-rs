@@ -1,3 +1,4 @@
+use secret_vault::backends::AwsLc;
 use secret_vault::*;
 
 // Describing secrets and marking them non-required
@@ -30,7 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         )
         .await?,
     )
-    .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
+    .with_encryption(aead_encryption::SecretVaultAeadEncryption::<AwsLc>::new()?)
     .with_secret_refs(vec![&SECRET_REF1, &SECRET_REF2])
     .build()?;
 

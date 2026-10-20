@@ -8,7 +8,7 @@ use std::fmt;
 /// [`SecretVaultNoEncryption`]. `Debug` prints `***` in place of the bytes.
 ///
 /// The vault wipes the bytes it stores when it replaces or drops them, but this type does not
-/// wipe itself: bytes moved or cloned out of it are the caller's to zeroize.
+/// wipe itself: bytes moved or cloned out of it are the caller's to zeroise.
 #[derive(Clone, Eq, PartialEq, ValueStruct)]
 pub struct EncryptedSecretValue(pub Vec<u8>);
 
@@ -57,33 +57,31 @@ impl SecretVaultEncryption for SecretVaultNoEncryption {
     }
 }
 
-#[cfg(any(feature = "kms", feature = "ring-aead-encryption"))]
-impl From<kms_aead::CipherText> for EncryptedSecretValue {
-    fn from(kms_aead_value: kms_aead::CipherText) -> Self {
-        EncryptedSecretValue(kms_aead_value.value().to_owned())
-    }
-}
+#[cfg(any(
+    feature = "ring",
+    feature = "aws-lc",
+    feature = "aws-lc-fips",
+    feature = "rustcrypto"
+))]
+pub use kms_aead::AeadAlgorithm;
 
-#[cfg(any(feature = "kms", feature = "ring-aead-encryption"))]
-impl From<kms_aead::CipherTextWithEncryptedKey> for EncryptedSecretValue {
-    fn from(kms_aead_value: kms_aead::CipherTextWithEncryptedKey) -> Self {
-        EncryptedSecretValue(kms_aead_value.value().to_owned())
-    }
-}
-
-#[cfg(any(feature = "kms", feature = "ring-aead-encryption"))]
-impl From<EncryptedSecretValue> for kms_aead::CipherText {
-    fn from(encrypted_value: EncryptedSecretValue) -> Self {
-        kms_aead::CipherText(encrypted_value.value().to_owned())
-    }
-}
-
-#[cfg(any(feature = "kms", feature = "ring-aead-encryption"))]
-impl From<EncryptedSecretValue> for kms_aead::CipherTextWithEncryptedKey {
-    fn from(encrypted_value: EncryptedSecretValue) -> Self {
-        kms_aead::CipherTextWithEncryptedKey(encrypted_value.value().to_owned())
-    }
-}
+/// The backend the encryption tests run on: one of the backends the build has.
+#[cfg(all(test, feature = "ring"))]
+pub(crate) type TestBackend = crate::backends::Ring;
+#[cfg(all(
+    test,
+    not(feature = "ring"),
+    any(feature = "aws-lc", feature = "aws-lc-fips")
+))]
+pub(crate) type TestBackend = crate::backends::AwsLc;
+#[cfg(all(
+    test,
+    not(feature = "ring"),
+    not(feature = "aws-lc"),
+    not(feature = "aws-lc-fips"),
+    feature = "rustcrypto"
+))]
+pub(crate) type TestBackend = crate::backends::RustCrypto;
 
 #[cfg(test)]
 mod tests {

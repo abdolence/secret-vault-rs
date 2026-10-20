@@ -1,3 +1,4 @@
+use secret_vault::backends::AwsLc;
 use secret_vault::*;
 
 // Describing secrets and marking them non-required
@@ -27,13 +28,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         &vault_url,
         credential.clone(),
     )?)
-    .with_encryption(
-        azure::AzureKmsEnvelopeEncryption::new(
-            &azure::AzureKmsKeyRef::new(vault_url, kms_key_name),
-            credential,
-        )
-        .await?,
-    )
+    .with_encryption(azure::AzureKmsEnvelopeEncryption::<AwsLc>::new(
+        &azure::AzureKmsKeyRef::new(vault_url, kms_key_name),
+        credential,
+    )?)
     .with_secret_refs(vec![&SECRET_REF])
     .build()?;
 

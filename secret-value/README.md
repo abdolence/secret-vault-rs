@@ -2,14 +2,14 @@
 ![tests and formatting](https://github.com/abdolence/secret-vault-rs/workflows/tests%20&amp;%20formatting/badge.svg)
 ![security audit](https://github.com/abdolence/secret-vault-rs/workflows/security%20audit/badge.svg)
 ![unsafe](https://img.shields.io/badge/unsafe-forbidden-success.svg)
-![license](https://img.shields.io/github/license/abdolence/secret-vault-rs)
+![licence](https://img.shields.io/github/license/abdolence/secret-vault-rs)
 
 ## Secret value type
-A secure and serializable type for any kind of secret:
- - Zeroizes its bytes in memory when dropped, using [zeroize](https://docs.rs/zeroize/latest/zeroize/);
+A secure and serialisable type for any kind of secret:
+ - Zeroises its bytes in memory when dropped, using [zeroize](https://docs.rs/zeroize/latest/zeroize/);
  - Prints `***` in `Debug` and `Display`, so it does not leak into logs and panic messages;
  - Stores bytes, so it fits binary secrets too;
- - Lends copies to closures with the `exposed_in_*` methods and zeroizes them afterwards;
+ - Lends copies to closures with the `exposed_in_*` methods and zeroises them afterwards;
  - Parses JSON embedded in a secret with `expose_json_value_as`;
  - Encodes and decodes hex and base64.
 
@@ -25,7 +25,7 @@ assert_eq!(format!("{secret_value:?}"), "***");
 let password: &str = secret_value.as_sensitive_str();
 let bytes: &[u8] = secret_value.as_sensitive_bytes();
 
-// The copy passed to the closure is zeroized when the closure is done
+// The copy passed to the closure is zeroised when the closure is done
 let length = secret_value.exposed_in_as_zstr(|password| password.len());
 
 // Async closures work the same way
@@ -51,8 +51,8 @@ secret-vault-value = { version = "1.0", features = ["..."] }
 See security consideration below about versioning.
 
 ### Available optional features for secret value type:
-- `serde` for serde serialization support, it also brings `serde_json` for `expose_json_value_as`;
-- `proto` for protobuf serialization support;
+- `serde` for serde serialisation support, it also brings `serde_json` for `expose_json_value_as`;
+- `proto` for protobuf serialisation support;
 - `bytes` for `BytesMut` conversion support;
 - `hex` for hex conversion support;
 - `base64` for base64 conversion support.

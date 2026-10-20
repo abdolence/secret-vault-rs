@@ -4,6 +4,6 @@ mod hashicorp_vault_source;
 pub use hashicorp_vault_source::*;
 
 #[cfg(feature = "hashicorp-vault-transit-base")]
-mod vault_transit_encryption;
+mod hc_vault_transit_encryption;
 #[cfg(feature = "hashicorp-vault-transit-base")]
-pub use vault_transit_encryption::*;
+pub use hc_vault_transit_encryption::*;

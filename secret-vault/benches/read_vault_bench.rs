@@ -4,7 +4,8 @@ use criterion::*;
 
 use proptest::prelude::*;
 use proptest::test_runner::TestRunner;
-use secret_vault::ring_encryption::SecretVaultRingAeadEncryption;
+use secret_vault::aead_encryption::SecretVaultAeadEncryption;
+use secret_vault::backends::AwsLc;
 use secret_vault::*;
 use secret_vault_value::SecretValue;
 use std::hint::black_box;
@@ -69,7 +70,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
 
     let mut vault_with_encryption = SecretVaultBuilder::with_source(mock_secrets_store.clone())
-        .with_encryption(SecretVaultRingAeadEncryption::new().unwrap())
+        .with_encryption(SecretVaultAeadEncryption::<AwsLc>::new().unwrap())
         .build()
         .unwrap();
 

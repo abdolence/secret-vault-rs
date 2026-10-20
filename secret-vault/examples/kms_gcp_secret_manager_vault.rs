@@ -1,3 +1,4 @@
+use secret_vault::backends::AwsLc;
 use secret_vault::*;
 
 // Describing secrets and marking them non-required
@@ -25,7 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         gcp::GcpSecretManagerSource::new(&google_project_id).await?,
     )
     .with_encryption(
-        gcp::GcpKmsEnvelopeEncryption::new(&gcp::GcpKmsKeyRef::new(
+        gcp::GcpKmsEnvelopeEncryption::<AwsLc>::new(&gcp::GcpKmsKeyRef::new(
             google_project_id,
             google_project_location,
             google_kms_key_ring,

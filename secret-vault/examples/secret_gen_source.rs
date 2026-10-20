@@ -1,3 +1,4 @@
+use secret_vault::backends::AwsLc;
 use secret_vault::*;
 use std::ops::Deref;
 
@@ -14,7 +15,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     tracing::subscriber::set_global_default(subscriber)?;
 
     // Building the vault with files source
-    let vault = SecretVaultBuilder::with_source(TempSecretGenSource::with_options(
+    let vault = SecretVaultBuilder::with_source(TempSecretGenSource::<AwsLc>::with_options(
         TempSecretGenSourceOptions::new()
             .add_secret_generator(
                 &SECRET_REF1.key,

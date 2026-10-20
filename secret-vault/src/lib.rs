@@ -13,7 +13,7 @@
 //! ## Features
 //! - Reading/caching registered secrets and their metadata in memory from defined sources;
 //! - Extensible and strongly typed API to be able to implement any kind of sources;
-//! - Memory encryption using AEAD cryptography (optional);
+//! - Memory encryption using AEAD cryptography on ring, aws-lc-rs (also its FIPS module) or RustCrypto, through the `ring`, `aws-lc`, `aws-lc-fips` or `rustcrypto` feature (optional);
 //! - Memory encryption using Google/AWS/Azure KMS or HashiCorp Vault Transit envelope encryption (<https://cloud.google.com/kms/docs/envelope-encryption>) (optional);
 //! - Automatic refresh secrets from the sources support (optional);
 //! - Multi-sources support;
@@ -32,7 +32,7 @@
 //!    let vault = SecretVaultBuilder::with_source(
 //!        aws::AwsSecretManagerSource::new(&config_env_var("ACCOUNT_ID")?).await?,
 //!    )
-//!    .with_encryption(ring_encryption::SecretVaultRingAeadEncryption::new()?)
+//!    .with_encryption(aead_encryption::SecretVaultAeadEncryption::<AwsLc>::new()?)
 //!    .with_secret_refs(vec![&secret_ref1, &secret_ref2])
 //!    .build()?;
 //!
@@ -158,6 +158,15 @@ mod encryption;
 pub use encryption::*;
 
 pub mod errors;
+
+#[cfg(any(
+    feature = "ring",
+    feature = "aws-lc",
+    feature = "aws-lc-fips",
+    feature = "rustcrypto"
+))]
+pub mod backends;
+
 mod secrets_source;
 pub use secrets_source::*;
 
@@ -169,8 +178,13 @@ mod vault_store;
 mod common_types;
 pub use common_types::*;
 
-#[cfg(feature = "ring-aead-encryption")]
-pub mod ring_encryption;
+#[cfg(any(
+    feature = "ring",
+    feature = "aws-lc",
+    feature = "aws-lc-fips",
+    feature = "rustcrypto"
+))]
+pub mod aead_encryption;
 
 #[cfg(any(
     feature = "gcp-kms-base",

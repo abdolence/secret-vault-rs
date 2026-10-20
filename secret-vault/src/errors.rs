@@ -304,22 +304,6 @@ impl<E: Display + Error + Sync + Send + 'static, R: std::fmt::Debug + Sync + Sen
     }
 }
 
-#[cfg(not(feature = "aws-secretmanager"))]
-#[cfg(feature = "aws-kms-encryption")]
-impl<E: Display + Error + Sync + Send + 'static, R: std::fmt::Debug + Sync + Send + 'static>
-    From<aws_sdk_kms::error::SdkError<E, R>> for SecretVaultError
-{
-    fn from(e: aws_sdk_kms::error::SdkError<E, R>) -> Self {
-        SecretVaultError::SecretsSourceError(
-            SecretsSourceError::new(
-                SecretVaultErrorPublicGenericDetails::new(format!("{e}")),
-                format!("AWS KMS error: {e}"),
-            )
-            .with_root_cause(Box::new(e)),
-        )
-    }
-}
-
 #[cfg(feature = "azure-keyvault-base")]
 impl From<azure_core::Error> for SecretVaultError {
     /// An HTTP response error keeps only its status and service error code: for a body that is
@@ -369,13 +353,33 @@ impl From<azure_core::Error> for SecretVaultError {
     }
 }
 
-#[cfg(any(feature = "kms", feature = "ring-aead-encryption"))]
+/// A KMS that could not be reached, timed out or throttled is a `NetworkError`, which a caller may
+/// retry. Invalid provider options, an algorithm the backend does not implement or a KMS client that
+/// cannot be built are a `SystemError`. Every other kms-aead error, including a permission,
+/// not-found or invalid-key failure from the KMS, is an `EncryptionError`. Each keeps the kms-aead
+/// code.
+#[cfg(any(
+    feature = "ring",
+    feature = "aws-lc",
+    feature = "aws-lc-fips",
+    feature = "rustcrypto"
+))]
 impl From<kms_aead::errors::KmsAeadError> for SecretVaultError {
     fn from(e: kms_aead::errors::KmsAeadError) -> Self {
-        SecretVaultError::EncryptionError(SecretVaultEncryptionError::new(
-            SecretVaultErrorPublicGenericDetails::new(format!("{e:?}")),
-            format!("KMS error: {e}"),
-        ))
+        let public = SecretVaultErrorPublicGenericDetails::new(e.code().to_string());
+        let message = format!("kms-aead: {e}");
+        match e {
+            kms_aead::errors::KmsAeadError::NetworkError(_) => {
+                SecretVaultError::NetworkError(SecretVaultNetworkError::new(public, message))
+            }
+            kms_aead::errors::KmsAeadError::SystemError(_)
+            | kms_aead::errors::KmsAeadError::UnsupportedAlgorithm(_) => {
+                SecretVaultError::SystemError(SecretVaultSystemError::new(public, message))
+            }
+            _ => {
+                SecretVaultError::EncryptionError(SecretVaultEncryptionError::new(public, message))
+            }
+        }
     }
 }
 
@@ -388,5 +392,52 @@ impl From<hyper_util::client::legacy::Error> for SecretVaultError {
             "Unable to send the request to Vault",
             &e,
         ))
+    }
+}
+
+#[cfg(all(
+    test,
+    any(
+        feature = "ring",
+        feature = "aws-lc",
+        feature = "aws-lc-fips",
+        feature = "rustcrypto"
+    )
+))]
+mod tests {
+    use super::*;
+    use kms_aead::errors::{KmsAeadEncryptionError, KmsAeadNetworkError, KmsAeadSystemError};
+
+    #[test]
+    fn kms_network_error_is_a_network_error() {
+        let kms_error = KmsAeadNetworkError::create("Unavailable", "KMS did not answer");
+
+        let error = SecretVaultError::from(kms_error);
+
+        assert!(
+            matches!(&error, SecretVaultError::NetworkError(network) if network.public.code == "Unavailable")
+        );
+    }
+
+    #[test]
+    fn kms_system_error_is_a_system_error() {
+        let kms_error = KmsAeadSystemError::create("KMS_CLIENT", "KMS client cannot be built");
+
+        let error = SecretVaultError::from(kms_error);
+
+        assert!(
+            matches!(&error, SecretVaultError::SystemError(system) if system.public.code == "KMS_CLIENT")
+        );
+    }
+
+    #[test]
+    fn kms_encryption_error_is_an_encryption_error() {
+        let kms_error = KmsAeadEncryptionError::create("DECRYPT", "Value is not authentic");
+
+        let error = SecretVaultError::from(kms_error);
+
+        assert!(
+            matches!(&error, SecretVaultError::EncryptionError(encryption) if encryption.public.code == "DECRYPT")
+        );
     }
 }

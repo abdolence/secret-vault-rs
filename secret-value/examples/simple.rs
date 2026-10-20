@@ -14,7 +14,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Debug: {secret_value:?}, Display: {secret_value}");
 
     let length = secret_value.exposed_in_as_zstr(|password| password.len());
-    println!("Length from a zeroized copy: {length}");
+    println!("Length from a zeroised copy: {length}");
 
     let hex = secret_value.as_sensitive_hex_str();
     let from_hex = SecretValue::from_hex_str(hex.to_string())?;

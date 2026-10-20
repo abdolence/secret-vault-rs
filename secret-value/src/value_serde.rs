@@ -7,7 +7,7 @@ impl SecretValue {
     /// Parses the secret as JSON into `T`.
     ///
     /// The `Zeroize` bound lets the caller wipe the result, but the result is
-    /// not zeroized automatically: call `zeroize()` on it, or wrap it in
+    /// not zeroised automatically: call `zeroize()` on it, or wrap it in
     /// [`zeroize::Zeroizing`], once it is no longer needed.
     ///
     /// # Errors
@@ -38,7 +38,7 @@ impl SecretValue {
     }
 }
 
-/// Serializes the secret as a string.
+/// Serialises the secret as a string.
 ///
 /// Fails if the bytes are not valid UTF-8.
 impl Serialize for SecretValue {
@@ -93,7 +93,7 @@ impl<'de> Visitor<'de> for SecretValueVisitor {
     }
 }
 
-/// Deserializes the secret from a string or from bytes.
+/// Deserialises the secret from a string or from bytes.
 impl<'de> Deserialize<'de> for SecretValue {
     fn deserialize<D>(deserializer: D) -> Result<SecretValue, D::Error>
     where
