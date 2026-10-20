@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 pub type AzureKmsKeyRef = kms_aead::providers::AzureKmsKeyRef;
 pub type AzureKmsProviderOptions = kms_aead::providers::AzureKmsProviderOptions;
-pub type KmsKeyVersion = kms_aead::providers::KmsKeyVersion;
+pub type KekVersion = kms_aead::providers::KekVersion;
 
 /// Envelope encryption with a DEK per value, which an Azure Key Vault or Managed HSM key encrypts,
 /// with the values encrypted on the backend `B`.

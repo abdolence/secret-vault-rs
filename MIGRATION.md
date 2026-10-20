@@ -46,6 +46,7 @@ Creating the types with `new()`, `"name".into()`, `String::into()` and `parse()`
 - `GcpKmsEnvelopeEncryption` and `AwsKmsEnvelopeEncryption` are aliases of `kms_encryption::SecretVaultKmsEnvelopeEncryption<P, B>` with the KMS provider `P` and the backend `B`, and take the backend as a type parameter, for example `gcp::GcpKmsEnvelopeEncryption::<AwsLc>::new(&kms_key_ref).await?`;
 - the encryptions for Azure Key Vault and HashiCorp Vault Transit, `azure::AzureKmsEnvelopeEncryption<B>` and `hashicorp::HcVaultTransitEnvelopeEncryption<B>`, take the backend the same way, and their constructors are not `async`, so the `.await` of 3.0 code goes;
 - the 3.0 names `VaultTransitEnvelopeEncryption`, `VaultTransitKeyRef`, `VaultTransitProviderOptions` and `VaultTransitToken` are `HcVaultTransitEnvelopeEncryption`, `HcVaultTransitKeyRef`, `HcVaultTransitProviderOptions` and `HcVaultTransitToken`, the names of kms-aead 0.30;
+- the 3.0 `azure::KmsKeyVersion` is `azure::KekVersion`, and the `key_version` field of `AzureKmsKeyRef` is `kek_version`, set with `with_kek_version`, the names of kms-aead 0.30;
 - the AEAD encryption stores its values in kms-aead's `Bare` format and the KMS envelope encryption in its `Envelope` format, Tink's KMS envelope format.
 
 ## Custom encryption implementations
