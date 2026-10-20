@@ -141,7 +141,7 @@ hashicorp-vault-transit-tls-ring = ["hashicorp-vault-transit-base", "kms-aead/ha
 hashicorp-vault-transit = ["hashicorp-vault-transit-tls-roots", "hashicorp-vault-transit-tls-aws-lc-rs"]
 
 ahash = ["dep:ahash"]
-# OpenTelemetry metrics of the encryption of stored values, recorded by kms-aead
+# OpenTelemetry metrics of the KMS envelope encryption and the KMS calls, recorded by kms-aead; needs a KMS encryption feature such as gcp-kms
 opentelemetry = ["kms-aead?/opentelemetry"]
 
 [package.metadata.release]

@@ -4,7 +4,7 @@ use crate::*;
 use azure_core::credentials::TokenCredential;
 use std::sync::Arc;
 
-pub type AzureKmsAlgorithm = kms_aead::providers::AzureKmsAlgorithm;
+pub use kms_aead::providers::AzureKmsAlgorithm;
 pub type AzureKmsKeyRef = kms_aead::providers::AzureKmsKeyRef;
 pub type AzureKmsProviderOptions = kms_aead::providers::AzureKmsProviderOptions;
 pub type KekVersion = kms_aead::providers::KekVersion;
