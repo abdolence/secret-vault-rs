@@ -40,7 +40,7 @@ Library provides the support for the secrets coming to your application from the
 Cargo.toml:
 ```toml
 [dependencies]
-secret-vault = { version = "3.1", features=["..."] }
+secret-vault = { version = "3.2", features=["..."] }
 ```
 See the security consideration below about versioning.
 
@@ -101,52 +101,52 @@ A build may enable any number of them, and every KMS encryption feature above ne
 
 For GCP Secret Manager with the default TLS:
 ```toml
-secret-vault = { version = "3.1", features = ["gcp-secretmanager", "gcp"] }
+secret-vault = { version = "3.2", features = ["gcp-secretmanager", "gcp"] }
 ```
 
 For GCP Secret Manager with KMS encryption:
 ```toml
-secret-vault = { version = "3.1", features = ["gcp-secretmanager", "gcp-kms", "gcp", "aws-lc"] }
+secret-vault = { version = "3.2", features = ["gcp-secretmanager", "gcp-kms", "gcp", "aws-lc"] }
 ```
 
 For AWS Secrets Manager with KMS encryption:
 ```toml
-secret-vault = { version = "3.1", features = ["aws-secretmanager", "aws-kms-encryption", "aws-lc"] }
+secret-vault = { version = "3.2", features = ["aws-secretmanager", "aws-kms-encryption", "aws-lc"] }
 ```
 
 For Azure Key Vault:
 ```toml
-secret-vault = { version = "3.1", features = ["azure-keyvault"] }
+secret-vault = { version = "3.2", features = ["azure-keyvault"] }
 ```
 
 For Azure Key Vault with native TLS:
 ```toml
-secret-vault = { version = "3.1", features = ["azure-keyvault-native-tls"] }
+secret-vault = { version = "3.2", features = ["azure-keyvault-native-tls"] }
 ```
 
 For Azure Key Vault with Azure KMS encryption:
 ```toml
-secret-vault = { version = "3.1", features = ["azure-keyvault", "azure-kms", "aws-lc"] }
+secret-vault = { version = "3.2", features = ["azure-keyvault", "azure-kms", "aws-lc"] }
 ```
 
 For HashiCorp Vault with AEAD encryption:
 ```toml
-secret-vault = { version = "3.1", features = ["hashicorp-vault", "aws-lc"] }
+secret-vault = { version = "3.2", features = ["hashicorp-vault", "aws-lc"] }
 ```
 
 For HashiCorp Vault with WebPKI roots and the ring crypto provider:
 ```toml
-secret-vault = { version = "3.1", features = ["hashicorp-vault-tls-webpki", "hashicorp-vault-tls-ring"] }
+secret-vault = { version = "3.2", features = ["hashicorp-vault-tls-webpki", "hashicorp-vault-tls-ring"] }
 ```
 
 For HashiCorp Vault with Transit encryption:
 ```toml
-secret-vault = { version = "3.1", features = ["hashicorp-vault", "hashicorp-vault-transit", "aws-lc"] }
+secret-vault = { version = "3.2", features = ["hashicorp-vault", "hashicorp-vault-transit", "aws-lc"] }
 ```
 
 For GCP Secret Manager with WebPKI and serde support:
 ```toml
-secret-vault = { version = "3.1", features = ["gcp-secretmanager", "gcp-tls-webpki", "serde"] }
+secret-vault = { version = "3.2", features = ["gcp-secretmanager", "gcp-tls-webpki", "serde"] }
 ```
 
 Note: Each group of TLS features above needs one feature when its source or encryption is used. The features of a group are mutually exclusive and cannot be enabled simultaneously.
@@ -505,7 +505,7 @@ Then you have two options for configuration/version management:
   (or your own implementation) without redeploys.
 
 ## Migrating from 2.x
-The breaking changes from 2.x to 3.1 and their replacements are listed in [MIGRATION.md](MIGRATION.md), and 3.0 users follow the same guide.
+The breaking changes from 2.x to 3.1 and from 3.1 to 3.2, and their replacements, are listed in [MIGRATION.md](MIGRATION.md), and 3.0 users follow the same guide.
 
 ## Licence
 Apache Software License (ASL)

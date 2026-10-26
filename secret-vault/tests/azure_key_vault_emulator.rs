@@ -224,7 +224,7 @@ mod kms {
     use azure_security_keyvault_keys::{KeyClient, KeyClientOptions};
     use rvstruct::ValueStruct;
     use secret_vault::azure::{
-        AzureKmsEnvelopeEncryption, AzureKmsKeyRef, AzureKmsProviderOptions, KekVersion,
+        AzureKmsEnvelopeEncryption, AzureKmsKeyRef, AzureKmsProviderOptions, KmsKeyVersion,
     };
     use secret_vault::backends::AwsLc;
     use secret_vault_value::SecretValue;
@@ -239,7 +239,7 @@ mod kms {
 
     /// Creates an RSA key and returns its version: Lowkey Vault wraps only with an explicit
     /// key version.
-    async fn create_rsa_key(vault_url: &str, key_name: &str) -> KekVersion {
+    async fn create_rsa_key(vault_url: &str, key_name: &str) -> KmsKeyVersion {
         let client = KeyClient::new(
             vault_url,
             Arc::new(EmulatorCredential),
@@ -268,7 +268,7 @@ mod kms {
             .unwrap()
             .into_model()
             .unwrap();
-        KekVersion::try_from(key.resource_id().unwrap().version.unwrap()).unwrap()
+        KmsKeyVersion::try_from(key.resource_id().unwrap().version.unwrap()).unwrap()
     }
 
     #[tokio::test]

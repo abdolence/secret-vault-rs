@@ -1,3 +1,32 @@
+# Migrating from 3.1 to 3.2
+
+secret-vault 3.2 is built on kms-aead 0.31.
+The vault keeps values in memory only, so no stored data needs to be migrated.
+The features, the minimum supported Rust version (1.99) and the encrypted values are the same as in 3.1.
+
+## kms-aead
+
+An application that depends on kms-aead beside secret-vault moves to kms-aead 0.31 as well, since the types below are kms-aead's own and Cargo would otherwise build two copies of the crate:
+
+- `backends::AeadBackend`, `Ring`, `AwsLc` and `RustCrypto`;
+- `encryption::AeadAlgorithm`;
+- the key references, options and algorithm of the KMS encryptions: `gcp::GcpKmsKeyRef`, `aws::AwsKmsKeyRef`, `azure::AzureKmsKeyRef`, `azure::AzureKmsProviderOptions`, `azure::AzureKmsAlgorithm`, `hashicorp::HcVaultTransitKeyRef`, `hashicorp::HcVaultTransitProviderOptions` and `hashicorp::HcVaultTransitToken`;
+- the `From` and `TryFrom` conversions between `EncryptedSecretValue` and kms-aead's `Encrypted<SecretValue, F>`.
+
+kms-aead 0.31 removes its `serde` and `serde-json` features. secret-vault never enabled them, so no feature of secret-vault changes.
+
+The AWS sources, Secrets Manager and the KMS encryption, read the session of `aws login` in the default credentials chain.
+
+## Renamed items
+
+- `azure::KekVersion` is `azure::KmsKeyVersion`, the new name of the kms-aead type; the `kek_version` field of `AzureKmsKeyRef` and `with_kek_version` keep their names;
+- a custom provider for `kms_encryption::SecretVaultKmsEnvelopeEncryption<P, B>` implements `KmsAeadDecryptionProvider` as well as `KmsAeadEncryptionProvider`, since kms-aead 0.31 moves `decrypt_data_encryption_key` into the first trait.
+
+## Audit finding with the rustcrypto feature
+
+The `rustcrypto` feature brings in the `rsa` crate through kms-aead 0.31, and `cargo audit` reports an advisory against it.
+The advisory concerns private-key operations of a local asymmetric KEK on RustCrypto, which secret-vault does not use, so a project that audits its dependencies lists it as ignored.
+
 # Migrating from 2.x to 3.1
 
 secret-vault 3.1 is built on kms-aead 0.30 and no longer depends on ring.
