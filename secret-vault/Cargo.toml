@@ -36,7 +36,7 @@ serde = { version = "1", features = ["derive"], optional = true }
 gcloud-sdk = { version = "0.33", default-features = false, optional = true }
 aws-config = { version = "1", optional = true }
 aws-sdk-secretsmanager = { version = "1", optional = true, default-features = false, features = ["default-https-client", "rt-tokio"] }
-kms-aead = { version = "0.30", optional = true }
+kms-aead = { version = "0.31", optional = true }
 ahash = { version = "0.8", optional = true }
 azure_core = { version = "1.1", optional = true, default-features = false, features = ["reqwest", "tokio"] }
 azure_security_keyvault_secrets = { version = "1.0.1", optional = true, default-features = false }
