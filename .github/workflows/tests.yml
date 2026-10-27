@@ -91,6 +91,20 @@ jobs:
             fi
           done
           cargo clippy --workspace --all-targets --features "$FEATURES" -- -Dwarnings
+  # The Secrets Manager source without a KMS encryption feature, so it builds on the aws-config
+  # features secret-vault selects itself and not on those kms-aead enables.
+  aws-secretmanager-alone:
+    name: aws-secretmanager alone
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: clippy
+      - name: Run checks
+        run: cargo clippy -p secret-vault --all-targets --features aws-secretmanager -- -Dwarnings
   vault-transit-live:
     name: vault-transit-live
     runs-on: ubuntu-latest

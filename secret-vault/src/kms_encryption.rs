@@ -2,7 +2,7 @@ use crate::backends::AeadBackend;
 use crate::*;
 use async_trait::async_trait;
 use kms_aead::formats::Envelope;
-use kms_aead::{Encrypted, KmsAeadEncryptionProvider, KmsAeadEnvelope, KmsAeadEnvelopeOptions};
+use kms_aead::{Encrypted, KmsAeadDecryptionProvider, KmsAeadEnvelope, KmsAeadEnvelopeOptions};
 
 use secret_vault_value::SecretValue;
 
@@ -22,7 +22,7 @@ pub struct SecretVaultKmsEnvelopeEncryption<P, B> {
 
 impl<P, B> SecretVaultKmsEnvelopeEncryption<P, B>
 where
-    P: KmsAeadEncryptionProvider,
+    P: KmsAeadDecryptionProvider,
     B: AeadBackend,
 {
     pub(crate) fn with_provider(provider: P) -> SecretVaultResult<Self> {
@@ -37,7 +37,7 @@ where
 #[async_trait]
 impl<P, B> SecretVaultEncryption for SecretVaultKmsEnvelopeEncryption<P, B>
 where
-    P: KmsAeadEncryptionProvider,
+    P: KmsAeadDecryptionProvider,
     B: AeadBackend,
 {
     async fn encrypt_value(
