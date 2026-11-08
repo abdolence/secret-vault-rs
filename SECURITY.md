@@ -1,38 +1,36 @@
-# Security Policy
+# Security policy
 
-## Reporting a Vulnerability
+## Reporting a vulnerability
 
-Please follow general guidelines defined here:
-https://cheatsheetseries.owasp.org/cheatsheets/Vulnerability_Disclosure_Cheat_Sheet.html
+Please follow the general guidelines of the [OWASP Vulnerability Disclosure Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Vulnerability_Disclosure_Cheat_Sheet.html).
 
 ## Security considerations and risks
 
 ### OSS
+
 Open source code is created through voluntary collaboration of software developers.
-The original authors license the code so that anyone can see it, modify it, and
-distribute new versions of it.
-You should manage all OSS using the same procedures and tools that you use for
-commercial products. As always, train your employees on
-cyber security best practices that can help them securely
-use and manage software products.
-You should not solely rely on individuals, especially on the projects like this
-reading sensitive information.
+The original authors license the code so that anyone can see it, modify it and distribute new versions of it.
+
+Manage all OSS with the same procedures and tools that you use for commercial products.
+Train your employees on cyber security best practices that help them use and manage software products securely.
+
+Do not rely solely on individuals who read sensitive information, especially in projects like this one.
 
 ### Versioning
-Please don't use broad version dependency management not to include
-a new version of dependency automatically without your auditing the changes.
+
+Do not use broad dependency version ranges. They pull in new versions of a dependency automatically, before you have audited the changes.
 
 ### Protect your secrets in GCP/AWS using IAM and service accounts
-Don't expose all of your secrets to the apps.
-Use IAM and different service accounts to give access only on as-needed basis.
 
-### Zeroing, protecting memory and encryption don't provide 100% safety
-There are still allocations on the protocol layers, there is
-a session secret key available in memory, privileged users on OS still
-have broad access, etc.
-So don't consider this is a completely safe solution for all possible attacks.
-Mitigation some of the attacks is not possible without implementing
-additional support on hardware/OS level (such as Intel SGX project, for instance).
+Do not expose all of your secrets to the apps.
+Use IAM and different service accounts to give access only on an as-needed basis.
+
+### Zeroing, protecting memory and encryption do not provide 100% safety
+
+There are still allocations on the protocol layers, a session secret key is available in memory, privileged OS users still have broad access, etc.
+Do not consider this a completely safe solution for all possible attacks.
+Mitigating some of the attacks is not possible without additional support at the hardware or OS level, such as Intel SGX, which runs code in a hardware-isolated enclave.
 
 ## Contacts
-E-mail: me@abdolence.dev
+
+Email: [me@abdolence.dev](mailto:me@abdolence.dev)
