@@ -1,3 +1,28 @@
+# Migrating from 3.2 to 3.3
+
+secret-vault 3.3 is built on jiff 1.0, kms-aead 0.33 and gcloud-sdk 0.34.
+No function, type or feature of secret-vault changes its shape, and the vault keeps values in memory only, so no stored data needs to be migrated.
+The features, the minimum supported Rust version (1.99) and the encrypted values are the same as in 3.2.
+
+## jiff
+
+jiff 1.0 types appear in the public API of secret-vault:
+
+- `SecretMetadata::cached_at`, `created_at` and `updated_at` are `jiff::Timestamp`;
+- `SecretExpiration::ExpireTime` holds a `jiff::Timestamp` and `SecretExpiration::Ttl` a `jiff::SignedDuration`.
+
+An application that names these types, or passes them to its own code, moves its `jiff` dependency to `"1"`, since a `Timestamp` of jiff 0.2 is a different type and does not compile in their place.
+jiff 1.0 renames `Zoned` to `ZonedDateTime` and `to_zoned` to `to_zoned_datetime`, `Timestamp - Timestamp` returns a `SignedDuration`, and the conversion from a `Timestamp` to a `SystemTime` is fallible.
+The [jiff changelog](https://github.com/BurntSushi/jiff/blob/master/CHANGELOG.md) lists the other changes.
+
+## kms-aead and gcloud-sdk
+
+An application that depends on kms-aead or gcloud-sdk beside secret-vault moves to kms-aead 0.33 and gcloud-sdk 0.34 as well, since Cargo would otherwise build two copies of each crate.
+The kms-aead types that secret-vault exposes are the same as in 3.2, and the [kms-aead migration guide](https://github.com/abdolence/kms-aead-rs/blob/master/MIGRATION.md) lists what changes between kms-aead 0.31 and 0.33.
+
+gcloud-sdk 0.34 depends on `google-cloud-auth`, which still depends on jiff 0.2, so a build compiles both versions of jiff with the GCP features.
+No type of jiff 0.2 is exposed, so the second copy only costs build time.
+
 # Migrating from 3.1 to 3.2
 
 secret-vault 3.2 is built on kms-aead 0.31.
