@@ -20,7 +20,7 @@ The [jiff changelog](https://github.com/BurntSushi/jiff/blob/master/CHANGELOG.md
 An application that depends on kms-aead or gcloud-sdk beside secret-vault moves to kms-aead 0.33 and gcloud-sdk 0.34 as well, since Cargo would otherwise build two copies of each crate.
 The kms-aead types that secret-vault exposes are the same as in 3.2, and the [kms-aead migration guide](https://github.com/abdolence/kms-aead-rs/blob/master/MIGRATION.md) lists what changes between kms-aead 0.31 and 0.33.
 
-gcloud-sdk 0.34 depends on `google-cloud-auth`, which still depends on jiff 0.2, so a build compiles both versions of jiff with the GCP features.
+gcloud-sdk 0.34 depends on `google-cloud-auth` 1.19, which depends on jiff 0.2, so a build compiles both versions of jiff with the GCP features.
 No type of jiff 0.2 is exposed, so the second copy only costs build time.
 
 # Migrating from 3.1 to 3.2
